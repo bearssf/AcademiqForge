@@ -24,10 +24,26 @@
       align-items: center;
       z-index: 10;
     }
+    .welcome-box {
+      background: #111;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 0.6rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
     .header .welcome {
       color: #fff;
       font-size: 1rem;
+      font-weight: 500;
     }
+    .sign-out {
+      color: #888;
+      font-size: 0.85rem;
+      text-decoration: none;
+    }
+    .sign-out:hover { color: #f0c674; text-decoration: underline; }
     .login-box {
       background: #111;
       border: 1px solid #333;
@@ -88,10 +104,11 @@
 <body>
   <header class="header">
     <% if (user) { %>
-      <span class="welcome">Welcome, <%= user.firstName %>.</span>
-      <form action="/logout" method="post" style="margin-left: 1rem;">
-        <button type="submit">Sign out</button>
-      </form>
+      <div class="welcome-box">
+        <span class="welcome">Welcome, <%= user.firstName %></span>
+        <a href="#" onclick="document.getElementById('logout-form').submit(); return false;" class="sign-out">Sign out</a>
+      </div>
+      <form id="logout-form" action="/logout" method="post" style="display: none;"><button type="submit">Sign out</button></form>
     <% } else { %>
       <div class="login-box">
         <form action="/login" method="post" style="display: contents;">
