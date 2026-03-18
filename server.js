@@ -66,7 +66,7 @@ async function ensurePayPalProductAndPlans() {
   let productId = null;
   if (!monthlyPlanId) {
     const productPayload = { name: 'CollectorAnalytics Membership', description: 'Members-only access', type: 'SERVICE' };
-    const { data: product } = await axios.post(`${PAYPAL_BASE}/v1/catalog/products`, productPayload, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
+    const { data: product } = await axios.post(`${PAYPAL_BASE}/v1/catalogs/products`, productPayload, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
     productId = product.id;
     const monthlyPlanPayload = {
       product_id: productId,
