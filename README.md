@@ -25,9 +25,23 @@ Home page with centered logo and user login/registration backed by SQL Server.
 
 Passwords are hashed with bcrypt. Subscription state is stored in the `subscriptions` table and kept in sync via Stripe webhooks.
 
-### Stripe setup (subscriptions)
+### Subscription prices
+
+- **Monthly:** $0.01/month (card via Stripe or PayPal).
+- **Yearly:** $0.02/year (card via Stripe or PayPal).
+
+### Stripe setup (card payments)
 
 1. Create a [Stripe](https://stripe.com) account and get your **Secret key** (Dashboard → Developers → API keys).
-2. Create two **Products** with recurring **Prices**: one $9.99/month, one $99.99/year. Copy each Price ID (starts with `price_`).
+2. Create two **Products** with recurring **Prices**: one $0.01/month, one $0.02/year. Copy each Price ID (starts with `price_`).
 3. In `.env` set: `STRIPE_SECRET_KEY`, `STRIPE_MONTHLY_PRICE_ID`, `STRIPE_YEARLY_PRICE_ID`.
-4. For production: add a **Webhook** endpoint (e.g. `https://your-app.onrender.com/webhooks/stripe`) listening for `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`. Set `STRIPE_WEBHOOK_SECRET` to the signing secret. Set `BASE_URL` to your app URL for checkout redirects.
+4. For production: add a **Webhook** endpoint (e.g. `https://your-app.onrender.com/webhooks/stripe`) for `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`. Set `STRIPE_WEBHOOK_SECRET`. Set `BASE_URL` to your app URL.
+
+### PayPal setup (payments to your PayPal account)
+
+Payments go to the **PayPal account that owns the app** (the account whose credentials you use). To receive payments at **ftbearss@aol.com**:
+
+1. Log in at [developer.paypal.com](https://developer.paypal.com) with the PayPal account that will receive the money (ftbearss@aol.com).
+2. Create an **App** (Dashboard → Apps & Credentials → Create App). Copy **Client ID** and **Secret**.
+3. In `.env` set: `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`. Use `PAYPAL_MODE=sandbox` for testing, `PAYPAL_MODE=live` for production.
+4. The app creates the $0.01/month and $0.02/year subscription plans in PayPal automatically on first use. Set `BASE_URL` for correct return URLs.

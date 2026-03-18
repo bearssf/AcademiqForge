@@ -42,7 +42,10 @@
     .plan h2 { margin: 0 0 0.5rem; font-size: 1.25rem; }
     .plan .price { font-size: 1.75rem; color: #f0c674; margin-bottom: 0.5rem; }
     .plan .period { color: #888; font-size: 0.9rem; margin-bottom: 1rem; }
-    .plan form { margin-top: 1rem; }
+    .plan form { margin-top: 0.5rem; }
+    .plan .pay-method { font-size: 0.8rem; color: #888; margin: 1rem 0 0.25rem; }
+    .plan .btn-paypal { background: #003087; }
+    .plan .btn-paypal:hover { background: #004c9b; }
     .plan button {
       width: 100%;
       padding: 0.75rem;
@@ -67,28 +70,40 @@
 
   <h1>Membership</h1>
   <p class="subtitle">Get access to the members-only area. Cancel anytime.</p>
-  <% if (error === 'checkout') { %>
-    <p class="error-msg">Checkout could not be started. Please try again.</p>
+  <% if (error === 'checkout' || error === 'paypal') { %>
+    <p class="error-msg">Payment could not be started. Please try again.</p>
   <% } %>
 
   <div class="plans">
     <div class="plan">
       <h2>Monthly</h2>
-      <div class="price">$9.99</div>
+      <div class="price">$0.01</div>
       <div class="period">per month</div>
+      <p class="pay-method">Card (Stripe)</p>
       <form action="/create-checkout-session" method="post">
         <input type="hidden" name="plan" value="monthly" />
-        <button type="submit">Subscribe monthly</button>
+        <button type="submit">Subscribe with card</button>
+      </form>
+      <p class="pay-method">PayPal</p>
+      <form action="/subscribe/paypal/start" method="get">
+        <input type="hidden" name="plan" value="monthly" />
+        <button type="submit" class="btn-paypal">Subscribe with PayPal</button>
       </form>
     </div>
     <div class="plan yearly">
       <h2>Yearly</h2>
-      <div class="price">$99.99</div>
+      <div class="price">$0.02</div>
       <div class="period">per year</div>
-      <div class="savings">Save about $20 vs monthly</div>
+      <div class="savings">Save 50% vs monthly</div>
+      <p class="pay-method">Card (Stripe)</p>
       <form action="/create-checkout-session" method="post">
         <input type="hidden" name="plan" value="yearly" />
-        <button type="submit">Subscribe yearly</button>
+        <button type="submit">Subscribe with card</button>
+      </form>
+      <p class="pay-method">PayPal</p>
+      <form action="/subscribe/paypal/start" method="get">
+        <input type="hidden" name="plan" value="yearly" />
+        <button type="submit" class="btn-paypal">Subscribe with PayPal</button>
       </form>
     </div>
   </div>

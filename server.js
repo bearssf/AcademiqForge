@@ -5,10 +5,100 @@ const sql = require('mssql');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const Stripe = require('stripe');
+const axios = require('axios');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2023-10-16' }) : null;
+
+const PAYPAL_BASE = process.env.PAYPAL_MODE === 'live' ? 'https://api-m.paypal.com' : 'https://api-m.sandbox.paypal.com';
+let paypalAccessToken = null;
+let paypalTokenExpiry = 0;
+
+async function getPayPalAccessToken() {
+  if (paypalAccessToken && Date.now() < paypalTokenExpiry) return paypalAccessToken;
+  const clientId = process.env.PAYPAL_CLIENT_ID;
+  const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return null;
+  const { data } = await axios.post(
+    `${PAYPAL_BASE}/v1/oauth2/token`,
+    'grant_type=client_credentials',
+    {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      auth: { username: clientId, password: clientSecret },
+    }
+  );
+  paypalAccessToken = data.access_token;
+  paypalTokenExpiry = Date.now() + (data.expires_in - 60) * 1000;
+  return paypalAccessToken;
+}
+
+async function getPayPalPlanId(planType) {
+  const p = await getPool();
+  const r = await p.request().input('plan_type', sql.NVarChar(20), planType).query('SELECT plan_id FROM paypal_plans WHERE plan_type = @plan_type');
+  return r.recordset[0]?.plan_id || null;
+}
+
+async function ensurePayPalPlansTable() {
+  const p = await getPool();
+  await p.request().query(`
+    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'paypal_plans')
+    CREATE TABLE paypal_plans ( id INT IDENTITY(1,1) PRIMARY KEY, plan_type NVARCHAR(20) NOT NULL UNIQUE, plan_id NVARCHAR(50) NOT NULL );
+  `);
+}
+
+async function ensurePayPalProductAndPlans() {
+  const token = await getPayPalAccessToken();
+  if (!token) return;
+  const p = await getPool();
+  let monthlyPlanId = await getPayPalPlanId('monthly');
+  let yearlyPlanId = await getPayPalPlanId('yearly');
+  if (monthlyPlanId && yearlyPlanId) return;
+
+  let productId = null;
+  if (!monthlyPlanId) {
+    const productPayload = { name: 'CollectorAnalytics Membership', description: 'Members-only access', type: 'SERVICE' };
+    const { data: product } = await axios.post(`${PAYPAL_BASE}/v1/catalog/products`, productPayload, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
+    productId = product.id;
+    const monthlyPlanPayload = {
+      product_id: productId,
+      name: 'Monthly',
+      status: 'ACTIVE',
+      billing_cycles: [{
+        frequency: { interval_unit: 'MONTH', interval_count: 1 },
+        tenure_type: 'REGULAR',
+        sequence: 1,
+        total_cycles: 0,
+        pricing_scheme: { fixed_price: { value: '0.01', currency_code: 'USD' } },
+      }],
+      payment_preferences: { auto_bill_outstanding: true, payment_failure_threshold: 3 },
+    };
+    const { data: monthlyPlan } = await axios.post(`${PAYPAL_BASE}/v1/billing/plans`, monthlyPlanPayload, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
+    monthlyPlanId = monthlyPlan.id;
+    await p.request().input('plan_type', sql.NVarChar(20), 'monthly').input('plan_id', sql.NVarChar(50), monthlyPlanId).query('INSERT INTO paypal_plans (plan_type, plan_id) VALUES (@plan_type, @plan_id)');
+  } else {
+    const { data: plan } = await axios.get(`${PAYPAL_BASE}/v1/billing/plans/${monthlyPlanId}`, { headers: { Authorization: `Bearer ${token}` } });
+    productId = plan.product_id;
+  }
+  if (!yearlyPlanId) {
+    const yearlyPlanPayload = {
+      product_id: productId,
+      name: 'Yearly',
+      status: 'ACTIVE',
+      billing_cycles: [{
+        frequency: { interval_unit: 'YEAR', interval_count: 1 },
+        tenure_type: 'REGULAR',
+        sequence: 1,
+        total_cycles: 0,
+        pricing_scheme: { fixed_price: { value: '0.02', currency_code: 'USD' } },
+      }],
+      payment_preferences: { auto_bill_outstanding: true, payment_failure_threshold: 3 },
+    };
+    const { data: yearlyPlan } = await axios.post(`${PAYPAL_BASE}/v1/billing/plans`, yearlyPlanPayload, { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } });
+    yearlyPlanId = yearlyPlan.id;
+    await p.request().input('plan_type', sql.NVarChar(20), 'yearly').input('plan_id', sql.NVarChar(50), yearlyPlanId).query('INSERT INTO paypal_plans (plan_type, plan_id) VALUES (@plan_type, @plan_id)');
+  }
+}
 
 const dbConfig = {
   server: process.env.DB_HOST,
@@ -61,8 +151,8 @@ app.post('/webhooks/stripe', express.raw({ type: 'application/json' }), (req, re
         .query(`
           MERGE subscriptions AS t
           USING (SELECT @user_id AS user_id) AS s ON t.user_id = s.user_id
-          WHEN MATCHED THEN UPDATE SET stripe_customer_id = @stripe_customer_id, stripe_subscription_id = @stripe_subscription_id, [plan] = @plan, status = @status, current_period_end = @current_period_end, updated_at = GETDATE()
-          WHEN NOT MATCHED THEN INSERT (user_id, stripe_customer_id, stripe_subscription_id, [plan], status, current_period_end) VALUES (@user_id, @stripe_customer_id, @stripe_subscription_id, @plan, @status, @current_period_end);
+          WHEN MATCHED THEN UPDATE SET stripe_customer_id = @stripe_customer_id, stripe_subscription_id = @stripe_subscription_id, paypal_subscription_id = NULL, [plan] = @plan, status = @status, current_period_end = @current_period_end, updated_at = GETDATE()
+          WHEN NOT MATCHED THEN INSERT (user_id, stripe_customer_id, stripe_subscription_id, paypal_subscription_id, [plan], status, current_period_end) VALUES (@user_id, @stripe_customer_id, @stripe_subscription_id, NULL, @plan, @status, @current_period_end);
         `);
     } else if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
       const sub = event.data.object;
@@ -124,6 +214,7 @@ async function ensureSubscriptionsTable() {
       user_id INT NOT NULL UNIQUE,
       stripe_customer_id NVARCHAR(255) NULL,
       stripe_subscription_id NVARCHAR(255) NULL,
+      paypal_subscription_id NVARCHAR(255) NULL,
       [plan] NVARCHAR(20) NOT NULL,
       status NVARCHAR(20) NOT NULL,
       current_period_end DATETIME2 NULL,
@@ -132,6 +223,9 @@ async function ensureSubscriptionsTable() {
       CONSTRAINT fk_sub_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
   `);
+  if (await p.request().query(`SELECT COL_LENGTH('subscriptions','paypal_subscription_id') AS cl`).then(r => r.recordset[0].cl === null)) {
+    await p.request().query(`ALTER TABLE subscriptions ADD paypal_subscription_id NVARCHAR(255) NULL`);
+  }
 }
 
 async function getSubscription(userId) {
@@ -146,6 +240,7 @@ app.use(async (req, res, next) => {
   try {
     await ensureUsersTable();
     await ensureSubscriptionsTable();
+    await ensurePayPalPlansTable();
     next();
   } catch (err) {
     console.error('DB init error:', err.message);
@@ -214,6 +309,79 @@ app.post('/create-checkout-session', requireAuth, async (req, res) => {
     console.error('Checkout error:', err.message);
     res.redirect('/subscribe?error=checkout');
   }
+});
+
+app.get('/subscribe/paypal/start', requireAuth, async (req, res) => {
+  const plan = req.query.plan === 'yearly' ? 'yearly' : 'monthly';
+  const token = await getPayPalAccessToken();
+  if (!token) return res.redirect('/subscribe?error=paypal');
+  try {
+    await ensurePayPalProductAndPlans();
+  } catch (e) {
+    console.error('PayPal plans error:', e.message);
+    return res.redirect('/subscribe?error=paypal');
+  }
+  const planId = await getPayPalPlanId(plan);
+  if (!planId) return res.redirect('/subscribe?error=paypal');
+  const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+  const user = req.session.user;
+  try {
+    const { data } = await axios.post(
+      `${PAYPAL_BASE}/v1/billing/subscriptions`,
+      {
+        plan_id: planId,
+        custom_id: String(user.id),
+        application_context: {
+          brand_name: 'CollectorAnalytics',
+          return_url: `${baseUrl}/subscribe/paypal/return?user_id=${user.id}`,
+          cancel_url: `${baseUrl}/subscribe`,
+        },
+      },
+      { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }
+    );
+    const approveLink = data.links?.find((l) => l.rel === 'approve')?.href;
+    if (approveLink) return res.redirect(302, approveLink);
+  } catch (err) {
+    console.error('PayPal subscription create error:', err.response?.data || err.message);
+    return res.redirect('/subscribe?error=paypal');
+  }
+  res.redirect('/subscribe?error=paypal');
+});
+
+app.get('/subscribe/paypal/return', requireAuth, async (req, res) => {
+  const subscriptionId = req.query.subscription_id;
+  if (!subscriptionId) return res.redirect('/subscribe');
+  const token = await getPayPalAccessToken();
+  if (!token) return res.redirect('/subscribe?error=paypal');
+  try {
+    const { data: sub } = await axios.get(`${PAYPAL_BASE}/v1/billing/subscriptions/${subscriptionId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const userId = parseInt(req.query.user_id || sub.custom_id || '0', 10);
+    if (!userId || userId !== req.session.user.id) return res.redirect('/subscribe');
+    const status = sub.status === 'ACTIVE' || sub.status === 'APPROVAL_PENDING' ? 'active' : (sub.status || '').toLowerCase();
+    const yearlyPlanId = await getPayPalPlanId('yearly');
+    const plan = sub.plan_id === yearlyPlanId ? 'yearly' : 'monthly';
+    let periodEnd = null;
+    if (sub.billing_info?.next_billing_time) periodEnd = new Date(sub.billing_info.next_billing_time);
+    const p = await getPool();
+    await p.request()
+      .input('user_id', sql.Int, userId)
+      .input('paypal_subscription_id', sql.NVarChar(255), subscriptionId)
+      .input('plan', sql.NVarChar(20), plan)
+      .input('status', sql.NVarChar(20), status)
+      .input('current_period_end', sql.DateTime2, periodEnd)
+      .query(`
+        MERGE subscriptions AS t
+        USING (SELECT @user_id AS user_id) AS s ON t.user_id = s.user_id
+        WHEN MATCHED THEN UPDATE SET stripe_customer_id = NULL, stripe_subscription_id = NULL, paypal_subscription_id = @paypal_subscription_id, [plan] = @plan, status = @status, current_period_end = @current_period_end, updated_at = GETDATE()
+        WHEN NOT MATCHED THEN INSERT (user_id, paypal_subscription_id, [plan], status, current_period_end) VALUES (@user_id, @paypal_subscription_id, @plan, @status, @current_period_end);
+      `);
+  } catch (err) {
+    console.error('PayPal return error:', err.response?.data || err.message);
+    return res.redirect('/subscribe?error=paypal');
+  }
+  res.redirect('/subscribe/success');
 });
 
 app.get('/subscribe/success', requireAuth, async (req, res) => {
