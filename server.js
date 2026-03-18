@@ -61,8 +61,8 @@ app.post('/webhooks/stripe', express.raw({ type: 'application/json' }), (req, re
         .query(`
           MERGE subscriptions AS t
           USING (SELECT @user_id AS user_id) AS s ON t.user_id = s.user_id
-          WHEN MATCHED THEN UPDATE SET stripe_customer_id = @stripe_customer_id, stripe_subscription_id = @stripe_subscription_id, plan = @plan, status = @status, current_period_end = @current_period_end, updated_at = GETDATE()
-          WHEN NOT MATCHED THEN INSERT (user_id, stripe_customer_id, stripe_subscription_id, plan, status, current_period_end) VALUES (@user_id, @stripe_customer_id, @stripe_subscription_id, @plan, @status, @current_period_end);
+          WHEN MATCHED THEN UPDATE SET stripe_customer_id = @stripe_customer_id, stripe_subscription_id = @stripe_subscription_id, [plan] = @plan, status = @status, current_period_end = @current_period_end, updated_at = GETDATE()
+          WHEN NOT MATCHED THEN INSERT (user_id, stripe_customer_id, stripe_subscription_id, [plan], status, current_period_end) VALUES (@user_id, @stripe_customer_id, @stripe_subscription_id, @plan, @status, @current_period_end);
         `);
     } else if (event.type === 'customer.subscription.updated' || event.type === 'customer.subscription.deleted') {
       const sub = event.data.object;
@@ -75,7 +75,7 @@ app.post('/webhooks/stripe', express.raw({ type: 'application/json' }), (req, re
         .input('status', sql.NVarChar(20), sub.status)
         .input('current_period_end', sql.DateTime2, periodEnd)
         .query(`
-          UPDATE subscriptions SET plan = @plan, status = @status, current_period_end = @current_period_end, updated_at = GETDATE() WHERE stripe_subscription_id = @stripe_subscription_id
+          UPDATE subscriptions SET [plan] = @plan, status = @status, current_period_end = @current_period_end, updated_at = GETDATE() WHERE stripe_subscription_id = @stripe_subscription_id
         `);
     }
   })().catch((err) => console.error('Webhook handler error:', err));
@@ -124,7 +124,7 @@ async function ensureSubscriptionsTable() {
       user_id INT NOT NULL UNIQUE,
       stripe_customer_id NVARCHAR(255) NULL,
       stripe_subscription_id NVARCHAR(255) NULL,
-      plan NVARCHAR(20) NOT NULL,
+      [plan] NVARCHAR(20) NOT NULL,
       status NVARCHAR(20) NOT NULL,
       current_period_end DATETIME2 NULL,
       created_at DATETIME2 DEFAULT GETDATE(),
@@ -137,7 +137,7 @@ async function ensureSubscriptionsTable() {
 async function getSubscription(userId) {
   const p = await getPool();
   const r = await p.request().input('user_id', sql.Int, userId).query(`
-    SELECT plan, status, current_period_end FROM subscriptions WHERE user_id = @user_id AND status = 'active' AND (current_period_end IS NULL OR current_period_end > GETDATE())
+    SELECT [plan], status, current_period_end FROM subscriptions WHERE user_id = @user_id AND status = 'active' AND (current_period_end IS NULL OR current_period_end > GETDATE())
   `);
   return r.recordset[0] || null;
 }
