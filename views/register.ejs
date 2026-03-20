@@ -6,32 +6,93 @@
   <title>Create account – AcademiqForge</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --bg: #0a0a0a;
+      --card: #121212;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #f5f5f5;
+      --muted: #9ca3af;
+      --primary: #2b82f6;
+      --primary-hover: #4b93f7;
+    }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100vh;
-      background: linear-gradient(165deg, #1a6fa8 0%, #0d4a72 42%, #083654 100%);
-      font-family: 'Libre Baskerville', Georgia, serif;
-      color: #fff;
-      padding: 2rem 1rem 3rem;
+      background-color: var(--bg);
+      background-image:
+        radial-gradient(ellipse 70% 50% at 20% 20%, rgba(43, 130, 246, 0.1) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 40% at 85% 75%, rgba(43, 130, 246, 0.06) 0%, transparent 45%);
+      color: var(--text);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      padding: 0 1.25rem 3rem;
     }
-    .wrap {
-      max-width: 480px;
+    a { color: inherit; }
+
+    .shell {
+      max-width: 520px;
       margin: 0 auto;
     }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 0 1.5rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      text-decoration: none;
+    }
+    .brand-mark {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: #141414;
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .brand-mark span {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 12px rgba(43, 130, 246, 0.5);
+    }
+    .brand-name {
+      font-weight: 600;
+      font-size: 1rem;
+      letter-spacing: -0.02em;
+      color: #fff;
+    }
+    .topbar-link {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--muted);
+      text-decoration: none;
+    }
+    .topbar-link:hover { color: #e5e7eb; }
+
     .card {
-      background: rgba(0, 28, 52, 0.55);
-      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: var(--card);
+      border: 1px solid var(--border);
       border-radius: 12px;
       padding: 2rem;
     }
     h1 {
+      font-family: 'Libre Baskerville', Georgia, serif;
       margin: 0 0 1.25rem;
-      font-size: 1.4rem;
+      font-size: 1.5rem;
       font-weight: 400;
-      color: #e8e8e8;
+      color: #fafafa;
     }
     .form-group {
       margin-bottom: 1rem;
@@ -39,31 +100,37 @@
     .form-group label {
       display: block;
       margin-bottom: 0.35rem;
-      font-size: 0.85rem;
-      color: #b0b0b0;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--muted);
     }
     .form-group label .opt {
-      color: #666;
+      color: #6b7280;
       font-weight: 400;
     }
     .form-group input,
     .form-group select,
     .form-group textarea {
       width: 100%;
-      padding: 0.55rem 0.7rem;
-      border: 1px solid #3a3a3a;
-      border-radius: 6px;
-      background: #161616;
+      padding: 0.6rem 0.75rem;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      background: #0a0a0a;
       color: #fff;
       font-size: 0.95rem;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: inherit;
+    }
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: var(--primary);
     }
     .form-group textarea {
       min-height: 4.5rem;
       resize: vertical;
     }
-    .form-group input::placeholder { color: #666; }
+    .form-group input::placeholder { color: #6b7280; }
     .form-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -73,43 +140,51 @@
       .form-row { grid-template-columns: 1fr; }
     }
     .error {
-      color: #e07a7a;
+      color: #f87171;
       font-size: 0.9rem;
       margin-bottom: 1rem;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
     button[type="submit"] {
       width: 100%;
-      padding: 0.75rem;
-      background: #1a6cad;
+      padding: 0.7rem 1rem;
+      background: var(--primary);
       color: #fff;
       border: none;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 1rem;
+      font-weight: 600;
       cursor: pointer;
       margin-top: 0.5rem;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: inherit;
+      transition: background 0.15s;
     }
-    button[type="submit"]:hover { background: #3584e4; }
+    button[type="submit"]:hover { background: var(--primary-hover); }
     .back {
       display: inline-block;
-      margin-top: 1.25rem;
-      color: #56b4e9;
+      margin-top: 1.5rem;
+      color: var(--primary);
       font-size: 0.9rem;
       text-decoration: none;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-weight: 500;
     }
     .back:hover { text-decoration: underline; }
     .hint {
       font-size: 0.75rem;
-      color: #666;
+      color: #6b7280;
       margin-top: 0.35rem;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <div class="shell">
+    <header class="topbar">
+      <a href="/" class="brand" title="Home">
+        <div class="brand-mark" aria-hidden="true"><span></span></div>
+        <span class="brand-name">AcademiqForge</span>
+      </a>
+      <a href="/" class="topbar-link">← Home</a>
+    </header>
+
     <div class="card">
       <h1>Create account</h1>
       <% if (error) { %><p class="error"><%= error %></p><% } %>
