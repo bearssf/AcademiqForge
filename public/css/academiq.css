@@ -192,6 +192,22 @@ h1 {
   background: rgba(255, 255, 255, 0.03);
   margin-bottom: 1rem;
 }
+/* Home pillar cards: inner icon box + check (matches --blue / “Academiq” text) */
+.pillars-col .ico {
+  position: relative;
+  border: 1px solid rgba(47, 128, 237, 0.35);
+  background: rgba(47, 128, 237, 0.1);
+}
+.pillars-col .ico::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: 18px;
+  height: 18px;
+  background: no-repeat center / contain
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232f80ed' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E");
+}
 .card h3 {
   margin: 0;
   font-family: 'Libre Baskerville', Georgia, serif;
@@ -367,7 +383,7 @@ h2 {
   .hero-grid {
     grid-template-columns: minmax(0, 1.05fr) minmax(280px, 520px);
     gap: 3rem;
-    align-items: start;
+    align-items: center;
   }
   .product { grid-template-columns: 460px minmax(0, 1fr); gap: 2.6rem; }
   .triple { grid-template-columns: 220px minmax(0, 1fr) 250px; }
