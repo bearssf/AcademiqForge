@@ -1,0 +1,40 @@
+<% if (!user) { %>
+<div class="modal-backdrop" id="signin-modal" role="dialog" aria-modal="true" aria-labelledby="signin-title">
+  <div class="modal">
+    <button type="button" class="modal-close" id="close-signin" aria-label="Close">&times;</button>
+    <h2 id="signin-title" style="margin:0 0 1rem;">Sign in</h2>
+    <% if (typeof error !== 'undefined' && error === 'missing') { %>
+      <p class="error-msg">Please enter email and password.</p>
+    <% } else if (typeof error !== 'undefined' && error === 'invalid') { %>
+      <p class="error-msg">Invalid email or password.</p>
+    <% } else if (typeof error !== 'undefined' && error === 'server') { %>
+      <p class="error-msg">Something went wrong. Try again.</p>
+    <% } %>
+    <form action="/login" method="post">
+      <input type="hidden" name="returnTo" value="<%= typeof returnTo !== 'undefined' ? returnTo : '/' %>" />
+      <div class="field"><label for="signin-email">Email</label><input type="email" id="signin-email" name="email" required autocomplete="email" /></div>
+      <div class="field"><label for="signin-password">Password</label><input type="password" id="signin-password" name="password" required autocomplete="current-password" /></div>
+      <div class="modal-actions">
+        <button type="submit" class="btn btn-blue">Sign in</button>
+        <a href="/register" class="create-link">Create an account</a>
+      </div>
+    </form>
+  </div>
+</div>
+<% } %>
+
+<script>
+  (function () {
+    var modal = document.getElementById('signin-modal');
+    var openBtn = document.getElementById('open-signin');
+    var closeBtn = document.getElementById('close-signin');
+    if (!modal || !openBtn) return;
+    function openModal() { modal.classList.add('is-open'); var first = modal.querySelector('input[type="email"]'); if (first) setTimeout(function () { first.focus(); }, 50); }
+    function closeModal() { modal.classList.remove('is-open'); }
+    openBtn.addEventListener('click', openModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal(); });
+    <% if (typeof error !== 'undefined' && error && !user) { %>openModal();<% } %>
+  })();
+</script>

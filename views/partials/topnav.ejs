@@ -1,0 +1,24 @@
+<% var na = typeof navActive !== 'undefined' ? navActive : ''; %>
+<header class="top">
+  <div class="brand-row">
+    <a href="/" class="brand-icon-link" title="Home" aria-label="AcademiqForge home">
+      <div class="brand-icon"><div class="brand-dot"></div></div>
+    </a>
+    <div class="brand-text"><span class="a">Academiq</span><span>Forge</span></div>
+  </div>
+  <nav class="nav" aria-label="Primary">
+    <a href="/product" class="<%= na === 'product' ? 'nav-active' : '' %>">Product</a>
+    <a href="#">Workflow</a>
+    <a href="#">Features</a>
+    <a href="#">Start</a>
+  </nav>
+  <div class="actions">
+    <% if (user) { %>
+      <span class="welcome">Welcome, <%= user.firstName %></span>
+      <form action="/logout" method="post" style="display:inline;"><button type="submit" class="signout">Sign out</button></form>
+    <% } else { %>
+      <button type="button" class="btn btn-outline" id="open-signin">Sign In</button>
+    <% } %>
+    <button type="button" class="btn btn-blue">Start Forging</button>
+  </div>
+</header>

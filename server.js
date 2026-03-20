@@ -113,10 +113,24 @@ const SEARCH_ENGINES = [
   'Other/University Specific',
 ];
 
+function safeReturnTo(val) {
+  const s = String(val || '').trim();
+  if (!s.startsWith('/') || s.startsWith('//')) return '/';
+  return s.split('?')[0] || '/';
+}
+
 app.get('/', (req, res) => {
   res.render('home', {
     user: req.session.user || null,
     error: req.query.error || null,
+  });
+});
+
+app.get('/product', (req, res) => {
+  res.render('product', {
+    user: req.session.user || null,
+    error: req.query.error || null,
+    navActive: 'product',
   });
 });
 
@@ -131,9 +145,10 @@ app.get('/register', (req, res) => {
 });
 
 app.post('/login', async (req, res) => {
-  const { email, password } = req.body || {};
+  const { email, password, returnTo } = req.body || {};
+  const back = safeReturnTo(returnTo);
   if (!email || !password) {
-    return res.redirect('/?error=missing');
+    return res.redirect(`${back}?error=missing`);
   }
   try {
     const p = await getPool();
@@ -145,7 +160,7 @@ app.post('/login', async (req, res) => {
       );
     const user = result.recordset[0];
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
-      return res.redirect('/?error=invalid');
+      return res.redirect(`${back}?error=invalid`);
     }
     req.session.userId = user.id;
     req.session.user = {
@@ -154,10 +169,10 @@ app.post('/login', async (req, res) => {
       lastName: user.last_name,
       email: user.email,
     };
-    return res.redirect('/');
+    return res.redirect(back);
   } catch (err) {
     console.error('Login error:', err.message);
-    return res.redirect('/?error=server');
+    return res.redirect(`${back}?error=server`);
   }
 });
 

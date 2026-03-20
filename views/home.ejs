@@ -7,104 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-  <style>
-    :root { --bg:#0b0b0c; --card:#0e0e10; --line:rgba(255,255,255,0.1); --blue:#2f80ed; --txt:rgba(255,255,255,0.9); --muted:rgba(255,255,255,0.62); }
-    * { box-sizing: border-box; }
-    body { margin:0; min-height:100vh; background:var(--bg); color:#fff; font-family:Inter,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; }
-    .shell { max-width:1440px; margin:0 auto; padding:1.5rem 1.5rem 3.5rem; }
-    .top { display:flex; align-items:center; justify-content:space-between; gap:1rem; padding:1rem 1.2rem; border:1px solid var(--line); border-radius:16px; background:rgba(255,255,255,0.03); backdrop-filter: blur(8px); }
-    .brand { display:flex; align-items:center; gap:.75rem; text-decoration:none; }
-    .brand-icon { width:40px; height:40px; border-radius:12px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; }
-    .brand-dot { width:18px; height:18px; border-radius:50%; border:1px solid var(--blue); box-shadow:0 0 0 1px rgba(47,128,237,.25) inset; }
-    .brand-text { font-size:22px; letter-spacing:-.02em; line-height:1; }
-    .brand-text .a { color:var(--blue); }
-    .nav { display:none; align-items:center; gap:2rem; font-size:.92rem; color:rgba(255,255,255,.65); }
-    .nav a { color:inherit; text-decoration:none; }
-    .nav a:hover { color:#fff; }
-    .actions { display:flex; align-items:center; gap:.75rem; }
-    .btn { border-radius:12px; border:1px solid transparent; padding:.66rem 1rem; font-size:.9rem; color:#fff; background:transparent; cursor:pointer; }
-    .btn-outline { border-color:rgba(255,255,255,.1); background:rgba(255,255,255,.05); color:rgba(255,255,255,.8); }
-    .btn-outline:hover { background:rgba(255,255,255,.1); }
-    .btn-blue { background:var(--blue); box-shadow:0 0 0 1px rgba(47,128,237,.4); font-weight:500; }
-    .btn-blue:hover { filter:brightness(1.1); }
-    .welcome { color:rgba(255,255,255,.86); font-size:.92rem; }
-    .signout { background:none; border:none; color:rgba(255,255,255,.62); text-decoration:underline; text-underline-offset:3px; cursor:pointer; }
-    .signout:hover { color:#fff; }
-
-    .hero { position:relative; overflow:hidden; padding:.6rem .1rem 4rem; }
-    .hero-glow { position:absolute; inset-inline:0; top:48px; margin:auto; height:280px; max-width:860px; border-radius:999px; background:rgba(47,128,237,.12); filter:blur(56px); }
-    .hero-grid { position:relative; display:grid; gap:2.5rem; align-items:center; grid-template-columns:minmax(0,1fr); }
-    .badge { display:inline-flex; align-items:center; border:1px solid rgba(47,128,237,.2); background:rgba(47,128,237,.1); color:#9fc2ff; border-radius:999px; padding:.45rem .95rem; font-size:12px; text-transform:uppercase; letter-spacing:.22em; }
-    h1 { margin:1.1rem 0 0; max-width:880px; font-family:'Libre Baskerville',Georgia,serif; font-weight:400; line-height:.98; letter-spacing:-.045em; font-size:clamp(2.3rem,8vw,4.7rem); }
-    .lead { margin:1.6rem 0 0; max-width:740px; color:rgba(255,255,255,.68); font-size:clamp(1rem,2.3vw,1.2rem); line-height:1.7; }
-    .hero-actions { margin-top:2.2rem; display:flex; flex-wrap:wrap; gap:1rem; }
-    .meta { margin-top:2rem; display:flex; flex-wrap:wrap; gap:.85rem 1.2rem; color:rgba(255,255,255,.45); font-size:.9rem; align-items:center; }
-    .dot { width:4px; height:4px; border-radius:50%; background:rgba(255,255,255,.2); }
-
-    .preview-wrap { position:relative; max-width:520px; width:100%; margin-inline:auto; }
-    .g1 { position:absolute; left:-32px; top:46px; width:140px; height:140px; border:1px solid rgba(47,128,237,.2); background:rgba(47,128,237,.08); border-radius:50%; filter:blur(36px); }
-    .g2 { position:absolute; right:-36px; bottom:40px; width:170px; height:170px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.03); border-radius:50%; filter:blur(44px); }
-    .preview { position:relative; overflow:hidden; border-radius:30px; border:1px solid var(--line); background:var(--card); box-shadow:0 25px 80px rgba(0,0,0,.45); }
-    .preview-head { display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); padding:1rem 1.2rem; }
-    .mini { display:flex; align-items:center; gap:.65rem; font-size:13px; color:rgba(255,255,255,.55); }
-    .mini-dot { width:10px; height:10px; border-radius:50%; background:var(--blue); }
-    .u { font-size:11px; text-transform:uppercase; letter-spacing:.22em; color:rgba(255,255,255,.35); }
-    .preview-body { display:grid; grid-template-columns:minmax(0,1fr) 170px; }
-    .left { padding:1.1rem 1.1rem 1.2rem; border-right:1px solid var(--line); }
-    .row { display:flex; align-items:flex-start; justify-content:space-between; gap:.7rem; }
-    .chapter { font-size:11px; text-transform:uppercase; letter-spacing:.22em; color:rgba(255,255,255,.35); }
-    .title { margin-top:.28rem; font-family:'Libre Baskerville',Georgia,serif; font-size:26px; letter-spacing:-.03em; }
-    .strong { border:1px solid var(--line); background:rgba(255,255,255,.03); border-radius:10px; padding:.35rem .6rem; font-size:.84rem; color:rgba(255,255,255,.6); white-space:nowrap; }
-    .bar { margin:.95rem 0 1rem; height:8px; border-radius:999px; background:rgba(255,255,255,.1); overflow:hidden; }
-    .bar > span { display:block; width:72%; height:100%; border-radius:999px; background:var(--blue); }
-    .copy { font-size:.9rem; line-height:1.65; color:rgba(255,255,255,.72); display:grid; gap:.72rem; }
-    .hint { border:1px solid rgba(47,128,237,.2); background:rgba(47,128,237,.08); border-radius:14px; padding:.65rem .75rem; color:rgba(255,255,255,.88); }
-    .right { padding:1rem .85rem; }
-    .ins { margin-top:.8rem; display:grid; gap:.6rem; }
-    .ins-item { border:1px solid var(--line); background:rgba(0,0,0,.2); border-radius:10px; padding:.6rem .6rem; font-size:.84rem; color:rgba(255,255,255,.72); }
-
-    .pillars, .feature-grid { display:grid; gap:1.1rem; grid-template-columns:1fr; }
-    .card { border:1px solid var(--line); border-radius:26px; background:rgba(255,255,255,.03); padding:1.7rem; }
-    .ico { width:40px; height:40px; border-radius:12px; border:1px solid var(--line); background:rgba(255,255,255,.03); margin-bottom:1rem; }
-    .card h3 { margin:0; font-family:'Libre Baskerville',Georgia,serif; font-weight:400; letter-spacing:-.03em; font-size:2rem; line-height:1.05; }
-    .card p { margin:.9rem 0 0; color:var(--muted); line-height:1.75; }
-
-    .section { padding:4.4rem .2rem; }
-    .eyebrow { font-size:12px; text-transform:uppercase; letter-spacing:.22em; color:#9fc2ff; }
-    h2 { margin:.7rem 0 0; font-family:'Libre Baskerville',Georgia,serif; font-weight:400; letter-spacing:-.04em; line-height:1.03; font-size:clamp(2rem,5.3vw,3.4rem); }
-    .sub { margin:1rem 0 0; color:var(--muted); line-height:1.8; font-size:1.06rem; }
-    .product { display:grid; gap:2rem; grid-template-columns:minmax(0,1fr); align-items:center; }
-    .product-panel { border:1px solid var(--line); border-radius:30px; background:var(--card); padding:1rem; box-shadow:0 20px 60px rgba(0,0,0,.35); }
-    .triple { display:grid; grid-template-columns:1fr; gap:1rem; }
-    .box { border:1px solid var(--line); border-radius:24px; background:rgba(0,0,0,.2); padding:.9rem; }
-    .nav-list { margin-top:.8rem; display:grid; gap:.5rem; font-size:.87rem; color:rgba(255,255,255,.66); }
-    .nav-list .active { border:1px solid rgba(47,128,237,.35); background:rgba(47,128,237,.1); color:#fff; }
-    .nav-list div { border-radius:12px; background:rgba(255,255,255,.03); padding:.6rem .7rem; }
-    .workspace-title { margin-top:.25rem; font-family:'Libre Baskerville',Georgia,serif; font-size:24px; letter-spacing:-.03em; }
-    .workflow { border:1px solid var(--line); border-radius:34px; background:rgba(255,255,255,.03); padding:1.8rem; }
-    .workflow-top { display:grid; gap:1.2rem; }
-    .steps { margin-top:1.8rem; display:grid; gap:.9rem; grid-template-columns:1fr; }
-    .step { border:1px solid var(--line); border-radius:24px; background:rgba(0,0,0,.2); padding:1.2rem; }
-    .step .n { font-size:12px; color:rgba(255,255,255,.35); letter-spacing:.22em; text-transform:uppercase; }
-    .step .t { margin-top:.8rem; font-family:'Libre Baskerville',Georgia,serif; font-size:1.7rem; letter-spacing:-.03em; line-height:1.08; }
-    .cta { position:relative; overflow:hidden; border:1px solid var(--line); border-radius:34px; background:var(--card); box-shadow:0 20px 60px rgba(0,0,0,.35); padding:3rem 1.2rem; text-align:center; }
-    .cta-glow { position:absolute; inset-inline:0; top:0; margin:auto; height:180px; max-width:760px; border-radius:999px; background:rgba(47,128,237,.1); filter:blur(48px); }
-    .cta-inner { position:relative; max-width:850px; margin:0 auto; }
-
-    .modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,.65); z-index:60; align-items:center; justify-content:center; padding:1rem; }
-    .modal-backdrop.is-open { display:flex; }
-    .modal { width:100%; max-width:400px; background:#141414; border:1px solid var(--line); border-radius:12px; padding:1.75rem; box-shadow:0 24px 48px rgba(0,0,0,.5); }
-    .modal-close { float:right; background:none; border:none; color:rgba(255,255,255,.62); font-size:1.3rem; cursor:pointer; }
-    .modal .field { margin-bottom:1rem; }
-    .modal label { display:block; color:rgba(255,255,255,.62); font-size:.8rem; margin-bottom:.34rem; }
-    .modal input { width:100%; border:1px solid rgba(255,255,255,.12); border-radius:8px; background:#0a0a0a; color:#fff; padding:.6rem .75rem; }
-    .modal-actions { margin-top:1rem; display:grid; gap:.7rem; }
-    .error-msg { color:#f87171; font-size:.85rem; margin-bottom:.7rem; }
-    .create-link { text-align:center; color:var(--blue); font-size:.88rem; }
-
-    @media (min-width: 900px) { .nav { display:flex; } .hero-grid { grid-template-columns:minmax(0,1.05fr) 520px; gap:3rem; } .pillars { grid-template-columns:repeat(3,minmax(0,1fr)); } .product { grid-template-columns:460px minmax(0,1fr); gap:2.6rem; } .triple { grid-template-columns:220px minmax(0,1fr) 250px; } .workflow-top { grid-template-columns:minmax(0,1fr) minmax(0,420px); align-items:end; } .steps { grid-template-columns:repeat(2,minmax(0,1fr)); } .feature-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-    @media (min-width: 1250px) { .steps { grid-template-columns:repeat(4,minmax(0,1fr)); } }
-  </style>
+  <link rel="stylesheet" href="/css/academiq.css" />
 </head>
 <body>
   <%
@@ -113,36 +16,9 @@
       { title: "Hardened for Usability", body: "A calm, minimal interface that removes friction and keeps your attention on research, writing, and momentum." },
       { title: "Polished for Completion", body: "Designed to carry you from first idea to finished paper with structure, feedback, and progress built in." },
     ];
-    const features = [
-      { name: "The Anvil", desc: "Write in a focused workspace with argument guidance, clarity feedback, and completion momentum." },
-      { name: "The Archive", desc: "Capture, organize, and connect sources so your evidence is always within reach." },
-      { name: "The Crucible", desc: "Turn notes, highlights, and fragments into themes, insights, and emerging arguments." },
-      { name: "The Lattice", desc: "Map sources to claims and strengthen the logical structure of your paper." },
-    ];
-    const steps = ["Capture your research", "Build your structure", "Strengthen your arguments", "Finish your paper"];
-    const navItems = ["Dashboard", "The Anvil", "The Archive", "The Crucible", "The Lattice"];
-    const insightItems = ["Clarify design choice", "Tighten participant logic", "Resolve APA issues"];
-    const previewInsights = ["Strengthen literature gap", "Add one supporting source", "Resolve 2 APA issues"];
   %>
   <div class="shell">
-    <header class="top">
-      <a href="/" class="brand" title="Home">
-        <div class="brand-icon"><div class="brand-dot"></div></div>
-        <div class="brand-text"><span class="a">Academiq</span><span>Forge</span></div>
-      </a>
-      <nav class="nav">
-        <a href="#">Product</a><a href="#">Workflow</a><a href="#">Features</a><a href="#">Start</a>
-      </nav>
-      <div class="actions">
-        <% if (user) { %>
-          <span class="welcome">Welcome, <%= user.firstName %></span>
-          <form action="/logout" method="post" style="display:inline;"><button type="submit" class="signout">Sign out</button></form>
-        <% } else { %>
-          <button type="button" class="btn btn-outline" id="open-signin">Sign In</button>
-        <% } %>
-        <button type="button" class="btn btn-blue">Start Forging</button>
-      </div>
-    </header>
+    <%- include('partials/topnav', { user: user, navActive: '' }) %>
 
     <section class="hero">
       <div class="hero-glow"></div>
@@ -160,170 +36,19 @@
           </div>
         </div>
 
-        <div class="preview-wrap">
-          <div class="g1"></div><div class="g2"></div>
-          <div class="preview">
-            <div class="preview-head">
-              <div class="mini"><div class="mini-dot"></div><span>The Anvil</span></div>
-              <div class="u">Live Workspace</div>
-            </div>
-            <div class="preview-body">
-              <div class="left">
-                <div class="row">
-                  <div><div class="chapter">Chapter 2</div><div class="title">Literature Review</div></div>
-                  <div class="strong">72% strong</div>
-                </div>
-                <div class="bar"><span></span></div>
-                <div class="copy">
-                  <p>This review examines how critical thinking, relationship development, and cultural context intersect during early-stage business engagement.</p>
-                  <p>Existing literature explains elements of trust and communication, but few models integrate cognitive evaluation with intercultural relationship formation.</p>
-                  <div class="hint">Add one sentence clarifying the gap between communication studies and critical-thinking theory.</div>
-                </div>
-              </div>
-              <div class="right">
-                <div class="u">Forge Feedback</div>
-                <div class="ins">
-                  <% previewInsights.forEach(function (item) { %>
-                    <div class="ins-item"><%= item %></div>
-                  <% }) %>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="pillars">
-      <% pillars.forEach(function (pillar) { %>
-        <article class="card">
-          <div class="ico"></div>
-          <h3><%= pillar.title %></h3>
-          <p><%= pillar.body %></p>
-        </article>
-      <% }) %>
-    </section>
-
-    <section class="section product" id="product">
-      <div>
-        <div class="eyebrow">A focused product experience</div>
-        <h2>Calm enough for deep work. Smart enough to move you forward.</h2>
-        <p class="sub">AcademiqForge combines writing, source organization, argument feedback, and structural guidance in one restrained workspace.</p>
-      </div>
-      <div class="product-panel">
-        <div class="triple">
-          <div class="box">
-            <div class="u">Navigation</div>
-            <div class="nav-list">
-              <% navItems.forEach(function (item, index) { %>
-                <div class="<%= index === 1 ? 'active' : '' %>"><%= item %></div>
-              <% }) %>
-            </div>
-          </div>
-          <div class="box">
-            <div class="row">
-              <div><div class="u">Workspace</div><div class="workspace-title">Methodology</div></div>
-              <div style="font-size:.84rem;color:rgba(255,255,255,.4)">1,284 words</div>
-            </div>
-            <div class="copy" style="margin-top:.7rem">
-              <p>This study employed a qualitative multiple-case design to explore how critical thinking and relationship-development factors interact during early-stage intercultural business relationships.</p>
-              <p>Data collection included semi-structured interviews, researcher memos, and document review to support triangulation and contextual depth.</p>
-              <div class="hint">Consider adding one sentence clarifying why multiple-case design is stronger than a single-case alternative.</div>
-            </div>
-          </div>
-          <div class="box">
-            <div class="u">Insights</div>
-            <div class="ins">
-              <% insightItems.forEach(function (item) { %>
-                <div class="ins-item"><%= item %></div>
-              <% }) %>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="workflow" id="workflow">
-      <div class="workflow-top">
-        <div><div class="eyebrow">How it works</div><h2>A system designed to keep research moving.</h2></div>
-        <p class="sub">Bring research into one place, shape it into structure, strengthen the logic, and keep progressing toward a finished paper.</p>
-      </div>
-      <div class="steps">
-        <% steps.forEach(function (step, i) { %>
-          <div class="step"><div class="n">0<%= i + 1 %></div><div class="t"><%= step %></div></div>
-        <% }) %>
-      </div>
-    </section>
-
-    <section class="section" id="features">
-      <div style="max-width:820px">
-        <div class="eyebrow">The forge system</div>
-        <h2>Four connected environments, one research flow.</h2>
-      </div>
-      <div class="feature-grid" style="margin-top:1.4rem">
-        <% features.forEach(function (feature) { %>
-          <article class="card">
-            <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem;">
-              <div><h3 style="font-size:2rem"><%= feature.name %></h3><p><%= feature.desc %></p></div>
-              <div class="ico" style="margin-bottom:0"></div>
-            </div>
-          </article>
-        <% }) %>
-      </div>
-    </section>
-
-    <section class="cta" id="cta">
-      <div class="cta-glow"></div>
-      <div class="cta-inner">
-        <div class="eyebrow">Ready to begin</div>
-        <h2>Build with more clarity. Finish with more confidence.</h2>
-        <p class="sub">Start with a focused writing environment and grow into the full research operating system.</p>
-        <div class="hero-actions" style="justify-content:center; margin-top:1.5rem;">
-          <button type="button" class="btn btn-blue">Start Forging</button>
-          <button type="button" class="btn btn-outline">Schedule a Demo</button>
+        <div class="pillars-col" aria-label="Highlights">
+          <% pillars.forEach(function (pillar) { %>
+            <article class="card">
+              <div class="ico"></div>
+              <h3><%= pillar.title %></h3>
+              <p><%= pillar.body %></p>
+            </article>
+          <% }) %>
         </div>
       </div>
     </section>
   </div>
 
-  <% if (!user) { %>
-  <div class="modal-backdrop" id="signin-modal" role="dialog" aria-modal="true" aria-labelledby="signin-title">
-    <div class="modal">
-      <button type="button" class="modal-close" id="close-signin" aria-label="Close">&times;</button>
-      <h2 id="signin-title" style="margin:0 0 1rem;">Sign in</h2>
-      <% if (typeof error !== 'undefined' && error === 'missing') { %>
-        <p class="error-msg">Please enter email and password.</p>
-      <% } else if (typeof error !== 'undefined' && error === 'invalid') { %>
-        <p class="error-msg">Invalid email or password.</p>
-      <% } else if (typeof error !== 'undefined' && error === 'server') { %>
-        <p class="error-msg">Something went wrong. Try again.</p>
-      <% } %>
-      <form action="/login" method="post">
-        <div class="field"><label for="signin-email">Email</label><input type="email" id="signin-email" name="email" required autocomplete="email" /></div>
-        <div class="field"><label for="signin-password">Password</label><input type="password" id="signin-password" name="password" required autocomplete="current-password" /></div>
-        <div class="modal-actions">
-          <button type="submit" class="btn btn-blue">Sign in</button>
-          <a href="/register" class="create-link">Create an account</a>
-        </div>
-      </form>
-    </div>
-  </div>
-  <% } %>
-
-  <script>
-    (function () {
-      var modal = document.getElementById('signin-modal');
-      var openBtn = document.getElementById('open-signin');
-      var closeBtn = document.getElementById('close-signin');
-      if (!modal || !openBtn) return;
-      function openModal() { modal.classList.add('is-open'); var first = modal.querySelector('input[type="email"]'); if (first) setTimeout(function () { first.focus(); }, 50); }
-      function closeModal() { modal.classList.remove('is-open'); }
-      openBtn.addEventListener('click', openModal);
-      if (closeBtn) closeBtn.addEventListener('click', closeModal);
-      modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
-      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && modal.classList.contains('is-open')) closeModal(); });
-      <% if (typeof error !== 'undefined' && error && !user) { %>openModal();<% } %>
-    })();
-  </script>
+  <%- include('partials/signin-modal', { user: user, error: error, returnTo: '/' }) %>
 </body>
 </html>
