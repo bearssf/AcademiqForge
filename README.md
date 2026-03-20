@@ -21,9 +21,14 @@ Store database credentials only in environment variables or your host’s secret
 
 1. Create a **Web Service** connected to this repo, runtime **Node**, build `npm ci`, start `npm start`.
 2. Set the same environment variables as in `.env.example`. Use `NODE_ENV=production` so session cookies use `Secure` behind HTTPS.
-3. Ensure your Azure SQL firewall allows **Render’s outbound IPs** (or “Azure services” / “0.0.0.0” per your security policy).
+3. **Azure SQL networking (required):**
+   - In **Azure Portal** → your **SQL server** (logical server, not only the database) → **Networking**:
+     - Set **Public network access** to **Enabled** (Render connects over the public internet unless you use a complex private setup).
+     - Under **Firewall rules**, add the **IPv4 ranges** from your Render web service: **Render Dashboard** → open the service → **Outbound** tab. For each CIDR (e.g. `74.220.48.0/24`), add a rule with **Start IP** = first address and **End IP** = last address in that range.
+   - The toggle **“Allow Azure services and resources to access this server”** only helps *other Azure* services, **not** Render— you still need explicit firewall rules for Render’s outbound IPs.
+   - If the deploy log shows `Failed to connect ... in 15000ms` / timeout, that is almost always **firewall or public access**, not a wrong password (wrong passwords usually fail with a login error quickly).
 
-Optional: use this repo’s `render.yaml` as a [Blueprint](https://render.com/docs/infrastructure-as-code) and fill in secret values in the dashboard.
+4. Optional: use this repo’s `render.yaml` as a [Blueprint](https://render.com/docs/infrastructure-as-code) and fill in secret values in the dashboard.
 
 ## Features
 

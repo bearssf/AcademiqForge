@@ -15,6 +15,8 @@ const dbConfig = {
   database: process.env.DB_NAME,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
+  connectionTimeout: parseInt(process.env.DB_CONNECTION_TIMEOUT_MS || '30000', 10),
+  requestTimeout: parseInt(process.env.DB_REQUEST_TIMEOUT_MS || '30000', 10),
   options: {
     encrypt: true,
     trustServerCertificate: true,
@@ -274,6 +276,11 @@ async function start() {
     console.log('Database connected.');
   } catch (err) {
     console.error('Database connection failed:', err.message);
+    console.error(
+      'Hint: timeouts usually mean Azure SQL is blocking Render. Enable public access on the SQL server, ' +
+        'add firewall rules for your Render service Outbound IP ranges (Dashboard → service → Outbound), ' +
+        'and confirm DB_HOST / DB_PORT in Render env vars.'
+    );
     process.exit(1);
   }
   app.listen(PORT, () => {
