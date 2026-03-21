@@ -65,8 +65,12 @@ app.post(
 app.use(express.json({ limit: '2mb' }));
 
 const sessionSecret = process.env.SESSION_SECRET || 'dev-only-change-session-secret';
-app.use(
-  session({
+
+/** Set when REDIS_URL is present; connected in start() before listen(). */
+let redisSessionClient = null;
+
+function createSessionMiddleware() {
+  const opts = {
     secret: sessionSecret,
     resave: false,
     saveUninitialized: false,
@@ -76,8 +80,18 @@ app.use(
       maxAge: 24 * 60 * 60 * 1000,
       sameSite: 'lax',
     },
-  })
-);
+  };
+  if (process.env.REDIS_URL) {
+    const { createClient } = require('redis');
+    const RedisStore = require('connect-redis').default;
+    redisSessionClient = createClient({ url: process.env.REDIS_URL });
+    redisSessionClient.on('error', (err) => console.error('Redis session store:', err.message));
+    opts.store = new RedisStore({ client: redisSessionClient });
+  }
+  return session(opts);
+}
+
+app.use(createSessionMiddleware());
 
 function asyncHandler(fn) {
   return function (req, res, next) {
@@ -568,8 +582,29 @@ async function start() {
     }
     process.exit(1);
   }
+
+  if (redisSessionClient) {
+    try {
+      await redisSessionClient.connect();
+      console.log('Session store: Redis');
+    } catch (err) {
+      console.error('Redis connection failed (REDIS_URL):', err.message);
+      process.exit(1);
+    }
+  } else if (process.env.NODE_ENV === 'production') {
+    console.warn(
+      'Session store: MemoryStore (not durable across restarts / multiple instances). Set REDIS_URL for production.'
+    );
+  }
+
   app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
+  });
+
+  process.on('SIGTERM', () => {
+    if (redisSessionClient) {
+      redisSessionClient.quit().catch(() => {});
+    }
   });
 }
 

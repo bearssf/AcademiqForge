@@ -47,6 +47,7 @@ Successful payment sets `subscriptions.status` to **`active`** (unlocks The Foun
    - If the deploy log shows `Failed to connect ... in 15000ms` / timeout, that is almost always **firewall or public access**, not a wrong password (wrong passwords usually fail with a login error quickly).
 
 4. Optional: use this repo’s `render.yaml` as a [Blueprint](https://render.com/docs/infrastructure-as-code) and fill in secret values in the dashboard.
+5. **Sessions (recommended in production):** Add a **Redis** instance (Render Redis or any `redis://` / `rediss://` URL) and set **`REDIS_URL`** on the web service. Without it, the app uses in-memory sessions (logins can reset on deploy or with more than one instance).
 
 ## Data model & REST API
 
