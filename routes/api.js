@@ -152,6 +152,10 @@ function createApiRouter(getPool) {
         const pp = parseInt(body.progressPercent, 10);
         reqB.input('progress_percent', sql.TinyInt, Math.min(100, Math.max(0, Number.isNaN(pp) ? 0 : pp)));
       }
+      if (body.body !== undefined) {
+        updates.push('body = @body');
+        reqB.input('body', sql.NVarChar(sql.MAX), body.body != null ? String(body.body) : null);
+      }
       if (updates.length === 0) return res.status(400).json({ error: 'No valid fields' });
       updates.push('updated_at = GETDATE()');
       await reqB.query(`UPDATE project_sections SET ${updates.join(', ')} WHERE id = @sid`);

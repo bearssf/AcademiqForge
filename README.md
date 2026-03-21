@@ -32,7 +32,7 @@ Store database credentials only in environment variables or your host’s secret
 
 ## Data model & REST API
 
-On startup the app creates (if missing): **`subscriptions`** (trial / future Stripe fields), **`projects`**, **`project_sections`**, **`sources`**, **`source_sections`**. Templates for new projects live in `data/project-templates.json`.
+On startup the app creates (if missing): **`subscriptions`** (trial / future Stripe fields), **`projects`**, **`project_sections`** (including optional **`body`** draft text per section), **`sources`**, **`source_sections`**. Templates for new projects live in `data/project-templates.json`.
 
 **Session:** Sign in with the same browser session cookie. From JavaScript, call APIs with `fetch(url, { credentials: 'same-origin' })`.
 
@@ -44,7 +44,7 @@ On startup the app creates (if missing): **`subscriptions`** (trial / future Str
 | POST | `/api/projects` | Body: `name`, `purpose`, `citationStyle`, `templateKey` — creates project + sections |
 | GET | `/api/projects/:id` | Project + sections + `sourceCount` |
 | PATCH | `/api/projects/:id` | Partial update (name, status, publishing\* fields) |
-| PATCH | `/api/projects/:id/sections/:sectionId` | `status`, `progressPercent` |
+| PATCH | `/api/projects/:id/sections/:sectionId` | `status`, `progressPercent`, `body` (draft text, `NVARCHAR(MAX)`) |
 | GET | `/api/projects/:id/sources` | Sources with `sectionIds` |
 | POST | `/api/projects/:id/sources` | `citationText`, `notes`, optional `sectionIds[]` |
 | PATCH | `/api/sources/:id` | Update source and/or replace `sectionIds` |
@@ -57,6 +57,7 @@ On startup the app creates (if missing): **`subscriptions`** (trial / future Str
 ## Features
 
 - **The Crucible** (`/app/project/:id/crucible`): list, add, edit, and delete sources; link each source to outline sections via the REST API (`fetch` with `credentials: 'same-origin'`).
+- **The Anvil** (`/app/project/:id/anvil`): per-section draft editor with autosave; drafts persist in `project_sections.body`.
 - **Home:** Marketing landing + sign-in; **Workspace** (`/app/dashboard`) when signed in.
 - **Header (signed out):** Email and password, Sign in, and **Create an account** below.
 - **Header (signed in):** **Welcome, [first name]** and Sign out (login UI hidden).
