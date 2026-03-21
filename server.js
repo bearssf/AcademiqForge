@@ -484,6 +484,10 @@ async function start() {
     console.error('Database startup failed:', err.message);
     if (err.number != null) console.error('SQL error number:', err.number);
     if (err.lineNumber != null) console.error('SQL line:', err.lineNumber);
+    if (Array.isArray(err.precedingErrors) && err.precedingErrors.length) {
+      console.error('Preceding SQL errors (root cause):');
+      err.precedingErrors.forEach((e, i) => console.error(`  [${i}]`, e.message || e, e.number != null ? `(#${e.number})` : ''));
+    }
     console.error(err);
     if (/ETIMEOUT|ECONNREFUSED|ETIME|ETIMEDOUT|login failed|Login failed/i.test(String(err.message))) {
       console.error(
