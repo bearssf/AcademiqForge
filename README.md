@@ -87,6 +87,11 @@ On startup the app creates (if missing): **`subscriptions`** (trial / future Str
 - **Registration:** Title (Mr., Mrs., Ms., Miss, Mx., Dr.), first/last name, email, password + confirmation; optional university (datalist of US institutions + free text), research focus, preferred search engine (preset list including “Other/University Specific”).
 - Passwords hashed with **bcrypt**. On first connection, the app ensures a `users` table and profile columns exist in your database.
 
+## Backlog
+
+- **Account / billing:** Let a signed-in user **cancel** (or manage) their subscription from the Account page — typically [Stripe Customer Portal](https://stripe.com/docs/customer-management) (`billingPortal.sessions.create`) and/or cancel-at-period-end via the API, with **`customer.subscription.*`** webhooks keeping `subscriptions` in sync.
+- **User management:** Profile edit, password change, email verification — not started.
+
 ## Repository
 
 ```bash
