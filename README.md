@@ -30,9 +30,33 @@ Store database credentials only in environment variables or your host’s secret
 
 4. Optional: use this repo’s `render.yaml` as a [Blueprint](https://render.com/docs/infrastructure-as-code) and fill in secret values in the dashboard.
 
+## Data model & REST API
+
+On startup the app creates (if missing): **`subscriptions`** (trial / future Stripe fields), **`projects`**, **`project_sections`**, **`sources`**, **`source_sections`**. Templates for new projects live in `data/project-templates.json`.
+
+**Session:** Sign in with the same browser session cookie. From JavaScript, call APIs with `fetch(url, { credentials: 'same-origin' })`.
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| GET | `/api/me` | Current user, subscription row, computed `appAccess` |
+| GET | `/api/templates` | Available `templateKey` values + labels |
+| GET | `/api/projects` | List projects for the signed-in user |
+| POST | `/api/projects` | Body: `name`, `purpose`, `citationStyle`, `templateKey` — creates project + sections |
+| GET | `/api/projects/:id` | Project + sections + `sourceCount` |
+| PATCH | `/api/projects/:id` | Partial update (name, status, publishing\* fields) |
+| PATCH | `/api/projects/:id/sections/:sectionId` | `status`, `progressPercent` |
+| GET | `/api/projects/:id/sources` | Sources with `sectionIds` |
+| POST | `/api/projects/:id/sources` | `citationText`, `notes`, optional `sectionIds[]` |
+| PATCH | `/api/sources/:id` | Update source and/or replace `sectionIds` |
+| DELETE | `/api/sources/:id` | Remove source |
+
+**Purposes:** Dissertation, Academic Publication, Thesis, Essay, Report, Conference Document, Other. **Citation styles:** APA, MLA, Chicago, Turabian, IEEE.
+
+**Foundry access:** `appAccess.foundryUnlocked` is true only when `subscriptions.status = 'active'` (paid). Trial rows use `status = 'trialing'` with `trial_end`. Set `DEV_SUBSCRIPTION_PAID=true` locally to simulate paid UI.
+
 ## Features
 
-- **Home:** Black background, centered AcademiqForge logo (`public/logo.png`).
+- **Home:** Marketing landing + sign-in; **Workspace** (`/app/dashboard`) when signed in.
 - **Header (signed out):** Email and password, Sign in, and **Create an account** below.
 - **Header (signed in):** **Welcome, [first name]** and Sign out (login UI hidden).
 - **Registration:** Title (Mr., Mrs., Ms., Miss, Mx., Dr.), first/last name, email, password + confirmation; optional university (datalist of US institutions + free text), research focus, preferred search engine (preset list including “Other/University Specific”).

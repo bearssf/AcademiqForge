@@ -1,0 +1,34 @@
+{
+  "standard-graduate": {
+    "label": "Standard graduate (IMRaD-style)",
+    "sections": [
+      { "title": "Introduction", "slug": "introduction" },
+      { "title": "Literature Review", "slug": "literature-review" },
+      { "title": "Methodology", "slug": "methodology" },
+      { "title": "Findings", "slug": "findings" },
+      { "title": "Discussion", "slug": "discussion" },
+      { "title": "Conclusion", "slug": "conclusion" },
+      { "title": "References", "slug": "references" }
+    ]
+  },
+  "literature-review-focused": {
+    "label": "Literature review (survey)",
+    "sections": [
+      { "title": "Introduction", "slug": "introduction" },
+      { "title": "Thematic review", "slug": "thematic-review" },
+      { "title": "Critical synthesis", "slug": "critical-synthesis" },
+      { "title": "Research gap", "slug": "research-gap" },
+      { "title": "Conclusion", "slug": "conclusion" },
+      { "title": "References", "slug": "references" }
+    ]
+  },
+  "essay-short": {
+    "label": "Short essay / report",
+    "sections": [
+      { "title": "Introduction", "slug": "introduction" },
+      { "title": "Body", "slug": "body" },
+      { "title": "Conclusion", "slug": "conclusion" },
+      { "title": "References", "slug": "references" }
+    ]
+  }
+}
