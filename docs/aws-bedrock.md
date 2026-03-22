@@ -34,17 +34,25 @@ If you have a **Bedrock-only** key whose id looks like **`bedrock-api-key-...`**
 
 ## IAM
 
-Create or attach a policy that allows **`bedrock:InvokeModel`** (and **`bedrock:InvokeModelWithResponseStream`** if you stream) on the resources you need. In the AWS console, enable **model access** for the chosen foundation model in **Bedrock → Model access**.
+Create or attach a policy that allows **`bedrock:InvokeModel`** (and **`bedrock:InvokeModelWithResponseStream`** if you stream) on the resources you need.
+
+### Model access in the console (updated AWS behavior)
+
+The old **Bedrock → Model access** page is **retired**. AWS now states that **serverless foundation models** are **automatically available** across commercial regions when first invoked—there is no separate “turn on model access” step for most models.
+
+- **Anthropic (Claude):** First-time use in an account may still require submitting **use case details** in the console before the model can be used—follow any prompt when you first open the model in **Playground** or invoke it.
+- **Models from AWS Marketplace:** A user with **Marketplace** permissions may need to **invoke the model once** to enable it account-wide.
+- **Restrictions:** Administrators can still restrict which models are usable using **IAM** and **Service Control Policies**—if you see access denied, those policies are often the cause.
 
 ### Fixing “Bedrock access denied” (`AccessDeniedException`)
 
-That message means the **IAM user** behind `AWS_ACCESS_KEY_ID` is not allowed to call **`bedrock:InvokeModel`** for the **model + region** you’re using, or the **model isn’t enabled** for the account in that region.
+That message almost always means **IAM** (or an org **SCP**) is denying **`bedrock:InvokeModel`**, or the **model id / region** combination is wrong—not that you forgot a deprecated “model access” toggle.
 
 Work through this in order:
 
-1. **Region match** — In Render, **`AWS_REGION`** must be the **same region** where you enabled Bedrock and **Model access** (e.g. both `us-east-1`). **`BEDROCK_MODEL_ID`** must be a model (or inference profile) that exists **in that region** (copy the id from **Bedrock → Chat / Text** or **Model access**, not from another region).
+1. **Region + model id** — In Render, **`AWS_REGION`** must match the region where you expect to call Bedrock (e.g. `us-east-1`). **`BEDROCK_MODEL_ID`** must be a **Claude** model id or inference profile that **exists in that region** (copy from **Bedrock → Model catalog** or the API/docs for that region—not from another region’s id list).
 
-2. **Model access (console)** — AWS Console → **Amazon Bedrock** → **Model access** (or **Bedrock configurations** → model access, depending on UI). Request access to **Anthropic Claude** (the family your `BEDROCK_MODEL_ID` uses). Wait until access shows as **Available** / granted.
+2. **Anthropic onboarding** — If the account has never used Anthropic in Bedrock, complete any **use case** / first-time flow in the console (e.g. open the model in **Playground** once) so invokes from your app are allowed.
 
 3. **IAM policy on your app user** — Attach an inline or managed policy to the **same IAM user** whose keys you put in Render. Minimal example (tighten `Resource` later for production):
 
@@ -64,7 +72,7 @@ Work through this in order:
 
 If your organization uses **SCPs** or permission boundaries, an admin may need to allow `bedrock:InvokeModel` there as well.
 
-4. **Inference profile** — If **`BEDROCK_MODEL_ID`** is an **application inference profile** id or ARN, IAM must still allow `InvokeModel` on that profile; some setups use `bedrock:InvokeModel` with the profile ARN as resource—if access is still denied, scope **`Resource`** to the exact ARN shown in the Bedrock console for that profile.
+4. **Inference profile** — If **`BEDROCK_MODEL_ID`** is an **application inference profile** id or ARN, IAM must still allow `InvokeModel` on that profile; if access is still denied, scope **`Resource`** to the exact ARN shown in the Bedrock console for that profile.
 
 5. **Redeploy** — After changing IAM or env vars, **save** the IAM policy and **redeploy** Render so the app picks up any env changes.
 
