@@ -812,6 +812,30 @@
     });
   }
 
+  /** Apply manuscript styling + citation spacing cleanup to HTML (does not change the live editor). */
+  function prepareManuscriptHtml(rawHtml, lightPaper) {
+    var div = document.createElement('div');
+    div.innerHTML = rawHtml || '';
+    applyManuscriptStylesToDom(div, projectCitationStyle(), lightPaper);
+    normalizeCitationTextNodes(div);
+    return div.innerHTML;
+  }
+
+  function prepareManuscriptHtmlForExport(rawHtml) {
+    return prepareManuscriptHtml(rawHtml, true);
+  }
+
+  function sectionsForProjectExport() {
+    if (!bundle || !bundle.sections) return [];
+    return bundle.sections.map(function (s) {
+      var body = s.body != null ? String(s.body) : '';
+      if (selectedId != null && Number(s.id) === Number(selectedId)) {
+        body = getEditorHtml();
+      }
+      return { title: s.title, body: body };
+    });
+  }
+
   function runApplyManuscriptFormat() {
     if (!quillEditor || !quillEditor.root) {
       alert('Manuscript formatting requires the rich text editor.');
@@ -825,11 +849,7 @@
     var wrap = document.getElementById('anvil-quill-wrap');
     var lightPaper = wrap && wrap.classList.contains('anvil-quill-wrap--paper');
     var style = projectCitationStyle();
-    var div = document.createElement('div');
-    div.innerHTML = quillEditor.root.innerHTML;
-    applyManuscriptStylesToDom(div, style, lightPaper);
-    normalizeCitationTextNodes(div);
-    var newHtml = div.innerHTML;
+    var newHtml = prepareManuscriptHtml(quillEditor.root.innerHTML, lightPaper);
     try {
       var fullLen = quillEditor.getLength();
       quillEditor.deleteText(0, fullLen, 'silent');
@@ -1288,6 +1308,7 @@
       '</div>' +
       '</div>' +
       '<div class="anvil-export-bar">' +
+      '<div class="anvil-export-bar__row">' +
       '<span class="anvil-export-label">Export</span>' +
       '<button type="button" class="anvil-export-btn" id="anvil-export-section-txt">This section (.txt)</button>' +
       '<button type="button" class="anvil-export-btn" id="anvil-export-section-docx">This section (.docx)</button>' +
@@ -1296,6 +1317,12 @@
       'Apply ' +
       escapeHtml(projectCitationStyle()) +
       ' format</button>' +
+      '</div>' +
+      '<div class="anvil-export-bar__row">' +
+      '<span class="anvil-export-sublabel">Whole project</span>' +
+      '<button type="button" class="anvil-export-btn" id="anvil-export-project-txt">All sections (.txt)</button>' +
+      '<button type="button" class="anvil-export-btn" id="anvil-export-project-docx">All sections (.docx)</button>' +
+      '</div>' +
       '</div>' +
       '<div id="anvil-error" class="anvil-error-banner" style="display:none" role="alert"></div>' +
       '</div>';
@@ -1331,7 +1358,7 @@
       var docxBtn = document.getElementById('anvil-export-section-docx');
       if (txtBtn) {
         txtBtn.addEventListener('click', function () {
-          var html = getEditorHtml();
+          var html = prepareManuscriptHtmlForExport(getEditorHtml());
           var lines = htmlToPlainLinesClient(html);
           var cur = sectionById(selectedId);
           var head = cur && cur.title ? String(cur.title) : 'Section';
@@ -1347,18 +1374,70 @@
           if (selectedId == null) return;
           docxBtn.disabled = true;
           try {
-            var html = getEditorHtml();
+            var html = prepareManuscriptHtmlForExport(getEditorHtml());
             var cur = sectionById(selectedId);
             var title = cur && cur.title ? String(cur.title) : 'Section';
             var blob = await apiPostDocx(
               '/projects/' + projectId + '/sections/' + selectedId + '/export-docx',
-              { html: html, title: title }
+              {
+                html: html,
+                title: title,
+                citationStyle: projectCitationStyle(),
+              }
             );
             downloadBlob(clientSanitizeFilename(title) + '.docx', blob);
           } catch (e) {
             alert(e.message || 'Could not export.');
           } finally {
             docxBtn.disabled = false;
+          }
+        });
+      }
+      var projTxtBtn = document.getElementById('anvil-export-project-txt');
+      var projDocxBtn = document.getElementById('anvil-export-project-docx');
+      if (projTxtBtn) {
+        projTxtBtn.addEventListener('click', function () {
+          if (!bundle || !bundle.project) return;
+          var name = String(bundle.project.name || 'Project');
+          var lines = [name, ''];
+          sectionsForProjectExport().forEach(function (sec) {
+            var html = prepareManuscriptHtmlForExport(sec.body != null ? String(sec.body) : '');
+            lines.push(String(sec.title || 'Section'));
+            lines.push('');
+            htmlToPlainLinesClient(html).forEach(function (line) {
+              lines.push(line);
+            });
+            lines.push('');
+          });
+          var text = lines.join('\n').trim() + '\n';
+          downloadBlob(
+            clientSanitizeFilename(name) + '-project.txt',
+            new Blob([text], { type: 'text/plain;charset=utf-8' })
+          );
+        });
+      }
+      if (projDocxBtn) {
+        projDocxBtn.addEventListener('click', async function () {
+          if (!bundle || !bundle.project) return;
+          projDocxBtn.disabled = true;
+          try {
+            var name = String(bundle.project.name || 'Project');
+            var sections = sectionsForProjectExport().map(function (s) {
+              return {
+                title: s.title != null ? String(s.title) : 'Section',
+                body: prepareManuscriptHtmlForExport(s.body != null ? String(s.body) : ''),
+              };
+            });
+            var blob = await apiPostDocx('/projects/' + projectId + '/export-project-docx', {
+              projectName: name,
+              citationStyle: projectCitationStyle(),
+              sections: sections,
+            });
+            downloadBlob(clientSanitizeFilename(name) + '-project.docx', blob);
+          } catch (e) {
+            alert(e.message || 'Could not export.');
+          } finally {
+            projDocxBtn.disabled = false;
           }
         });
       }

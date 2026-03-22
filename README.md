@@ -75,8 +75,9 @@ On startup the app creates (if missing): **`subscriptions`** (Stripe IDs, `curre
 | GET | `/api/projects/:id` | Project + sections + `sourceCount` |
 | PATCH | `/api/projects/:id` | `name`, `purpose`, `citationStyle`, `purposeOther`; `otherSections` or `otherSectionsJson` for **`other`** template (section `id`, `title`, `progressPercent`); plus `status`, publishing\* fields. **`template_key`** is not changeable. |
 | PATCH | `/api/projects/:id/sections/:sectionId` | `status`, `progressPercent`, `title`, `body` (draft: **HTML** from the Anvil rich editor, or legacy plain text; `NVARCHAR(MAX)`) |
-| GET | `/api/projects/:id/export?format=txt` or `?format=docx` | Download **whole project** as plain text or Word; uses **saved** section bodies from the database. |
-| POST | `/api/projects/:id/sections/:sectionId/export-docx` | Body `{ "html", "title" }` — build **.docx** for **this section** from current editor HTML (e.g. Anvil). Returns binary. |
+| GET | `/api/projects/:id/export?format=txt` or `?format=docx` | Download **whole project** as plain text or Word; uses **saved** section bodies from the database. Plain text lines get **citation spacing cleanup**; Word uses **project citation style** for line spacing (double vs IEEE) and Times body font. |
+| POST | `/api/projects/:id/sections/:sectionId/export-docx` | Body `{ "html", "title", "citationStyle"? }` — build **.docx** for **this section** from HTML (e.g. Anvil). Returns binary. |
+| POST | `/api/projects/:id/export-project-docx` | Body `{ "projectName", "citationStyle", "sections": [ { "title", "html" }, ... ] }` — full-project **.docx** from client-prepared HTML (e.g. Anvil). Returns binary. |
 | GET | `/api/projects/:id/sections/:sectionId/suggestions` | Anvil feedback rows for the section (`status`: `open` \| `applied` \| `ignored`; categories: `logic`, `evidence`, `citations`, `format`) |
 | POST | `/api/projects/:id/sections/:sectionId/suggestions` | Single: `{ "category", "body", "anchorJson"? }`. Batch: `{ "suggestions": [ { "category", "body", "anchorJson"? }, ... ] }`. Returns `{ suggestions: [...] }`. |
 | PATCH | `/api/projects/:id/suggestions/:suggestionId` | `{ "status": "applied" \| "ignored" }` — resolves an open suggestion. |
