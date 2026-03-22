@@ -734,6 +734,42 @@
   min-width: 0;
   width: 100%;
 }
+.anvil-progress {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.75rem;
+  margin: 0 0 0.65rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: 0.8rem;
+  line-height: 1.35;
+  color: rgba(255, 255, 255, 0.55);
+}
+.anvil-progress__item {
+  white-space: nowrap;
+}
+.anvil-progress__k {
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.42);
+  margin-right: 0.2rem;
+}
+.anvil-progress__sep {
+  color: rgba(255, 255, 255, 0.2);
+  user-select: none;
+}
+#anvil-progress-words {
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.88);
+}
+#anvil-progress-section,
+#anvil-progress-review {
+  font-weight: 600;
+  color: rgba(230, 235, 255, 0.85);
+}
+
 .anvil-editor-label {
   display: block;
   font-size: 0.86rem;
