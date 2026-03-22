@@ -13,6 +13,10 @@ const {
 const { applyPaymentMethodFromSetupIntent } = require('../lib/billingPaymentMethod');
 const { resolvePlanInterval, isWithinDaysBeforePeriodEnd } = require('../lib/billingAccountDisplay');
 const { changeSubscriptionPlan } = require('../lib/billingPlanChange');
+const {
+  previewSubscriptionPlanChange,
+  summarizeUpcomingInvoice,
+} = require('../lib/billingPlanPreview');
 
 /**
  * @param {() => Promise<import('mssql').ConnectionPool>} getPool
@@ -166,6 +170,67 @@ function createBillingApiRouter(getPool, stripe) {
     } catch (e) {
       if (e.type && String(e.type).startsWith('Stripe')) {
         return res.status(400).json({ error: e.message || 'Stripe could not update the subscription.' });
+      }
+      next(e);
+    }
+  });
+
+  router.post('/subscription/plan/preview', async (req, res, next) => {
+    try {
+      if (!stripe || !isStripeBillingConfigured(stripe)) {
+        return res.status(503).json({ error: 'Billing is not configured.' });
+      }
+      const cfg = getStripePriceConfig();
+      if (cfg.mode !== 'dual') {
+        return res
+          .status(400)
+          .json({ error: 'Plan preview requires monthly and yearly price IDs (dual mode).' });
+      }
+      const userId = req.session.userId;
+      const row = await getSubscriptionRow(getPool, userId);
+      if (!row?.stripe_subscription_id) {
+        return res.status(400).json({ error: 'No Stripe subscription on file.' });
+      }
+      const access = appAccessFromRow(row);
+      if (!access.paid && row.status !== 'past_due') {
+        return res.status(400).json({ error: 'Subscription cannot be previewed in this state.' });
+      }
+      const interval = String(req.body?.interval || '').toLowerCase();
+      if (interval !== 'month' && interval !== 'year') {
+        return res.status(400).json({ error: 'Body must include interval: "month" or "year".' });
+      }
+      const newPriceId = interval === 'year' ? cfg.yearly : cfg.monthly;
+      if (!newPriceId) {
+        return res.status(400).json({ error: 'Price configuration is incomplete.' });
+      }
+      const current = resolvePlanInterval(row, cfg);
+      if (current !== 'month' && current !== 'year') {
+        return res.status(400).json({
+          error:
+            'Current plan could not be matched to monthly/yearly; use Manage billing or contact support.',
+        });
+      }
+      if (current === interval) {
+        return res.status(400).json({ error: 'You are already on this billing interval.' });
+      }
+      if (current === 'year' && interval === 'month' && !isWithinDaysBeforePeriodEnd(row, 30)) {
+        return res.status(400).json({
+          error:
+            'Switching to monthly billing is only available within 30 days of your renewal date.',
+        });
+      }
+      const invoice = await previewSubscriptionPlanChange(
+        stripe,
+        row.stripe_subscription_id,
+        newPriceId
+      );
+      res.json(summarizeUpcomingInvoice(invoice));
+    } catch (e) {
+      if (e.code === 'NO_SUBSCRIPTION_ITEMS' || e.code === 'NO_CUSTOMER') {
+        return res.status(400).json({ error: e.message });
+      }
+      if (e.type && String(e.type).startsWith('Stripe')) {
+        return res.status(400).json({ error: e.message || 'Could not preview invoice.' });
       }
       next(e);
     }

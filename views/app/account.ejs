@@ -132,6 +132,7 @@
           <div class="account-plan-switch" id="account-plan-switch">
             <% if (currentPlanInterval === 'month') { %>
               <button type="button" class="app-btn-primary account-btn-yearly" data-action="switch-plan" data-interval="year">Switch to yearly billing</button>
+              <p id="account-plan-preview-estimate" class="account-meta account-plan-preview-estimate" hidden></p>
               <p class="account-meta">Stripe will prorate the rest of this billing period (charge or credit on your next invoice).</p>
             <% } else if (typeof within30DaysOfRenewal !== 'undefined' && within30DaysOfRenewal) { %>
               <button type="button" class="app-btn-primary" data-action="switch-plan" data-interval="month">Switch to monthly billing</button>

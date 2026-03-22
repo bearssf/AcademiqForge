@@ -160,6 +160,34 @@
   const planSwitch = document.getElementById('account-plan-switch');
   const planSwitchMsg = document.getElementById('account-plan-switch-msg');
 
+  const planPreviewEstimate = document.getElementById('account-plan-preview-estimate');
+
+  if (planPreviewEstimate) {
+    (async function loadPlanPreview() {
+      planPreviewEstimate.hidden = false;
+      planPreviewEstimate.textContent = 'Loading payment estimate…';
+      try {
+        const result = await postBillingJson('/api/billing/subscription/plan/preview', {
+          interval: 'year',
+        });
+        if (!result.res.ok || result.data.amountDueFormatted == null) {
+          planPreviewEstimate.textContent =
+            'We couldn’t load an estimate. Stripe will show the exact prorated amount on your next invoice after you switch.';
+          return;
+        }
+        var due = result.data.amountDueFormatted;
+        planPreviewEstimate.textContent =
+          'Estimated amount due on your next invoice for this switch: ' +
+            due +
+            '. Taxes may still apply; Stripe sets the final total.';
+        planPreviewEstimate.setAttribute('data-amount-due-formatted', due);
+      } catch (err) {
+        planPreviewEstimate.textContent =
+          'We couldn’t load an estimate. Stripe will show the exact prorated amount on your next invoice after you switch.';
+      }
+    })();
+  }
+
   if (planSwitch && planSwitchMsg) {
     planSwitch.addEventListener('click', async function (e) {
       const btn = e.target.closest('[data-action="switch-plan"]');
@@ -167,11 +195,19 @@
       const interval = btn.getAttribute('data-interval');
       if (interval !== 'month' && interval !== 'year') return;
       const label = interval === 'year' ? 'yearly' : 'monthly';
+      var estimateHint = '';
+      if (interval === 'year' && planPreviewEstimate) {
+        var est = planPreviewEstimate.getAttribute('data-amount-due-formatted');
+        if (est) {
+          estimateHint = ' Estimated amount due on next invoice: ' + est + ' (see details on Account).';
+        }
+      }
       if (
         !window.confirm(
           'Switch to ' +
             label +
-            ' billing? Stripe will prorate the rest of this period (you may see a charge or credit on your next invoice).'
+            ' billing? Stripe will prorate the rest of this period (you may see a charge or credit on your next invoice).' +
+            estimateHint
         )
       ) {
         return;
