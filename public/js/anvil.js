@@ -447,24 +447,90 @@
 
     if (typeof Quill !== 'undefined') {
       registerAnvilQuillFormatsOnce();
-      quillEditor = new Quill('#anvil-editor', {
-        theme: 'snow',
-        modules: {
-          toolbar: {
-            container: [
-              [{ header: [1, 2, 3, false] }],
-              [{ font: ANVIL_QUILL_FONTS }, { size: ANVIL_QUILL_SIZES }],
-              ['bold', 'italic', 'underline', 'strike'],
-              [{ list: 'ordered' }, { list: 'bullet' }],
-              [{ indent: '-1' }, { indent: '+1' }],
-              ['link', 'image'],
-              ['clean'],
-            ],
-            handlers: {
-              image: buildAnvilImageUploadHandler(),
-            },
+      var quillModules = {
+        toolbar: {
+          container: [
+            [{ header: [1, 2, 3, false] }],
+            [{ font: ANVIL_QUILL_FONTS }, { size: ANVIL_QUILL_SIZES }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ list: 'ordered' }, { list: 'bullet' }],
+            [{ indent: '-1' }, { indent: '+1' }],
+            ['link', 'image'],
+            ['clean'],
+          ],
+          handlers: {
+            image: buildAnvilImageUploadHandler(),
           },
         },
+      };
+      try {
+        if (Quill.import('modules/imageResize')) {
+          quillModules.imageResize = {
+            modules: ['Resize', 'DisplaySize', 'Toolbar'],
+            overlayStyles: {
+              position: 'absolute',
+              boxSizing: 'border-box',
+              border: '1px dashed rgba(47, 128, 237, 0.85)',
+              zIndex: '5',
+            },
+            handleStyles: {
+              position: 'absolute',
+              height: '12px',
+              width: '12px',
+              backgroundColor: 'rgba(22, 28, 36, 0.96)',
+              border: '1px solid rgba(255, 255, 255, 0.4)',
+              boxSizing: 'border-box',
+              borderRadius: '2px',
+              opacity: '1',
+            },
+            displayStyles: {
+              position: 'absolute',
+              font: '12px/1.2 system-ui, -apple-system, sans-serif',
+              padding: '4px 8px',
+              textAlign: 'center',
+              backgroundColor: 'rgba(22, 28, 36, 0.96)',
+              color: 'rgba(255, 255, 255, 0.92)',
+              border: '1px solid rgba(255, 255, 255, 0.22)',
+              boxSizing: 'border-box',
+              borderRadius: '4px',
+              opacity: '1',
+              cursor: 'default',
+            },
+            toolbarStyles: {
+              position: 'absolute',
+              top: '-12px',
+              right: '0',
+              left: '0',
+              height: '0',
+              minWidth: '100px',
+              font: '12px/1.2 system-ui, sans-serif',
+              textAlign: 'center',
+              color: 'rgba(255, 255, 255, 0.9)',
+              boxSizing: 'border-box',
+              cursor: 'default',
+            },
+            toolbarButtonStyles: {
+              display: 'inline-block',
+              width: '24px',
+              height: '24px',
+              background: 'rgba(22, 28, 36, 0.96)',
+              border: '1px solid rgba(255, 255, 255, 0.28)',
+              borderRadius: '4px',
+              verticalAlign: 'middle',
+            },
+            toolbarButtonSvgStyles: {
+              fill: 'rgba(255, 255, 255, 0.8)',
+              stroke: 'rgba(255, 255, 255, 0.8)',
+              strokeWidth: '2',
+            },
+          };
+        }
+      } catch (e) {
+        /* image resize module not loaded */
+      }
+      quillEditor = new Quill('#anvil-editor', {
+        theme: 'snow',
+        modules: quillModules,
         placeholder: 'Write your draft here…',
       });
       installQuillPasteColorNormalization(quillEditor);
