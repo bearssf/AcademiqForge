@@ -132,10 +132,13 @@
           <div class="account-plan-switch" id="account-plan-switch">
             <% if (currentPlanInterval === 'month') { %>
               <button type="button" class="app-btn-primary account-btn-yearly" data-action="switch-plan" data-interval="year">Switch to yearly billing</button>
-            <% } else { %>
+              <p class="account-meta">Stripe will prorate the rest of this billing period (charge or credit on your next invoice).</p>
+            <% } else if (typeof within30DaysOfRenewal !== 'undefined' && within30DaysOfRenewal) { %>
               <button type="button" class="app-btn-primary" data-action="switch-plan" data-interval="month">Switch to monthly billing</button>
+              <p class="account-meta">Stripe will prorate the rest of this billing period (charge or credit on your next invoice).</p>
+            <% } else { %>
+              <p class="account-meta">Switching to monthly billing is available within 30 days of your renewal<% if (typeof renewalDateLabel !== 'undefined' && renewalDateLabel) { %> (next renewal: <%= renewalDateLabel %>)<% } %>.</p>
             <% } %>
-            <p class="account-meta">Stripe will prorate the rest of this billing period (charge or credit on your next invoice).</p>
             <div id="account-plan-switch-msg" class="account-form-msg" hidden></div>
           </div>
         <% } %>
@@ -149,43 +152,7 @@
               <a href="/billing/payment-method" class="app-link-cta">Update payment method on this site</a>
             </p>
           <% } %>
-          <p class="account-meta">Payment method: use the link above (on this site) or the portal. Recent invoices are listed below when available. Auto-renew can be changed here or in the portal.</p>
-        <% } %>
-
-        <% if (typeof stripeInvoices !== 'undefined' && stripeInvoices.length) { %>
-          <h3 class="account-h3">Recent invoices</h3>
-          <div class="account-invoice-table-wrap">
-            <table class="account-invoice-table">
-              <thead>
-                <tr>
-                  <th scope="col">Date</th>
-                  <th scope="col">Invoice</th>
-                  <th scope="col">Amount</th>
-                  <th scope="col">Status</th>
-                  <th scope="col"></th>
-                </tr>
-              </thead>
-              <tbody>
-                <% stripeInvoices.forEach(function (inv) { %>
-                  <tr>
-                    <td><%= inv.dateLabel %></td>
-                    <td><%= inv.number %></td>
-                    <td><%= inv.amountLabel %></td>
-                    <td><%= inv.statusLabel %></td>
-                    <td class="account-invoice-actions">
-                      <% if (inv.hostedInvoiceUrl) { %>
-                        <a href="<%= inv.hostedInvoiceUrl %>" target="_blank" rel="noopener noreferrer" class="app-link-cta">View</a>
-                      <% } %>
-                      <% if (inv.invoicePdf) { %>
-                        <a href="<%= inv.invoicePdf %>" target="_blank" rel="noopener noreferrer" class="app-link-muted">PDF</a>
-                      <% } %>
-                    </td>
-                  </tr>
-                <% }); %>
-              </tbody>
-            </table>
-          </div>
-          <p class="account-meta">Invoice pages and PDFs are hosted by Stripe.</p>
+          <p class="account-meta">Payment method: use the link above (on this site) or the portal. Auto-renew can be changed here or in the portal.</p>
         <% } %>
 
         <% if (!appAccess.paid) { %>

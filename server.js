@@ -32,8 +32,12 @@ const {
   isStripeElementsBillingConfigured,
   billingPriceEnvHint,
 } = require('./lib/billingConfig');
-const { buildBillingSummaryLines, resolvePlanInterval } = require('./lib/billingAccountDisplay');
-const { listInvoicesForCustomer } = require('./lib/billingInvoices');
+const {
+  buildBillingSummaryLines,
+  resolvePlanInterval,
+  isWithinDaysBeforePeriodEnd,
+  formatLongDate,
+} = require('./lib/billingAccountDisplay');
 const { applyPaymentMethodFromSetupIntent } = require('./lib/billingPaymentMethod');
 
 const app = express();
@@ -498,18 +502,10 @@ app.get(
     if (priceCfg.mode === 'none') billingEnvMissing.push(billingPriceEnvHint());
     const billingSummary = buildBillingSummaryLines(subscriptionRow, priceCfg);
     const currentPlanInterval = resolvePlanInterval(subscriptionRow, priceCfg);
-    let stripeInvoices = [];
-    if (stripe && stripeConfigured && subscriptionRow?.stripe_customer_id) {
-      try {
-        stripeInvoices = await listInvoicesForCustomer(
-          stripe,
-          subscriptionRow.stripe_customer_id,
-          20
-        );
-      } catch (e) {
-        console.error('Stripe invoices.list:', e.message || e);
-      }
-    }
+    const within30DaysOfRenewal = isWithinDaysBeforePeriodEnd(subscriptionRow, 30);
+    const renewalDateLabel = subscriptionRow?.current_period_end
+      ? formatLongDate(subscriptionRow.current_period_end)
+      : null;
     res.render('app/account', {
       user: req.session.user,
       appAccess: res.locals.appAccess,
@@ -518,7 +514,8 @@ app.get(
       billingFlash,
       subscriptionRow,
       billingSummary,
-      stripeInvoices,
+      within30DaysOfRenewal,
+      renewalDateLabel,
       profile,
       universities: loadUniversities(),
       searchEngines: SEARCH_ENGINES,

@@ -10,9 +10,8 @@ const {
   resolvePriceIdFromRequest,
   createSubscriptionPaymentIntentClientSecret,
 } = require('../lib/billingElements');
-const { listInvoicesForCustomer } = require('../lib/billingInvoices');
 const { applyPaymentMethodFromSetupIntent } = require('../lib/billingPaymentMethod');
-const { resolvePlanInterval } = require('../lib/billingAccountDisplay');
+const { resolvePlanInterval, isWithinDaysBeforePeriodEnd } = require('../lib/billingAccountDisplay');
 const { changeSubscriptionPlan } = require('../lib/billingPlanChange');
 
 /**
@@ -145,22 +144,6 @@ function createBillingApiRouter(getPool, stripe) {
     }
   });
 
-  router.get('/invoices', async (req, res, next) => {
-    try {
-      if (!stripe || !isStripeBillingConfigured(stripe)) {
-        return res.status(503).json({ error: 'Billing is not configured.' });
-      }
-      const row = await getSubscriptionRow(getPool, req.session.userId);
-      if (!row?.stripe_customer_id) {
-        return res.json({ invoices: [] });
-      }
-      const invoices = await listInvoicesForCustomer(stripe, row.stripe_customer_id, 20);
-      res.json({ invoices });
-    } catch (e) {
-      next(e);
-    }
-  });
-
   router.post('/subscription/resume', async (req, res, next) => {
     try {
       if (!stripe || !isStripeBillingConfigured(stripe)) {
@@ -225,6 +208,12 @@ function createBillingApiRouter(getPool, stripe) {
       }
       if (current === interval) {
         return res.status(400).json({ error: 'You are already on this billing interval.' });
+      }
+      if (current === 'year' && interval === 'month' && !isWithinDaysBeforePeriodEnd(row, 30)) {
+        return res.status(400).json({
+          error:
+            'Switching to monthly billing is only available within 30 days of your renewal date. Use Manage billing or contact support.',
+        });
       }
       const sub = await changeSubscriptionPlan(stripe, row.stripe_subscription_id, newPriceId);
       await applyStripeSubscriptionObject(getPool, userId, sub);
