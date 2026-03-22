@@ -1673,11 +1673,33 @@
   font-family: 'Times New Roman', Times, serif !important;
   font-size: 12pt !important;
 }
+.anvil-quill-wrap.anvil-quill-manuscript .ql-editor p {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+.anvil-quill-wrap.anvil-quill-manuscript:not([data-ms-profile='ieee']) .ql-editor p {
+  text-indent: 0.5in !important;
+}
+.anvil-quill-wrap.anvil-quill-manuscript[data-ms-profile='ieee'] .ql-editor p {
+  text-indent: 0 !important;
+}
 .anvil-quill-wrap.anvil-quill-manuscript .ql-editor p,
 .anvil-quill-wrap.anvil-quill-manuscript .ql-editor li {
   line-height: 2 !important;
   font-family: 'Times New Roman', Times, serif !important;
   font-size: 12pt !important;
+}
+.anvil-quill-wrap.anvil-quill-manuscript .ql-editor li {
+  text-indent: 0 !important;
+}
+.anvil-quill-wrap.anvil-quill-manuscript .ql-editor h1,
+.anvil-quill-wrap.anvil-quill-manuscript .ql-editor h2,
+.anvil-quill-wrap.anvil-quill-manuscript .ql-editor h3,
+.anvil-quill-wrap.anvil-quill-manuscript .ql-editor h4 {
+  text-indent: 0 !important;
+}
+.anvil-quill-wrap.anvil-quill-manuscript .ql-editor blockquote p {
+  text-indent: 0 !important;
 }
 .anvil-quill-wrap.anvil-quill-manuscript .ql-editor ul,
 .anvil-quill-wrap.anvil-quill-manuscript .ql-editor ol {

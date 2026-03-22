@@ -559,7 +559,8 @@
         fontFamily: MS_TNR,
         fontSize: '12pt',
         lineHeight: '2',
-        margin: '0 0 0.5em 0',
+        paragraphMargin: '0',
+        textIndent: '0.5in',
         textAlign: 'left',
       },
       h1: {
@@ -601,7 +602,8 @@
         fontFamily: MS_TNR,
         fontSize: '12pt',
         lineHeight: '2',
-        margin: '0 0 0.5em 0',
+        paragraphMargin: '0',
+        textIndent: '0.5in',
         textAlign: 'left',
       },
       h1: {
@@ -643,7 +645,8 @@
         fontFamily: MS_TNR,
         fontSize: '12pt',
         lineHeight: '2',
-        margin: '0 0 0.5em 0',
+        paragraphMargin: '0',
+        textIndent: '0.5in',
         textAlign: 'left',
       },
       h1: {
@@ -685,7 +688,8 @@
         fontFamily: MS_TNR,
         fontSize: '10pt',
         lineHeight: '1.15',
-        margin: '0 0 0.35em 0',
+        paragraphMargin: '0',
+        textIndent: '0',
         textAlign: 'left',
       },
       h1: {
@@ -846,6 +850,20 @@
     }
   }
 
+  /** Remove empty <p> / spacer paragraphs so double-spacing doesn’t look like extra blank lines. */
+  function collapseBlankParagraphs(root) {
+    Array.from(root.querySelectorAll('p')).forEach(function (p) {
+      var html = (p.innerHTML || '')
+        .replace(/<br\s*\/?>/gi, '')
+        .replace(/&nbsp;/gi, ' ')
+        .trim();
+      var text = (p.textContent || '').replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!text && (!html || html === '')) {
+        if (p.parentNode) p.parentNode.removeChild(p);
+      }
+    });
+  }
+
   function stripBulletFromParagraphHtml(inner, numbered) {
     var d = document.createElement('div');
     d.innerHTML = inner || '';
@@ -879,6 +897,7 @@
   function applyManuscriptStylesToDom(root, styleKey, lightPaper) {
     stripWordPasteOverrides(root);
     convertPseudoBulletParagraphs(root);
+    collapseBlankParagraphs(root);
 
     var pkey = resolveManuscriptProfileKey(styleKey);
     var prof = MANUSCRIPT_PROFILES[pkey] || MANUSCRIPT_PROFILES.APA;
@@ -890,12 +909,16 @@
       return prof[tag] || prof.h2;
     }
 
+    var paraMargin = body.paragraphMargin != null ? body.paragraphMargin : '0';
+    var paraIndent = body.textIndent != null ? body.textIndent : '0';
+
     root.querySelectorAll('p').forEach(function (el) {
       setStyleImportant(el, 'font-family', body.fontFamily);
       setStyleImportant(el, 'font-size', body.fontSize);
       setStyleImportant(el, 'line-height', body.lineHeight);
       setStyleImportant(el, 'color', fg);
-      el.style.setProperty('margin', body.margin, 'important');
+      el.style.setProperty('margin', paraMargin, 'important');
+      setStyleImportant(el, 'text-indent', paraIndent);
       setStyleImportant(el, 'text-align', body.textAlign || 'left');
     });
     root.querySelectorAll('li').forEach(function (el) {
@@ -903,7 +926,8 @@
       setStyleImportant(el, 'font-size', body.fontSize);
       setStyleImportant(el, 'line-height', body.lineHeight);
       setStyleImportant(el, 'color', fg);
-      el.style.setProperty('margin', '0 0 0.25em 0', 'important');
+      el.style.setProperty('margin', '0', 'important');
+      setStyleImportant(el, 'text-indent', '0');
     });
     ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].forEach(function (tag) {
       var spec = hspec(tag);
@@ -916,17 +940,18 @@
         setStyleImportant(el, 'line-height', spec.lineHeight || body.lineHeight);
         setStyleImportant(el, 'color', fg);
         el.style.setProperty('margin', spec.margin || '0.75em 0 0.5em 0', 'important');
+        setStyleImportant(el, 'text-indent', '0');
       });
     });
     root.querySelectorAll('ol').forEach(function (el) {
       el.style.setProperty('padding-left', listPad, 'important');
-      el.style.setProperty('margin', body.margin, 'important');
+      el.style.setProperty('margin', '0.25em 0', 'important');
       setStyleImportant(el, 'list-style-type', 'decimal');
       setStyleImportant(el, 'list-style-position', 'outside');
     });
     root.querySelectorAll('ul').forEach(function (el) {
       el.style.setProperty('padding-left', listPad, 'important');
-      el.style.setProperty('margin', body.margin, 'important');
+      el.style.setProperty('margin', '0.25em 0', 'important');
       setStyleImportant(el, 'list-style-type', 'disc');
       setStyleImportant(el, 'list-style-position', 'outside');
     });
@@ -937,6 +962,9 @@
       setStyleImportant(el, 'color', fg);
       el.style.setProperty('margin', '0 0 0.5em 1.5em', 'important');
       setStyleImportant(el, 'padding-left', '2em');
+    });
+    root.querySelectorAll('blockquote p').forEach(function (el) {
+      setStyleImportant(el, 'text-indent', '0');
     });
 
     var inlineSel =
