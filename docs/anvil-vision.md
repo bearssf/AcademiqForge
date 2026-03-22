@@ -86,4 +86,27 @@ Suggested banding (from product notes):
 
 ---
 
+## Phased delivery (suggested order)
+
+Work in this order so each phase **unlocks the next** without painting yourself into a corner.
+
+| Phase | Focus | Outcome | Depends on |
+|-------|--------|---------|------------|
+| **1** | **Anvil shell** | Anvil route uses a **dedicated layout**: nav (existing) \| center editor \| **right rail** split **top / bottom** (placeholders OK). Mobile: stack or drawer; desktop matches vision. | Current `workspace.ejs` + partials |
+| **2** | **Citations rail (read-only)** | **Bottom** of right rail lists sources **linked to the active section** (same data as Crucible: `GET /api/projects/:id/sources` + `sectionIds`). Reference-style strings; scrollable. | APIs today |
+| **3** | **Insert citation (plain text)** | User picks a source → **insert in-text snippet** at cursor in the **textarea** using project **`citationStyle`**. Keeps shipping value before a rich editor. | Phase 2, `citationStyle` on project |
+| **4** | **Rich editor + storage** | Choose stack (e.g. ProseMirror / TipTap / Quill). Decide **HTML vs Markdown** in `project_sections.body` (or new column) + **migration** from plain text. Enables formatting, lists, spacing UI “for free” from the component. | Phase 1–3 stable |
+| **5** | **Export** | **Per-section** `.txt` first; then **`.docx`** (e.g. `docx` / HTML → docx) for one section, then **whole project** (concat + optional refs). Align with “download at project close” on **dashboard or project settings**. | Phase 4 ideal; `.txt` can ship after Phase 3 |
+| **6** | **Feedback persistence** | Schema for **suggestions**: `sectionId`, category (logic / evidence / citations / format), body text, status (`open` \| `applied` \| `ignored`), optional doc anchor. API: list, patch status, create batch. | DB migration |
+| **7** | **AWS Bedrock** | Server-only route: send **paragraph** (debounced) + **trimmed Crucible context** → model (e.g. Claude via Bedrock) → normalized suggestions → Phase 6 API. Env: `AWS_REGION`, credentials, model id. | Phase 6 |
+| **8** | **Score strip** | **Top** of right rail: counts per category → **Weak / Moderate / Improving / Strong** per vision table. | Phase 6–7 |
+| **9** | **Section switch guard** | On section change: optional **citation scan** (heuristic or AI) + surface in rail; confirm or block soft-warning. | Phases 2, 6–7 |
+| **10** | **Progress awareness (center)** | Light **progress** UX in the writing column (word count, section status, last reviewed) without duplicating the whole score strip. | Optional anytime after 1 |
+
+**Parallel tracks:** **Phase 5** (export) can start **early** with plain text. **Phase 10** can slip in after **Phase 1** if you want quicker “feel” wins.
+
+**Defer until core is solid:** fonts/themes marketplace, perfect grammar engine (use browser + later third-party), every export format.
+
+---
+
 *Last captured from product notes; revise as decisions are made.*
