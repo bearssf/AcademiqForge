@@ -29,14 +29,16 @@ Used for **Upgrade to member** on **Account** and **`subscriptions`** rows (`sta
      - **Two options on Account:** **`STRIPE_PRICE_MONTHLY`** and **`STRIPE_PRICE_YEARLY`** — both required; users choose Monthly or Yearly.
      - **Single option:** **`STRIPE_PRICE_ID`** only — one “Upgrade to member” button (backward compatible).
    - **`PUBLIC_BASE_URL`** — Public origin of this app **with no trailing slash**, e.g. `https://your-app.onrender.com`. Used for return URLs after payment and for Checkout when the publishable key is not set.
-3. **Webhooks:** Add endpoint **`POST /webhooks/stripe`**. For production, use your real `PUBLIC_BASE_URL` + `/webhooks/stripe`. Subscribe to at least:
+3. **Promotion codes (membership discounts):** Create **Coupons** and **Promotion codes** in the Stripe Dashboard. Hosted Checkout shows a promo field automatically; on-site subscribe at **`/billing/subscribe`** includes **Apply** for a code. See [docs/stripe-promotion-codes.md](./docs/stripe-promotion-codes.md).
+
+4. **Webhooks:** Add endpoint **`POST /webhooks/stripe`**. For production, use your real `PUBLIC_BASE_URL` + `/webhooks/stripe`. Subscribe to at least:
    - `checkout.session.completed` (hosted Checkout only)
    - `customer.subscription.created` (on-site subscribe flow — syncs incomplete → active)
    - `customer.subscription.updated`
    - `customer.subscription.deleted`  
    Copy the **Signing secret** into **`STRIPE_WEBHOOK_SECRET`**.
-4. **Local testing:** Install [Stripe CLI](https://stripe.com/docs/stripe-cli), run `stripe listen --forward-to localhost:3000/webhooks/stripe`, and paste the CLI webhook secret into **`STRIPE_WEBHOOK_SECRET`** for that session.
-5. **Customer Portal (manage subscription):** In the [Stripe Dashboard → Customer portal](https://dashboard.stripe.com/settings/billing/portal), **activate** the portal and choose allowed actions (e.g. cancel subscription, update payment method, view invoices). After a member has a Stripe customer ID (stored in **`subscriptions.stripe_customer_id`**), **Account** shows **Manage billing**, which opens **`GET /billing/portal`** and returns them to **`/app/account?billing=portal_return`**.
+5. **Local testing:** Install [Stripe CLI](https://stripe.com/docs/stripe-cli), run `stripe listen --forward-to localhost:3000/webhooks/stripe`, and paste the CLI webhook secret into **`STRIPE_WEBHOOK_SECRET`** for that session.
+6. **Customer Portal (manage subscription):** In the [Stripe Dashboard → Customer portal](https://dashboard.stripe.com/settings/billing/portal), **activate** the portal and choose allowed actions (e.g. cancel subscription, update payment method, view invoices). After a member has a Stripe customer ID (stored in **`subscriptions.stripe_customer_id`**), **Account** shows **Manage billing**, which opens **`GET /billing/portal`** and returns them to **`/app/account?billing=portal_return`**.
 
 **Troubleshooting on-site billing:** After deploy, check Render **Logs** on boot: you should see `Stripe: on-site billing enabled` when **`STRIPE_PUBLISHABLE_KEY`** is recognized. If you see `hosted Checkout only`, the publishable key was not loaded (wrong name, wrong service, or value not starting with `pk_`). On **Account**, use **View page source** and look for `<!-- billing: subscribe-on-site -->` vs `checkout-redirect`.
 

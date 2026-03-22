@@ -2354,6 +2354,44 @@
 .billing-subscribe-card {
   max-width: 32rem;
 }
+.billing-promo-row {
+  margin: 0.75rem 0 0;
+}
+.billing-promo-label {
+  display: block;
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+}
+.billing-promo-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+.billing-promo-input {
+  flex: 1;
+  min-width: 10rem;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.25);
+  color: #fff;
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+.billing-promo-input:focus {
+  outline: none;
+  border-color: rgba(47, 128, 237, 0.5);
+}
+.billing-promo-apply {
+  flex-shrink: 0;
+}
+.billing-promo-hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
+  color: rgba(120, 200, 140, 0.95);
+}
 .billing-subscribe-form {
   margin-top: 1rem;
 }

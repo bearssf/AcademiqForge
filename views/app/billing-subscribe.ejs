@@ -12,6 +12,14 @@
 
       <div class="app-placeholder account-block billing-subscribe-card">
         <p class="account-meta" style="margin-top:0">Card details are collected by Stripe and never touch our servers.</p>
+        <div class="billing-promo-row" id="billing-promo-row">
+          <label class="billing-promo-label" for="billing-promo-input">Promotion code</label>
+          <div class="billing-promo-controls">
+            <input type="text" id="billing-promo-input" class="billing-promo-input" placeholder="Optional" autocomplete="off" />
+            <button type="button" id="billing-promo-apply" class="app-btn-secondary billing-promo-apply">Apply</button>
+          </div>
+          <p id="billing-promo-hint" class="billing-promo-hint" hidden></p>
+        </div>
         <form id="billing-subscribe-form" class="billing-subscribe-form">
           <div id="billing-subscribe-payment"></div>
           <p id="billing-subscribe-error" class="billing-subscribe-error" hidden></p>
@@ -29,7 +37,8 @@
     window.__BILLING_SUBSCRIBE__ = {
       publishableKey: <%- JSON.stringify(stripePublishableKey) %>,
       interval: <%- JSON.stringify(billingInterval) %>,
-      priceMode: <%- JSON.stringify(billingPriceMode) %>
+      priceMode: <%- JSON.stringify(billingPriceMode) %>,
+      promoPrefill: <%- JSON.stringify(typeof promoPrefill !== 'undefined' ? promoPrefill : '') %>
     };
   </script>
   <script src="/js/billing-subscribe.js" defer></script>

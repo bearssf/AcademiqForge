@@ -10,6 +10,7 @@ const {
   resolvePriceIdFromRequest,
   createSubscriptionPaymentIntentClientSecret,
 } = require('../lib/billingElements');
+const { resolvePromotionCodeId } = require('../lib/billingPromotion');
 const { applyPaymentMethodFromSetupIntent } = require('../lib/billingPaymentMethod');
 const { resolvePlanInterval, isWithinDaysBeforePeriodEnd } = require('../lib/billingAccountDisplay');
 const { changeSubscriptionPlan } = require('../lib/billingPlanChange');
@@ -53,12 +54,25 @@ function createBillingApiRouter(getPool, stripe) {
       if (!priceId) {
         return res.status(400).json({ error: 'Invalid billing interval or price configuration.' });
       }
+      let promotionCodeId = null;
+      const rawPromo = req.body?.promotionCode;
+      if (rawPromo != null && String(rawPromo).trim() !== '') {
+        try {
+          promotionCodeId = await resolvePromotionCodeId(stripe, rawPromo);
+        } catch (e) {
+          if (e && e.code === 'INVALID_PROMOTION_CODE') {
+            return res.status(400).json({ error: e.message });
+          }
+          throw e;
+        }
+      }
       const { clientSecret } = await createSubscriptionPaymentIntentClientSecret(
         stripe,
         getPool,
         userId,
         email,
-        priceId
+        priceId,
+        promotionCodeId
       );
       return res.json({ clientSecret });
     } catch (e) {

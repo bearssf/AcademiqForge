@@ -286,6 +286,7 @@ app.get(
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
+      allow_promotion_codes: true,
       success_url: `${base}/app/account?subscription=success`,
       cancel_url: `${base}/app/account?subscription=canceled`,
       client_reference_id: String(req.session.userId),
@@ -336,6 +337,7 @@ app.get(
     const currentProjectId = null;
     const intervalLabel =
       cfg.mode === 'dual' ? (billingInterval === 'year' ? 'Yearly' : 'Monthly') : 'Member';
+    const promoPrefill = String(req.query.promo || '').trim();
     res.render('app/billing-subscribe', {
       user: req.session.user,
       appAccess: res.locals.appAccess,
@@ -345,6 +347,7 @@ app.get(
       billingInterval,
       billingPriceMode: cfg.mode,
       intervalLabel,
+      promoPrefill,
     });
   })
 );
