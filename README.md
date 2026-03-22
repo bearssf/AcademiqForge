@@ -85,7 +85,7 @@ On startup the app creates (if missing): **`subscriptions`** (Stripe IDs, `curre
 | POST | `/api/billing/setup-intent` | Creates a Stripe SetupIntent; returns `{ clientSecret, setupIntentId }` for **Update payment method** (`STRIPE_PUBLISHABLE_KEY` required). |
 | POST | `/api/billing/setup-intent/complete` | Body `{ "setupIntentId" }` — sets default payment method on the customer and subscription after a succeeded SetupIntent. |
 
-**Purposes:** Dissertation, Academic Publication, Thesis, Essay, Report, Conference Document, Other. **Citation styles:** APA, MLA, Chicago, Turabian, IEEE.
+**Purposes:** Academic Assignment, Academic Publication, Conference, Dissertation/Thesis, Other. **Citation styles:** APA, MLA, Chicago, Turabian, IEEE.
 
 **Foundry access:** `appAccess.foundryUnlocked` is true only when `subscriptions.status = 'active'` (paid via Stripe webhook or `DEV_SUBSCRIPTION_PAID`). Trial rows use `status = 'trialing'` with `trial_end`. Set `DEV_SUBSCRIPTION_PAID=true` locally to simulate paid UI without Stripe.
 

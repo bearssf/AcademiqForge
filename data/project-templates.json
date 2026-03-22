@@ -1,15 +1,6 @@
 {
-  "essay": {
-    "label": "Essay",
-    "sections": [
-      { "title": "Introduction", "slug": "introduction" },
-      { "title": "Body", "slug": "body" },
-      { "title": "Conclusion", "slug": "conclusion" },
-      { "title": "References", "slug": "references" }
-    ]
-  },
-  "journal-research-paper": {
-    "label": "Journal Submission/Research Paper",
+  "academic-publication": {
+    "label": "Academic Publication",
     "sections": [
       { "title": "Abstract", "slug": "abstract" },
       { "title": "Introduction", "slug": "introduction" },
@@ -21,14 +12,12 @@
       { "title": "References", "slug": "references" }
     ]
   },
-  "scientific-report": {
-    "label": "Scientific Report",
+  "essay": {
+    "label": "Essay",
     "sections": [
-      { "title": "Executive Summary", "slug": "executive-summary" },
       { "title": "Introduction", "slug": "introduction" },
-      { "title": "Methods", "slug": "methods" },
-      { "title": "Results", "slug": "results" },
-      { "title": "Discussion", "slug": "discussion" },
+      { "title": "Body", "slug": "body" },
+      { "title": "Conclusion", "slug": "conclusion" },
       { "title": "References", "slug": "references" }
     ]
   },
@@ -56,6 +45,26 @@
       { "title": "References", "slug": "references" }
     ]
   },
+  "persuasive-speech": {
+    "label": "Persuasive Speech",
+    "sections": [
+      { "title": "Introduction", "slug": "introduction" },
+      { "title": "Main Points", "slug": "main-points" },
+      { "title": "Conclusion", "slug": "conclusion" },
+      { "title": "References", "slug": "references" }
+    ]
+  },
+  "scientific-report": {
+    "label": "Scientific Report",
+    "sections": [
+      { "title": "Executive Summary", "slug": "executive-summary" },
+      { "title": "Introduction", "slug": "introduction" },
+      { "title": "Methods", "slug": "methods" },
+      { "title": "Results", "slug": "results" },
+      { "title": "Discussion", "slug": "discussion" },
+      { "title": "References", "slug": "references" }
+    ]
+  },
   "thesis": {
     "label": "Thesis",
     "sections": [
@@ -68,18 +77,23 @@
       { "title": "References", "slug": "references" }
     ]
   },
-  "persuasive-speech": {
-    "label": "Persuasive Speech",
-    "sections": [
-      { "title": "Introduction", "slug": "introduction" },
-      { "title": "Main Points", "slug": "main-points" },
-      { "title": "Conclusion", "slug": "conclusion" },
-      { "title": "References", "slug": "references" }
-    ]
-  },
   "other": {
     "label": "Custom",
     "sections": []
+  },
+  "journal-research-paper": {
+    "label": "Journal Submission/Research Paper",
+    "deprecated": true,
+    "sections": [
+      { "title": "Abstract", "slug": "abstract" },
+      { "title": "Introduction", "slug": "introduction" },
+      { "title": "Literature Review", "slug": "literature-review" },
+      { "title": "Methods", "slug": "methods" },
+      { "title": "Results", "slug": "results" },
+      { "title": "Discussion", "slug": "discussion" },
+      { "title": "Conclusion", "slug": "conclusion" },
+      { "title": "References", "slug": "references" }
+    ]
   },
   "standard-graduate": {
     "label": "Standard graduate (IMRaD-style)",
