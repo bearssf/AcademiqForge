@@ -24,6 +24,50 @@
   let anvilSourcesError = null;
   let quillEditor = null;
 
+  const PAPER_PREF_KEY = 'af.anvil.paper';
+
+  function readPaperPreference() {
+    try {
+      return localStorage.getItem(PAPER_PREF_KEY) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function writePaperPreference(on) {
+    try {
+      if (on) localStorage.setItem(PAPER_PREF_KEY, '1');
+      else localStorage.removeItem(PAPER_PREF_KEY);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  function applyPaperToEditor(on) {
+    var wrap = document.getElementById('anvil-quill-wrap');
+    var btn = document.getElementById('anvil-paper-toggle');
+    if (wrap) wrap.classList.toggle('anvil-quill-wrap--paper', on);
+    if (btn) {
+      btn.setAttribute('aria-checked', on ? 'true' : 'false');
+      btn.setAttribute(
+        'aria-label',
+        on ? 'Writing area: light paper. Switch to dark background.' : 'Writing area: dark. Switch to white paper.'
+      );
+    }
+  }
+
+  function bindPaperToggle() {
+    var btn = document.getElementById('anvil-paper-toggle');
+    if (!btn) return;
+    var on = readPaperPreference();
+    applyPaperToEditor(on);
+    btn.addEventListener('click', function () {
+      var next = !readPaperPreference();
+      writePaperPreference(next);
+      applyPaperToEditor(next);
+    });
+  }
+
   function htmlToPlainLinesClient(html) {
     if (html == null || !String(html).trim()) return [];
     var s = String(html);
@@ -869,8 +913,20 @@
       '<div id="anvil-editor" class="anvil-quill"></div>' +
       '</div>' +
       '<div class="anvil-editor-footer">' +
+      '<div class="anvil-editor-footer__left">' +
       '<span id="anvil-status" class="anvil-status"><span class="anvil-status-ok">Saved</span></span>' +
+      '</div>' +
+      '<div class="anvil-editor-footer__mid">' +
+      '<div class="anvil-paper-toggle-wrap">' +
+      '<button type="button" class="anvil-paper-toggle" id="anvil-paper-toggle" role="switch" aria-checked="false" aria-label="Writing area: dark. Switch to white paper.">' +
+      '<span class="anvil-paper-toggle__track" aria-hidden="true"><span class="anvil-paper-toggle__thumb"></span></span>' +
+      '</button>' +
+      '<span class="anvil-paper-toggle__hint" id="anvil-paper-toggle-hint">White paper</span>' +
+      '</div>' +
+      '</div>' +
+      '<div class="anvil-editor-footer__right">' +
       '<button type="button" class="anvil-save-now" id="anvil-save-now">Save now</button>' +
+      '</div>' +
       '</div>' +
       '<div class="anvil-export-bar">' +
       '<span class="anvil-export-label">Export</span>' +
@@ -886,6 +942,7 @@
       '</div></div>';
 
     mountEditor(initialHtml);
+    bindPaperToggle();
     updateProgressBar();
 
     const saveBtn = document.getElementById('anvil-save-now');

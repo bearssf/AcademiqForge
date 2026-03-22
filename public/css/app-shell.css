@@ -1594,6 +1594,78 @@
   background: rgba(0, 0, 0, 0.35);
 }
 
+/* Light “paper” writing area (toggle in editor footer) */
+.anvil-quill-wrap.anvil-quill-wrap--paper {
+  background: #ffffff;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+.anvil-quill-wrap--paper .ql-toolbar.ql-snow {
+  background: #f0f2f5;
+  border-bottom-color: rgba(0, 0, 0, 0.1);
+}
+.anvil-quill-wrap--paper .ql-editor {
+  color: #1a1d21;
+}
+.anvil-quill-wrap--paper .ql-editor.ql-blank::before {
+  color: rgba(0, 0, 0, 0.38);
+}
+.anvil-quill-wrap--paper .ql-stroke {
+  stroke: rgba(0, 0, 0, 0.55);
+}
+.anvil-quill-wrap--paper .ql-fill {
+  fill: rgba(0, 0, 0, 0.55);
+}
+.anvil-quill-wrap--paper .ql-picker-label {
+  color: rgba(0, 0, 0, 0.78);
+}
+.anvil-quill-wrap--paper .ql-picker-options {
+  background: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  color: #1a1d21 !important;
+}
+.anvil-quill-wrap--paper .ql-snow .ql-picker.ql-expanded .ql-picker-options {
+  background-color: #ffffff !important;
+  border-color: rgba(0, 0, 0, 0.12) !important;
+}
+.anvil-quill-wrap--paper .ql-picker-item {
+  color: rgba(0, 0, 0, 0.88) !important;
+}
+.anvil-quill-wrap--paper .ql-picker-item:hover {
+  background: rgba(47, 128, 237, 0.12) !important;
+  color: #1a1d21 !important;
+}
+.app-body--anvil .anvil-quill-wrap--paper .ql-snow .ql-picker-options {
+  background-color: #ffffff !important;
+  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  color: #1a1d21 !important;
+}
+.app-body--anvil .anvil-quill-wrap--paper .ql-snow .ql-picker-options .ql-picker-item {
+  color: rgba(0, 0, 0, 0.9) !important;
+}
+.app-body--anvil .anvil-quill-wrap--paper .ql-snow .ql-picker-options .ql-picker-item.ql-selected {
+  color: #1a1d21 !important;
+}
+.app-body--anvil .anvil-quill-wrap--paper .ql-snow .ql-picker-options .ql-picker-item:hover {
+  background: rgba(47, 128, 237, 0.15) !important;
+  color: #1a1d21 !important;
+}
+.anvil-quill-wrap--paper .ql-snow .ql-tooltip {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  color: #1a1d21;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+.anvil-quill-wrap--paper .ql-snow .ql-tooltip input[type='text'] {
+  color: #1a1d21;
+  border-color: rgba(0, 0, 0, 0.2);
+  background: #ffffff;
+}
+.anvil-quill-wrap--paper .anvil-textarea {
+  background: #ffffff;
+  color: #1a1d21;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
 .anvil-textarea {
   width: 100%;
   min-height: 14rem;
@@ -1676,10 +1748,81 @@
 .anvil-editor-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 0.75rem;
   margin-top: 0.5rem;
   flex-wrap: wrap;
+}
+.anvil-editor-footer__left {
+  flex: 1;
+  min-width: 7rem;
+}
+.anvil-editor-footer__mid {
+  flex: 0 0 auto;
+  display: flex;
+  justify-content: center;
+}
+.anvil-editor-footer__right {
+  flex: 1;
+  min-width: 7rem;
+  display: flex;
+  justify-content: flex-end;
+}
+.anvil-paper-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+.anvil-paper-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  line-height: 0;
+}
+.anvil-paper-toggle:focus-visible {
+  outline: 2px solid rgba(47, 128, 237, 0.65);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+.anvil-paper-toggle__track {
+  display: block;
+  position: relative;
+  width: 2.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.anvil-paper-toggle__thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: calc(1.25rem - 6px);
+  height: calc(1.25rem - 6px);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+}
+.anvil-paper-toggle[aria-checked='true'] .anvil-paper-toggle__track {
+  background: rgba(47, 128, 237, 0.55);
+  border-color: rgba(47, 128, 237, 0.55);
+}
+.anvil-paper-toggle[aria-checked='true'] .anvil-paper-toggle__thumb {
+  transform: translateX(1.125rem);
+}
+.anvil-paper-toggle__hint {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255, 255, 255, 0.42);
+  user-select: none;
+  white-space: nowrap;
 }
 .anvil-status {
   font-size: 0.8rem;
