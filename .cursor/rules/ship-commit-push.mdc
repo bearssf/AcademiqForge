@@ -1,0 +1,15 @@
+---
+description: After shipping a feature or fix, commit and push to main
+alwaysApply: true
+---
+
+# Ship → commit → push
+
+When a coherent chunk of work is **done** (a feature, fix, or task the user asked for—i.e. “shipped”):
+
+1. **Commit** the relevant files with a clear message (`type(scope): summary`).
+2. **Push** to the remote (`git push` on the current branch, usually `main`).
+
+Do this **in the same turn** as finishing the work unless the user explicitly asks not to or there is nothing to commit. Do not only describe what to run—execute `git add`, `git commit`, and `git push` yourself when the environment allows.
+
+If there are no changes, say so briefly instead of an empty commit.
