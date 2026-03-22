@@ -19,6 +19,7 @@
   let lastReviewContentHash = '';
   let lastReviewAt = 0;
   let bedrockReviewDisabled = false;
+  let aiReviewHintTimer = null;
   let anvilSources = [];
   let anvilSourcesError = null;
   let quillEditor = null;
@@ -161,6 +162,27 @@
     return String(h);
   }
 
+  function setAiReviewHint(msg) {
+    var el = document.getElementById('anvil-ai-review-hint');
+    if (!el) return;
+    if (aiReviewHintTimer) {
+      clearTimeout(aiReviewHintTimer);
+      aiReviewHintTimer = null;
+    }
+    if (!msg) {
+      el.textContent = '';
+      el.hidden = true;
+      return;
+    }
+    el.textContent = msg;
+    el.hidden = false;
+    aiReviewHintTimer = setTimeout(function () {
+      el.textContent = '';
+      el.hidden = true;
+      aiReviewHintTimer = null;
+    }, 14000);
+  }
+
   function scheduleAiReview() {
     if (bedrockReviewDisabled) return;
     if (reviewTimer) clearTimeout(reviewTimer);
@@ -180,15 +202,24 @@
     if (Date.now() - lastReviewAt < MIN_REVIEW_INTERVAL_MS) return;
     try {
       var data = await api('/projects/' + projectId + '/sections/' + selectedId + '/review', 'POST', { html: html });
+      if (data && data.shortDraft) {
+        setAiReviewHint('Write a little more — AI review runs after you have at least a short paragraph.');
+        await renderFeedbackRail();
+        return;
+      }
       lastReviewContentHash = hash;
       lastReviewAt = Date.now();
-      if (data && data.inserted > 0) {
-        await renderFeedbackRail();
+      if (data && data.inserted === 0 && !data.skipped) {
+        setAiReviewHint('No suggestions this round — the model may not see issues, or try adding more detail.');
       }
+      await renderFeedbackRail();
     } catch (e) {
       var m = e && e.message ? String(e.message) : '';
       if (/not configured/i.test(m)) {
         bedrockReviewDisabled = true;
+        setAiReviewHint('AI review is not configured (set AWS_REGION, BEDROCK_MODEL_ID, and IAM keys on the server).');
+      } else {
+        setAiReviewHint(m.slice(0, 220));
       }
     }
   }

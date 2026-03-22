@@ -45,6 +45,13 @@ Create or attach a policy that allows **`bedrock:InvokeModel`** (and **`bedrock:
 
 Add the same keys under **Environment** → **Environment Variables**. Prefer **no long-lived keys**: use the platform’s IAM integration if available, or rotate keys on a schedule. After changing variables, **trigger a new deploy** (or restart) so running instances load the updated values.
 
+## Troubleshooting (no suggestions in the Anvil)
+
+- **Hint line** (blue banner under “Feedback & suggestions”): after deploy, the UI shows **why** a review was skipped or if Bedrock returned an error (e.g. IAM, wrong model id, or “write more” if the draft is still very short in plain text).
+- **Minimum draft length:** the server skips Bedrock until plain text (HTML stripped) is at least **`MIN_DRAFT_PLAIN_CHARS`** (see `lib/bedrockReview.js`, currently low — about one short paragraph).
+- **Timing:** review runs **~4.5s after you stop typing**, not 30s; there is also a **minimum gap** between successful reviews (~28s) so the same edit isn’t sent repeatedly.
+- **Network tab:** `POST .../review` — **503** = env not set; **502** = Bedrock/AWS error (read JSON `error`).
+
 ## Security
 
 - Do **not** expose AWS credentials to the browser.

@@ -1036,6 +1036,19 @@
 .anvil-feedback-mount {
   min-height: 2rem;
 }
+.anvil-ai-review-hint {
+  margin: 0 0 0.5rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: rgba(200, 210, 255, 0.85);
+  padding: 0.4rem 0.5rem;
+  border-radius: 8px;
+  background: rgba(47, 128, 237, 0.1);
+  border: 1px solid rgba(47, 128, 237, 0.25);
+}
+.anvil-ai-review-hint[hidden] {
+  display: none !important;
+}
 .anvil-feedback-placeholder,
 .anvil-feedback-msg {
   margin: 0;

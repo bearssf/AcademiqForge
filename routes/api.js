@@ -629,6 +629,7 @@ function createApiRouter(getPool) {
           suggestions: [],
           inserted: 0,
           skipped: Boolean(reviewResult.skipped),
+          shortDraft: Boolean(reviewResult.shortDraft),
           bedrockConfigured: true,
         });
       }
