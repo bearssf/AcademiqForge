@@ -13,6 +13,13 @@ const {
   createProject,
   updateProjectSettings,
 } = require('../lib/projectService');
+const {
+  buildSectionDocxBuffer,
+  buildProjectDocxBuffer,
+  buildPlainTextForProject,
+  sanitizeFilename,
+  contentDispositionAttachment,
+} = require('../lib/documentExport');
 
 function requireApiAuth(req, res, next) {
   if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
@@ -294,6 +301,67 @@ function createApiRouter(getPool) {
       await reqB.query(`UPDATE project_sections SET ${updates.join(', ')} WHERE id = @sid`);
       const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
       res.json(bundle);
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  router.get('/projects/:projectId/export', async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      const format = String(req.query.format || '').toLowerCase();
+      if (format !== 'txt' && format !== 'docx') {
+        return res.status(400).json({ error: 'query format must be txt or docx' });
+      }
+      const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
+      if (!bundle) return res.status(404).json({ error: 'Not found' });
+      const projectName = bundle.project.name || 'Project';
+      const sections = (bundle.sections || []).map(function (s) {
+        return {
+          title: s.title,
+          body: s.body != null ? String(s.body) : '',
+        };
+      });
+      const base = sanitizeFilename(projectName);
+      if (format === 'txt') {
+        const text = buildPlainTextForProject(projectName, sections);
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Content-Disposition', contentDispositionAttachment(base + '.txt'));
+        res.send(Buffer.from(text, 'utf8'));
+        return;
+      }
+      const buf = await buildProjectDocxBuffer({ projectName, sections });
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', contentDispositionAttachment(base + '.docx'));
+      res.send(Buffer.from(buf));
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  router.post('/projects/:projectId/sections/:sectionId/export-docx', async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      const sectionId = parseInt(req.params.sectionId, 10);
+      if (Number.isNaN(projectId) || Number.isNaN(sectionId)) {
+        return res.status(400).json({ error: 'invalid id' });
+      }
+      const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
+      if (!bundle) return res.status(404).json({ error: 'Not found' });
+      const sec = bundle.sections.find(function (s) {
+        return Number(s.id) === sectionId;
+      });
+      if (!sec) return res.status(404).json({ error: 'Section not found' });
+      const body = req.body || {};
+      const html = body.html != null ? String(body.html) : '';
+      const title =
+        (body.title != null ? String(body.title).trim() : '') || String(sec.title || 'Section');
+      const buf = await buildSectionDocxBuffer({ title, html });
+      const fname = sanitizeFilename(title) + '.docx';
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', contentDispositionAttachment(fname));
+      res.send(Buffer.from(buf));
     } catch (e) {
       next(e);
     }

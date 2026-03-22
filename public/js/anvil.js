@@ -1,6 +1,6 @@
 /**
  * The Anvil — rich text (Quill) with autosave; body stored as HTML in project_sections.body.
- * Plain-text drafts are migrated to <p>…</p> on load. Citations rail + insert citation unchanged.
+ * Export: section .txt (client), section .docx (POST), whole project .txt/.docx (GET saved snapshot).
  */
 (function () {
   const root = document.getElementById('anvil-root');
@@ -16,6 +16,69 @@
   let anvilSources = [];
   let anvilSourcesError = null;
   let quillEditor = null;
+
+  function htmlToPlainLinesClient(html) {
+    if (html == null || !String(html).trim()) return [];
+    var s = String(html);
+    s = s.replace(/<\/p>/gi, '\n');
+    s = s.replace(/<\/li>/gi, '\n');
+    s = s.replace(/<\/h[1-6][^>]*>/gi, '\n');
+    s = s.replace(/<br\s*\/?>/gi, '\n');
+    s = s.replace(/<[^>]+>/g, '');
+    s = s.replace(/&nbsp;/g, ' ');
+    s = s.replace(/&amp;/g, '&');
+    s = s.replace(/&lt;/g, '<');
+    s = s.replace(/&gt;/g, '>');
+    s = s.replace(/&#39;/g, "'");
+    s = s.replace(/&quot;/g, '"');
+    return s
+      .split(/\n+/)
+      .map(function (x) {
+        return x.trim();
+      })
+      .filter(Boolean);
+  }
+
+  function clientSanitizeFilename(name) {
+    var base = String(name || 'export')
+      .replace(/[<>:"/\\|?*\u0000-\u001f]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 120);
+    return base || 'export';
+  }
+
+  function downloadBlob(filename, blob) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(a.href);
+  }
+
+  async function apiPostDocx(path, jsonBody) {
+    var res = await fetch('/api' + path, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(jsonBody),
+    });
+    if (!res.ok) {
+      var errText = await res.text();
+      var msg = errText;
+      try {
+        var j = JSON.parse(errText);
+        if (j && j.error) msg = j.error;
+      } catch (e) {
+        /* ignore */
+      }
+      throw new Error(msg || 'Request failed');
+    }
+    return res.blob();
+  }
 
   async function api(path, method, body) {
     const opts = {
@@ -406,6 +469,19 @@
       '<div class="anvil-quill-wrap" id="anvil-quill-wrap">' +
       '<div id="anvil-editor" class="anvil-quill"></div>' +
       '</div>' +
+      '<div class="anvil-export-bar">' +
+      '<span class="anvil-export-label">Export</span>' +
+      '<button type="button" class="anvil-export-btn" id="anvil-export-section-txt">This section (.txt)</button>' +
+      '<button type="button" class="anvil-export-btn" id="anvil-export-section-docx">This section (.docx)</button>' +
+      '<span class="anvil-export-sep" aria-hidden="true">·</span>' +
+      '<a class="anvil-export-link" href="/api/projects/' +
+      projectId +
+      '/export?format=txt">Whole project (.txt)</a>' +
+      '<a class="anvil-export-link" href="/api/projects/' +
+      projectId +
+      '/export?format=docx">Whole project (.docx)</a>' +
+      '<p class="anvil-export-hint">Whole-project files use <strong>saved</strong> content from the server. Save your draft before exporting if needed.</p>' +
+      '</div>' +
       '<div class="anvil-editor-footer">' +
       '<span id="anvil-status" class="anvil-status"><span class="anvil-status-ok">Saved</span></span>' +
       '<button type="button" class="anvil-save-now" id="anvil-save-now">Save now</button>' +
@@ -430,6 +506,44 @@
         await saveDraft('saved now');
       });
     }
+
+    (function bindExportBar() {
+      var txtBtn = document.getElementById('anvil-export-section-txt');
+      var docxBtn = document.getElementById('anvil-export-section-docx');
+      if (txtBtn) {
+        txtBtn.addEventListener('click', function () {
+          var html = getEditorHtml();
+          var lines = htmlToPlainLinesClient(html);
+          var cur = sectionById(selectedId);
+          var head = cur && cur.title ? String(cur.title) : 'Section';
+          var text = head + '\n\n' + lines.join('\n\n');
+          downloadBlob(
+            clientSanitizeFilename(head) + '.txt',
+            new Blob([text], { type: 'text/plain;charset=utf-8' })
+          );
+        });
+      }
+      if (docxBtn) {
+        docxBtn.addEventListener('click', async function () {
+          if (selectedId == null) return;
+          docxBtn.disabled = true;
+          try {
+            var html = getEditorHtml();
+            var cur = sectionById(selectedId);
+            var title = cur && cur.title ? String(cur.title) : 'Section';
+            var blob = await apiPostDocx(
+              '/projects/' + projectId + '/sections/' + selectedId + '/export-docx',
+              { html: html, title: title }
+            );
+            downloadBlob(clientSanitizeFilename(title) + '.docx', blob);
+          } catch (e) {
+            alert(e.message || 'Could not export.');
+          } finally {
+            docxBtn.disabled = false;
+          }
+        });
+      }
+    })();
 
     renderCitationsRail();
   }
