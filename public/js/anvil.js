@@ -211,12 +211,15 @@
     return res.blob();
   }
 
-  async function api(path, method, body) {
-    const opts = {
-      method,
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-    };
+  async function api(path, method, body, extraFetchOpts) {
+    const opts = Object.assign(
+      {
+        method,
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+      },
+      extraFetchOpts || {}
+    );
     if (body !== undefined) opts.body = JSON.stringify(body);
     const res = await fetch('/api' + path, opts);
     const text = await res.text();
@@ -281,6 +284,36 @@
 
   function normalizeForCompare(html) {
     return htmlIsEffectivelyEmpty(html) ? '' : String(html);
+  }
+
+  /**
+   * Quill's Image blot reads dimensions from width/height attributes only (not CSS style).
+   * The image-resize module stores size in style — copy px values to attributes before
+   * clipboard.convert so dimensions survive reload.
+   */
+  function normalizeQuillLoadHtml(html) {
+    if (html == null || !String(html).trim()) return html;
+    try {
+      var d = document.createElement('div');
+      d.innerHTML = String(html);
+      d.querySelectorAll('img').forEach(function (img) {
+        var wAttr = img.getAttribute('width');
+        var hAttr = img.getAttribute('height');
+        var sw = img.style && img.style.width;
+        var sh = img.style && img.style.height;
+        if (!wAttr && sw) {
+          var wm = sw.trim().match(/^(\d+(?:\.\d+)?)px$/i);
+          if (wm) img.setAttribute('width', String(Math.round(parseFloat(wm[1]))));
+        }
+        if (!hAttr && sh && !/^auto$/i.test(sh.trim())) {
+          var hm = sh.trim().match(/^(\d+(?:\.\d+)?)px$/i);
+          if (hm) img.setAttribute('height', String(Math.round(parseFloat(hm[1]))));
+        }
+      });
+      return d.innerHTML;
+    } catch (e) {
+      return html;
+    }
   }
 
   function simpleContentHash(str) {
@@ -369,7 +402,8 @@
 
   function setQuillHtml(html) {
     if (!quillEditor) return;
-    const h = html && String(html).trim() ? String(html) : '<p><br></p>';
+    const raw = html && String(html).trim() ? String(html) : '<p><br></p>';
+    const h = normalizeQuillLoadHtml(raw);
     try {
       const delta = quillEditor.clipboard.convert(h);
       quillEditor.setContents(delta, 'silent');
@@ -1168,7 +1202,7 @@
     try {
       var fullLen = quillEditor.getLength();
       quillEditor.deleteText(0, fullLen, 'silent');
-      quillEditor.clipboard.dangerouslyPasteHTML(0, newHtml, 'user');
+      quillEditor.clipboard.dangerouslyPasteHTML(0, normalizeQuillLoadHtml(newHtml), 'user');
     } catch (e) {
       alert(e.message || 'Could not apply formatting.');
       return;
@@ -1492,31 +1526,52 @@
     el.textContent = msg;
   }
 
-  async function saveDraft(reason) {
+  async function saveDraft(reason, opts) {
+    opts = opts || {};
     if (selectedId == null || bundle == null) return;
     let text = getEditorHtml();
     if (htmlIsEffectivelyEmpty(text)) text = '';
     const sec = sectionById(selectedId);
     const prev = sec && sec.body != null ? String(sec.body) : '';
     if (normalizeForCompare(prev) === normalizeForCompare(text)) {
-      setStatus('<span class="anvil-status-ok">Saved</span>');
+      if (!opts.keepalive) {
+        setStatus('<span class="anvil-status-ok">Saved</span>');
+      }
       return;
     }
 
-    setStatus('<span class="anvil-status-wait">Saving…</span>');
-    setError('');
-    try {
-      bundle = await api('/projects/' + projectId + '/sections/' + selectedId, 'PATCH', { body: text });
-      setStatus(
-        '<span class="anvil-status-ok">Saved' +
-          (reason ? ' · ' + escapeHtml(reason) : '') +
-          '</span>'
-      );
-      updateProgressBar();
-    } catch (e) {
-      setError(e.message);
-      setStatus('<span class="anvil-status-err">Not saved</span>');
+    if (!opts.keepalive) {
+      setStatus('<span class="anvil-status-wait">Saving…</span>');
+      setError('');
     }
+    try {
+      const fetchOpts = opts.keepalive ? { keepalive: true } : undefined;
+      const data = await api(
+        '/projects/' + projectId + '/sections/' + selectedId,
+        'PATCH',
+        { body: text },
+        fetchOpts
+      );
+      if (data) bundle = data;
+      if (!opts.keepalive) {
+        setStatus(
+          '<span class="anvil-status-ok">Saved' +
+            (reason ? ' · ' + escapeHtml(reason) : '') +
+            '</span>'
+        );
+        updateProgressBar();
+      }
+    } catch (e) {
+      if (!opts.keepalive) {
+        setError(e.message);
+        setStatus('<span class="anvil-status-err">Not saved</span>');
+      }
+    }
+  }
+
+  /** Best-effort save when the tab hides or the page unloads (debounced save may not have run). */
+  function saveDraftKeepaliveIfDirty() {
+    saveDraft('', { keepalive: true });
   }
 
   function scheduleSave() {
@@ -1820,22 +1875,25 @@
   document.addEventListener(
     'click',
     function (e) {
-      const a = e.target.closest('.app-nav--anvil-sections a');
-      if (!a || !document.getElementById('anvil-root')) return;
+      if (!document.getElementById('anvil-root')) return;
+      const a = e.target.closest('aside.app-sidebar a[href]');
+      if (!a) return;
       if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
       const href = a.getAttribute('href');
-      if (!href) return;
+      if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+      if (a.getAttribute('target') === '_blank') return;
       let target;
       let curUrl;
       try {
         target = new URL(href, window.location.origin);
+        if (target.origin !== window.location.origin) return;
         curUrl = new URL(window.location.href);
         if (target.pathname === curUrl.pathname && target.search === curUrl.search) {
           e.preventDefault();
           return;
         }
       } catch (err) {
-        /* ignore */
+        return;
       }
       e.preventDefault();
       (async function () {
@@ -1844,12 +1902,15 @@
           debounceTimer = null;
         }
         await saveDraft();
-        var guard = evaluateSectionSwitchGuard();
-        if (guard.warn && guard.lines.length) {
-          var proceed = await openSectionGuardModal(guard.lines);
-          if (!proceed) {
-            setAiReviewHint('Stayed on this section — add Crucible links or in-text citations when ready.');
-            return;
+        const isSectionNav = a.closest('.app-nav--anvil-sections');
+        if (isSectionNav) {
+          var guard = evaluateSectionSwitchGuard();
+          if (guard.warn && guard.lines.length) {
+            var proceed = await openSectionGuardModal(guard.lines);
+            if (!proceed) {
+              setAiReviewHint('Stayed on this section — add Crucible links or in-text citations when ready.');
+              return;
+            }
           }
         }
         window.location.href = href;
@@ -1857,6 +1918,23 @@
     },
     true
   );
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState !== 'hidden') return;
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    saveDraftKeepaliveIfDirty();
+  });
+
+  window.addEventListener('pagehide', function () {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+      debounceTimer = null;
+    }
+    saveDraftKeepaliveIfDirty();
+  });
 
   (function bindFeedbackActions() {
     const pane = document.getElementById('anvil-feedback-pane');
