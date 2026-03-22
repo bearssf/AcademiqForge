@@ -698,7 +698,15 @@ function createApiRouter(getPool) {
       const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
       if (!bundle) return res.status(404).json({ error: 'Not found' });
       const sources = await loadSourcesWithSections(getPool, projectId);
-      const result = await getRelatedReadingSuggestions({ project: bundle.project, sources });
+      const RELATED_MS = 170000;
+      const result = await Promise.race([
+        getRelatedReadingSuggestions({ project: bundle.project, sources }),
+        new Promise((_, reject) => {
+          setTimeout(function () {
+            reject(Object.assign(new Error('RELATED_READING_TIMEOUT'), { code: 'TIMEOUT' }));
+          }, RELATED_MS);
+        }),
+      ]);
       if (!result.ok) {
         return res.status(400).json({
           error: result.message || 'Cannot suggest related reading',
@@ -707,6 +715,13 @@ function createApiRouter(getPool) {
       }
       res.json(result);
     } catch (e) {
+      if (e && e.message === 'RELATED_READING_TIMEOUT') {
+        return res.status(504).json({
+          error:
+            'Related reading took too long (Semantic Scholar + optional Bedrock). Try again in a minute or set SEMANTIC_SCHOLAR_API_KEY.',
+          code: 'GATEWAY_TIMEOUT',
+        });
+      }
       next(e);
     }
   });

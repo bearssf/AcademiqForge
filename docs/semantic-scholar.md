@@ -13,3 +13,9 @@ The Crucible **Related reading** action calls **`GET /api/projects/:projectId/re
 | `SEMANTIC_SCHOLAR_API_KEY` | Optional. Sent as `x-api-key` if set. Semantic Scholar documents a public key on their site; you can also obtain your own. |
 
 See also [product-backlog.md](./product-backlog.md) (Semantic Scholar notes).
+
+## Troubleshooting
+
+- **Crucible “Get suggestions” spins forever** — Usually a hung outbound HTTP call or stacked duplicate click handlers (fixed in app: single listener + client/server timeouts). From the repo root run **`npm run test:s2`** to verify S2 returns papers from your network.
+- **504 from `/api/.../related-reading`** — The combined Semantic Scholar (+ optional Bedrock + follow-up searches) step exceeded ~170s; try again or add **`SEMANTIC_SCHOLAR_API_KEY`**.
+- **Per-request timeout** — Each S2 HTTP call aborts after **30s** so one slow request cannot block the server’s global S2 queue indefinitely.

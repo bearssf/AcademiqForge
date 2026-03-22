@@ -53,14 +53,38 @@
     return 'https://doi.org/' + encodeURIComponent(d).replace(/%2F/g, '/');
   }
 
-  async function api(path, method, body) {
+  /**
+   * @param {string} path
+   * @param {string} [method]
+   * @param {unknown} [body]
+   * @param {{ timeoutMs?: number }} [fetchOpts]
+   */
+  async function api(path, method, body, fetchOpts) {
+    const timeoutMs = fetchOpts && fetchOpts.timeoutMs;
+    const ctrl = typeof timeoutMs === 'number' && timeoutMs > 0 ? new AbortController() : null;
+    const tid =
+      ctrl &&
+      setTimeout(function () {
+        ctrl.abort();
+      }, timeoutMs);
     const opts = {
       method,
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
+      signal: ctrl ? ctrl.signal : undefined,
     };
     if (body !== undefined) opts.body = JSON.stringify(body);
-    const res = await fetch('/api' + path, opts);
+    let res;
+    try {
+      res = await fetch('/api' + path, opts);
+    } catch (e) {
+      if (tid) clearTimeout(tid);
+      if (ctrl && ctrl.signal.aborted) {
+        throw new Error('Request timed out. Check your connection or try again.');
+      }
+      throw e;
+    }
+    if (tid) clearTimeout(tid);
     if (res.status === 204) return null;
     const text = await res.text();
     let data = null;
@@ -906,21 +930,25 @@
     });
 
     const relatedFetch = document.getElementById('crucible-related-fetch');
-    if (relatedFetch) {
+    if (relatedFetch && !relatedFetch.dataset.crucibleRelatedBound) {
+      relatedFetch.dataset.crucibleRelatedBound = '1';
       relatedFetch.addEventListener('click', async function () {
         relatedLoading = true;
         relatedError = null;
         relatedResult = null;
         render();
         try {
-          relatedResult = await api('/projects/' + projectId + '/related-reading', 'GET');
+          relatedResult = await api('/projects/' + projectId + '/related-reading', 'GET', undefined, {
+            timeoutMs: 180000,
+          });
           relatedError = null;
         } catch (e) {
           relatedError = e.message || 'Could not load suggestions.';
           relatedResult = null;
+        } finally {
+          relatedLoading = false;
+          render();
         }
-        relatedLoading = false;
-        render();
       });
     }
 
