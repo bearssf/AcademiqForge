@@ -314,6 +314,115 @@
     });
   }
 
+  /** Phase 9: soft citation check before switching sections (heuristic, not a full audit). */
+  var SECTION_GUARD_MIN_PLAIN_CHARS = 150;
+
+  function plainTextForSectionGuard() {
+    var html = getEditorHtml();
+    var lines = htmlToPlainLinesClient(html);
+    return lines.join('\n').trim();
+  }
+
+  function draftLooksLikeInTextCitation(plainText, styleRaw) {
+    var t = String(plainText || '');
+    var st = String(styleRaw || 'APA').toUpperCase();
+    if (st === 'IEEE') {
+      return /\[[1-9]\d*\]/.test(t);
+    }
+    return /\([^)]{0,200}\d{4}[^)]{0,80}\)/.test(t);
+  }
+
+  function evaluateSectionSwitchGuard() {
+    var plain = plainTextForSectionGuard();
+    if (plain.length < SECTION_GUARD_MIN_PLAIN_CHARS) {
+      return { warn: false, lines: [] };
+    }
+    var linked = sourcesLinkedToSection(selectedId);
+    var style = projectCitationStyle();
+    var lines = [];
+    if (linked.length === 0) {
+      lines.push(
+        'This section has no sources linked in the Crucible. Link sources to sections there so citations stay traceable.'
+      );
+      return { warn: true, lines: lines };
+    }
+    if (!draftLooksLikeInTextCitation(plain, style)) {
+      lines.push(
+        'We could not find text that looks like in-text citations for your project style (' +
+          style +
+          '). If you cite sources in this section, add them before moving on.'
+      );
+      return { warn: true, lines: lines };
+    }
+    return { warn: false, lines: [] };
+  }
+
+  function ensureSectionGuardModal() {
+    var el = document.getElementById('anvil-section-guard');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'anvil-section-guard';
+    el.className = 'anvil-section-guard';
+    el.setAttribute('hidden', '');
+    el.innerHTML =
+      '<div class="anvil-section-guard__backdrop" tabindex="-1"></div>' +
+      '<div class="anvil-section-guard__card" role="dialog" aria-modal="true" aria-labelledby="anvil-section-guard-title">' +
+      '<h2 id="anvil-section-guard-title" class="anvil-section-guard__title">Before you switch sections</h2>' +
+      '<ul class="anvil-section-guard__list" id="anvil-section-guard-list"></ul>' +
+      '<p class="anvil-section-guard__fine">Quick heuristic only — not a full reference check.</p>' +
+      '<div class="anvil-section-guard__actions">' +
+      '<button type="button" class="anvil-section-guard__btn anvil-section-guard__stay" id="anvil-section-guard-stay">Stay here</button>' +
+      '<button type="button" class="anvil-section-guard__btn anvil-section-guard__go" id="anvil-section-guard-go">Continue</button>' +
+      '</div></div>';
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function openSectionGuardModal(lines) {
+    return new Promise(function (resolve) {
+      var root = ensureSectionGuardModal();
+      var list = document.getElementById('anvil-section-guard-list');
+      if (list) {
+        list.innerHTML = '';
+        lines.forEach(function (line) {
+          var li = document.createElement('li');
+          li.textContent = line;
+          list.appendChild(li);
+        });
+      }
+      root.removeAttribute('hidden');
+      var stay = document.getElementById('anvil-section-guard-stay');
+      var go = document.getElementById('anvil-section-guard-go');
+      var backdrop = root.querySelector('.anvil-section-guard__backdrop');
+
+      function cleanup() {
+        root.setAttribute('hidden', '');
+        stay.removeEventListener('click', onStay);
+        go.removeEventListener('click', onGo);
+        document.removeEventListener('keydown', onKey);
+      }
+      function onStay() {
+        cleanup();
+        resolve(false);
+      }
+      function onGo() {
+        cleanup();
+        resolve(true);
+      }
+      function onKey(ev) {
+        if (ev.key === 'Escape') {
+          ev.preventDefault();
+          onStay();
+        }
+      }
+      stay.addEventListener('click', onStay);
+      go.addEventListener('click', onGo);
+      if (backdrop) backdrop.addEventListener('click', onStay);
+      document.addEventListener('keydown', onKey);
+      if (stay) stay.focus();
+    });
+  }
+
   function projectCitationStyle() {
     if (!bundle || !bundle.project) return 'APA';
     const p = bundle.project;
@@ -851,6 +960,14 @@
           debounceTimer = null;
         }
         await saveDraft();
+        var guard = evaluateSectionSwitchGuard();
+        if (guard.warn && guard.lines.length) {
+          var proceed = await openSectionGuardModal(guard.lines);
+          if (!proceed) {
+            setAiReviewHint('Stayed on this section — add Crucible links or in-text citations when ready.');
+            return;
+          }
+        }
         window.location.href = href;
       })();
     },
