@@ -576,7 +576,7 @@
     let h = '<div class="crucible-research-notes">';
     h += '<div class="crucible-research-notes-h">Research notes</div>';
     h +=
-      '<textarea class="crucible-research-notes-textarea" rows="10" data-source-id="' +
+      '<textarea class="crucible-research-notes-textarea" rows="4" data-source-id="' +
       id +
       '" spellcheck="true" placeholder="Type or paste notes for this source…">' +
       escapeHtml(raw) +
