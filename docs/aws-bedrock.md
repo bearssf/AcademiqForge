@@ -2,18 +2,28 @@
 
 Phase 7 calls **Amazon Bedrock** from the server via `POST /api/projects/:id/sections/:sectionId/review`, parses the model response, and inserts rows with the Phase 6 API (same table as manual `POST .../suggestions`).
 
-**Model compatibility:** The app uses the **Anthropic Messages** body shape (`anthropic_version: bedrock-2023-05-31`) and **`InvokeModel`**. Set **`BEDROCK_MODEL_ID`** to a **Claude** model id (or inference profile) your account can invoke in **`AWS_REGION`**. Other model families (e.g. Titan, Llama) use different request bodies and are not supported without code changes.
+**Model compatibility:** The app uses the **Anthropic Messages** body shape (`anthropic_version: bedrock-2023-05-31`) and **`InvokeModel`**. **`InvokeModel` accepts either a foundation model id or an inference profile id/ARN** (same parameter). Other model families (e.g. Titan, Llama) use different request bodies and are not supported without code changes.
+
+### Inference profile vs raw model id (Claude Sonnet 4.x, etc.)
+
+If AWS returns an error like *“Invocation of model ID … with on-demand throughput isn’t supported … use … an inference profile”*, you **cannot** use that raw foundation model id alone. You must pass the **inference profile** id or ARN that contains the model:
+
+1. AWS Console → **Amazon Bedrock** → **Inference profiles** (or **Cross-region inference** / **Model catalog** — UI varies).
+2. Find a profile that includes **Claude Sonnet** (or your target model) in **`AWS_REGION`**.
+3. Copy the **inference profile ARN** or **profile id** (starts with e.g. `us.` or `global.` for some cross-region profiles — use what the console shows).
+4. On Render, set **`BEDROCK_INFERENCE_PROFILE_ARN`** to that value (preferred), **or** replace **`BEDROCK_MODEL_ID`** with the same string. The app uses **`BEDROCK_INFERENCE_PROFILE_ARN` first** when both are set.
+
+IAM **`bedrock:InvokeModel`** must allow invoking that **inference profile** resource (often `Resource: "*"` is simplest while testing).
 
 ## What to configure
 
 | Variable | Where | Purpose |
 |----------|--------|---------|
-| `AWS_REGION` | `.env` locally; **Environment** on Render (or your host) | Region where Bedrock is enabled, e.g. `us-east-1`. |
+| `AWS_REGION` | `.env` locally; **Environment** on Render (or your host) | Region where you invoke Bedrock, e.g. `us-east-1`. |
 | `AWS_ACCESS_KEY_ID` | Same | IAM user access key **or** omit if the process uses an **instance / task IAM role** with `bedrock:InvokeModel` (preferred in production). |
 | `AWS_SECRET_ACCESS_KEY` | Same | Secret for the key above; omit with IAM role. |
-| `BEDROCK_MODEL_ID` | Same | Inference profile or model id your account can invoke (e.g. Anthropic Claude — exact id varies by region and AWS naming). |
-
-Optional (if you use a different env name in code later): `BEDROCK_INFERENCE_PROFILE_ARN` — some setups use an inference profile ARN instead of a raw model id.
+| `BEDROCK_INFERENCE_PROFILE_ARN` | Same | **Preferred when AWS requires an inference profile** — full ARN or profile id from **Bedrock → Inference profiles** (see section above). Takes precedence over `BEDROCK_MODEL_ID`. |
+| `BEDROCK_MODEL_ID` | Same | Foundation model id **or** inference profile id/ARN if you do not set `BEDROCK_INFERENCE_PROFILE_ARN`. |
 
 ### Bedrock-specific API keys (optional)
 

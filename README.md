@@ -78,7 +78,7 @@ On startup the app creates (if missing): **`subscriptions`** (Stripe IDs, `curre
 | GET | `/api/projects/:id/sections/:sectionId/suggestions` | Anvil feedback rows for the section (`status`: `open` \| `applied` \| `ignored`; categories: `logic`, `evidence`, `citations`, `format`) |
 | POST | `/api/projects/:id/sections/:sectionId/suggestions` | Single: `{ "category", "body", "anchorJson"? }`. Batch: `{ "suggestions": [ { "category", "body", "anchorJson"? }, ... ] }`. Returns `{ suggestions: [...] }`. |
 | PATCH | `/api/projects/:id/suggestions/:suggestionId` | `{ "status": "applied" \| "ignored" }` — resolves an open suggestion. |
-| POST | `/api/projects/:id/sections/:sectionId/review` | Body optional `{ "html" }` (defaults to saved section body). Calls **Amazon Bedrock** (Claude on Bedrock) and appends suggestions. Requires `AWS_REGION`, `BEDROCK_MODEL_ID`, and IAM credentials (see [docs/aws-bedrock.md](docs/aws-bedrock.md)). Returns `{ suggestions, inserted, skipped, bedrockConfigured }`. |
+| POST | `/api/projects/:id/sections/:sectionId/review` | Body optional `{ "html" }` (defaults to saved section body). Calls **Amazon Bedrock** (Claude on Bedrock) and appends suggestions. Requires `AWS_REGION`, IAM credentials, and **`BEDROCK_INFERENCE_PROFILE_ARN` or `BEDROCK_MODEL_ID`** (many Claude models need an inference profile — see [docs/aws-bedrock.md](docs/aws-bedrock.md)). Returns `{ suggestions, inserted, skipped, bedrockConfigured }`. |
 | GET | `/api/projects/:id/sources` | Sources with `sectionIds` |
 | POST | `/api/projects/:id/sources` | `citationText`, `notes`, optional `sectionIds[]` |
 | PATCH | `/api/sources/:id` | Update source and/or replace `sectionIds` |
