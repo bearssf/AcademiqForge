@@ -30,6 +30,7 @@ const { insertAnvilSuggestions } = require('../lib/anvilSuggestionStore');
 const { isBedrockConfigured, runSectionReview } = require('../lib/bedrockReview');
 const { normalizeDoi } = require('../lib/doi');
 const { getRelatedReadingSuggestions } = require('../lib/relatedArticles');
+const { normalizeTags, replaceSourceTags } = require('../lib/sourceTags');
 
 function mapSuggestionRow(r) {
   if (!r) return null;
@@ -67,6 +68,11 @@ async function loadSourcesWithSections(getPool, projectId) {
       .input('source_id', sql.Int, s.id)
       .query(`SELECT section_id FROM source_sections WHERE source_id = @source_id`);
     s.sectionIds = sec.recordset.map((r) => r.section_id);
+    const tr = await p
+      .request()
+      .input('source_id', sql.Int, s.id)
+      .query(`SELECT tag FROM source_tags WHERE source_id = @source_id ORDER BY tag`);
+    s.tags = tr.recordset.map((r) => r.tag);
   }
   return sources;
 }
@@ -709,9 +715,10 @@ function createApiRouter(getPool) {
     try {
       const projectId = parseInt(req.params.projectId, 10);
       if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
-      const { citationText, notes, sectionIds, doi } = req.body || {};
+      const { citationText, notes, sectionIds, doi, tags } = req.body || {};
       if (!citationText || !String(citationText).trim()) return res.status(400).json({ error: 'citationText is required' });
       const doiNorm = normalizeDoi(doi);
+      const tagsNorm = normalizeTags(tags);
       const p = await getPool();
       const own = await p
         .request()
@@ -752,6 +759,8 @@ function createApiRouter(getPool) {
         }
       }
 
+      await replaceSourceTags(p, sourceId, tagsNorm);
+
       const row = await p
         .request()
         .input('id', sql.Int, sourceId)
@@ -764,6 +773,7 @@ function createApiRouter(getPool) {
         .input('source_id', sql.Int, sourceId)
         .query(`SELECT section_id FROM source_sections WHERE source_id = @source_id`);
       out.sectionIds = sec.recordset.map((r) => r.section_id);
+      out.tags = tagsNorm;
       res.status(201).json({ source: out });
     } catch (e) {
       next(e);
@@ -805,7 +815,13 @@ function createApiRouter(getPool) {
         updates.push('sort_order = @sort_order');
         reqB.input('sort_order', sql.Int, parseInt(body.sortOrder, 10));
       }
-      if (updates.length === 0 && !Array.isArray(body.sectionIds)) return res.status(400).json({ error: 'No valid fields' });
+      if (
+        updates.length === 0 &&
+        !Array.isArray(body.sectionIds) &&
+        body.tags === undefined
+      ) {
+        return res.status(400).json({ error: 'No valid fields' });
+      }
       if (updates.length) {
         updates.push('updated_at = GETDATE()');
         await reqB.query(`UPDATE sources SET ${updates.join(', ')} WHERE id = @sid`);
@@ -834,6 +850,13 @@ function createApiRouter(getPool) {
         }
       }
 
+      if (Array.isArray(body.tags)) {
+        const tagsNorm = normalizeTags(body.tags);
+        const pool = await getPool();
+        await replaceSourceTags(pool, sourceId, tagsNorm);
+        await p.request().input('sid', sql.Int, sourceId).query(`UPDATE sources SET updated_at = GETDATE() WHERE id = @sid`);
+      }
+
       const row = await p
         .request()
         .input('id', sql.Int, sourceId)
@@ -846,6 +869,11 @@ function createApiRouter(getPool) {
         .input('source_id', sql.Int, sourceId)
         .query(`SELECT section_id FROM source_sections WHERE source_id = @source_id`);
       out.sectionIds = sec.recordset.map((r) => r.section_id);
+      const tr = await p
+        .request()
+        .input('source_id', sql.Int, sourceId)
+        .query(`SELECT tag FROM source_tags WHERE source_id = @source_id ORDER BY tag`);
+      out.tags = tr.recordset.map((r) => r.tag);
       res.json({ source: out });
     } catch (e) {
       next(e);

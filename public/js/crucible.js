@@ -15,11 +15,16 @@
   let sources = [];
   let bundle = null;
   let editingId = null;
+  let focusTagsAfterEdit = false;
   let showAdd = false;
   let sortMode = 'alpha';
   let relatedResult = null;
   let relatedError = null;
   let relatedLoading = false;
+  /** @type {Set<string>} */
+  let filterTags = new Set();
+  /** @type {Set<number>} */
+  let filterSectionIds = new Set();
 
   try {
     const saved = sessionStorage.getItem(SORT_KEY);
@@ -32,6 +37,14 @@
     const d = document.createElement('div');
     d.textContent = s == null ? '' : String(s);
     return d.innerHTML;
+  }
+
+  function escapeAttr(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;');
   }
 
   function doiLandingPageUrl(doi) {
@@ -130,10 +143,36 @@
     return ix >= 0 ? ix + 1 : null;
   }
 
-  function excerptAround(plain, needle, idx, pad) {
-    const start = Math.max(0, idx - pad);
-    const end = Math.min(plain.length, idx + needle.length + pad);
-    return (start > 0 ? '…' : '') + plain.slice(start, end) + (end < plain.length ? '…' : '');
+  /** Last finished sentence in `text` (ends with . ? !), or empty if none. */
+  function lastCompleteSentenceBeforeEnd(text) {
+    if (!text || !String(text).trim()) return '';
+    const t = String(text);
+    let last = '';
+    const re = /[^.!?]*[.!?]+(?:\s|$)/g;
+    let m;
+    while ((m = re.exec(t)) !== null) {
+      last = m[0].trim();
+    }
+    return last;
+  }
+
+  /**
+   * Entire sentence ending immediately before an in-text citation at `pos`.
+   * If the citation opens a sentence, returns the previous full sentence; if none, text before the cite.
+   */
+  function excerptSentencePrecedingCitation(plain, pos) {
+    const before = plain.slice(0, pos);
+    const complete = lastCompleteSentenceBeforeEnd(before);
+    if (complete) return complete;
+    const trimmed = before.trim();
+    return trimmed;
+  }
+
+  function publicationYearForSort(src) {
+    const y = extractYear(src && src.citation_text);
+    if (!y) return 0;
+    const n = parseInt(y, 10);
+    return Number.isNaN(n) ? 0 : n;
   }
 
   /**
@@ -161,7 +200,7 @@
         while ((pos = plain.indexOf(needle, pos)) !== -1) {
           n++;
           if (excerpts.length < 4) {
-            excerpts.push(excerptAround(plain, needle, pos, 52));
+            excerpts.push(excerptSentencePrecedingCitation(plain, pos));
           }
           pos += needle.length;
         }
@@ -188,7 +227,7 @@
       while ((pos = plain.indexOf(needle, pos)) !== -1) {
         n++;
         if (excerpts.length < 4) {
-          excerpts.push(excerptAround(plain, needle, pos, 52));
+          excerpts.push(excerptSentencePrecedingCitation(plain, pos));
         }
         pos += needle.length;
       }
@@ -203,19 +242,90 @@
     return out;
   }
 
+  function parseTagsInput(raw) {
+    if (raw == null) return [];
+    return String(raw)
+      .split(/[,;\n]+/)
+      .map(function (t) {
+        return t.trim();
+      })
+      .filter(Boolean);
+  }
+
+  function collectAllTags() {
+    const out = new Set();
+    sources.forEach(function (s) {
+      (s.tags || []).forEach(function (t) {
+        const x = String(t || '').trim();
+        if (x) out.add(x);
+      });
+    });
+    return Array.from(out).sort(function (a, b) {
+      return a.localeCompare(b, undefined, { sensitivity: 'base' });
+    });
+  }
+
+  function pruneFilterState() {
+    const validTags = new Set(collectAllTags());
+    Array.from(filterTags).forEach(function (t) {
+      if (!validTags.has(t)) filterTags.delete(t);
+    });
+    const validSec = new Set(
+      sections.map(function (s) {
+        return Number(s.id);
+      })
+    );
+    Array.from(filterSectionIds).forEach(function (id) {
+      if (!validSec.has(id)) filterSectionIds.delete(id);
+    });
+  }
+
+  function sourcePassesFilters(src) {
+    if (filterTags.size > 0) {
+      const tags = src.tags || [];
+      const hit = Array.from(filterTags).some(function (ft) {
+        return tags.some(function (t) {
+          return String(t).toLowerCase() === String(ft).toLowerCase();
+        });
+      });
+      if (!hit) return false;
+    }
+    if (filterSectionIds.size > 0) {
+      const ids = (src.sectionIds || []).map(Number);
+      const hit = Array.from(filterSectionIds).some(function (fsid) {
+        return ids.indexOf(Number(fsid)) >= 0;
+      });
+      if (!hit) return false;
+    }
+    return true;
+  }
+
+  function filteredSources() {
+    return sources.filter(sourcePassesFilters);
+  }
+
   function orderedSources() {
-    const copy = sources.slice();
+    const copy = filteredSources();
     if (sortMode === 'date') {
       copy.sort(function (a, b) {
         const ta = new Date(a.created_at || a.updated_at || 0).getTime();
         const tb = new Date(b.created_at || b.updated_at || 0).getTime();
-        return tb - ta;
+        if (tb !== ta) return tb - ta;
+        const ya = publicationYearForSort(a);
+        const yb = publicationYearForSort(b);
+        if (yb !== ya) return yb - ya;
+        return Number(a.id) - Number(b.id);
       });
     } else {
       copy.sort(function (a, b) {
-        return String(a.citation_text || '').localeCompare(String(b.citation_text || ''), undefined, {
+        const c = String(a.citation_text || '').localeCompare(String(b.citation_text || ''), undefined, {
           sensitivity: 'base',
         });
+        if (c !== 0) return c;
+        const ya = publicationYearForSort(a);
+        const yb = publicationYearForSort(b);
+        if (yb !== ya) return yb - ya;
+        return Number(a.id) - Number(b.id);
       });
     }
     return copy;
@@ -231,6 +341,10 @@
       const src = await api('/projects/' + projectId + '/sources', 'GET');
       sections = (bundle && bundle.sections) || [];
       sources = (src && src.sources) || [];
+      sources.forEach(function (s) {
+        s.tags = Array.isArray(s.tags) ? s.tags : [];
+      });
+      pruneFilterState();
       render();
     } catch (e) {
       root.innerHTML =
@@ -306,21 +420,31 @@
     if (!el || !body || !title || !src) return;
 
     const usage = estimateInTextUsage(src, sources, sections);
-    title.textContent = 'In-text matches for this source';
+    title.textContent = 'Insertion Points of In-text Citations';
 
     let html = '<p class="crucible-modal-lead">';
     html +=
-      'Estimated matches of the project’s in-text format in your section drafts. ' +
-      'Manual edits or other wording may differ.';
+      'These are the points where you have applied the in-text citation in your writing. ' +
+      'Any manual edits after the insertion may impact these results, producing unexpected results.';
     html += '</p>';
-    html += '<p class="crucible-modal-count"><strong>' + usage.count + '</strong> match' + (usage.count === 1 ? '' : 'es') + '</p>';
+    html +=
+      '<p class="crucible-modal-count"><strong>' +
+      usage.count +
+      '</strong> insertion point' +
+      (usage.count === 1 ? '' : 's') +
+      '</p>';
 
     if (!usage.sections.length) {
       html += '<p class="crucible-muted">No matching text found in draft bodies.</p>';
     } else {
       html += '<ul class="crucible-modal-sections">';
       usage.sections.forEach(function (block) {
-        html += '<li><div class="crucible-modal-sec-title">' + escapeHtml(block.title) + '</div>';
+        const rawTitle = block.title || 'Section';
+        const secDisp = rawTitle === 'Discussion' ? 'Insertion Points' : rawTitle;
+        html += '<li><div class="crucible-modal-sec-title">' + escapeHtml(secDisp) + '</div>';
+        if (rawTitle !== 'Discussion') {
+          html += '<div class="crucible-modal-insertion-h">Insertion Points</div>';
+        }
         html += '<ul class="crucible-modal-excerpts">';
         block.excerpts.forEach(function (ex) {
           html += '<li>' + escapeHtml(ex) + '</li>';
@@ -431,6 +555,56 @@
     );
   }
 
+  function renderFiltersHtml() {
+    const allTags = collectAllTags();
+    let h = '<div class="crucible-filters" role="region" aria-label="Filter sources">';
+    h += '<div class="crucible-filter-row">';
+    h += '<span class="crucible-filter-label">Tags</span>';
+    h += '<div class="crucible-filter-chips">';
+    if (allTags.length === 0) {
+      h += '<span class="crucible-muted crucible-filter-empty">No tags yet</span>';
+    } else {
+      allTags.forEach(function (tag) {
+        const active = filterTags.has(tag) ? ' is-active' : '';
+        h +=
+          '<button type="button" class="crucible-filter-chip' +
+          active +
+          '" data-filter-kind="tag" data-tag="' +
+          escapeAttr(tag) +
+          '">' +
+          escapeHtml(tag) +
+          '</button>';
+      });
+    }
+    h += '</div></div>';
+    h += '<div class="crucible-filter-row">';
+    h += '<span class="crucible-filter-label">Sections</span>';
+    h += '<div class="crucible-filter-chips">';
+    if (!sections.length) {
+      h += '<span class="crucible-muted crucible-filter-empty">No sections</span>';
+    } else {
+      sections.forEach(function (sec) {
+        const sid = Number(sec.id);
+        const active = filterSectionIds.has(sid) ? ' is-active' : '';
+        h +=
+          '<button type="button" class="crucible-filter-chip' +
+          active +
+          '" data-filter-kind="section" data-section-id="' +
+          sid +
+          '">' +
+          escapeHtml(sec.title) +
+          '</button>';
+      });
+    }
+    h += '</div></div>';
+    if (filterTags.size > 0 || filterSectionIds.size > 0) {
+      h +=
+        '<button type="button" class="crucible-filter-clear" id="crucible-filter-clear">Clear filters</button>';
+    }
+    h += '</div>';
+    return h;
+  }
+
   function render() {
     const errSlot = root.querySelector('.crucible-inline-error');
     const errHtml = errSlot ? errSlot.outerHTML : '';
@@ -455,6 +629,8 @@
     html += '</select></label>';
     html += '</div>';
 
+    html += renderFiltersHtml();
+
     if (showAdd) {
       html += '<form class="crucible-form" id="crucible-form-add">';
       html += '<label class="crucible-label">Citation <span class="crucible-req">*</span></label>';
@@ -466,6 +642,10 @@
         '<label class="crucible-label">DOI <span class="crucible-optional">(optional)</span></label>';
       html +=
         '<input type="text" class="crucible-input" name="doi" autocomplete="off" placeholder="e.g. 10.1038/… or https://doi.org/…" />';
+      html +=
+        '<label class="crucible-label">Tags <span class="crucible-optional">(optional)</span></label>';
+      html +=
+        '<input type="text" class="crucible-input" name="tags" autocomplete="off" placeholder="Comma-separated, e.g. meta-analysis, STEM" />';
       html += renderSectionCheckboxes('addSec', []);
       html += '<div class="crucible-form-actions">';
       html += '<button type="submit" class="app-btn-primary">Save source</button>';
@@ -475,21 +655,16 @@
 
     html += errHtml;
 
-    html += '<section class="crucible-related" aria-labelledby="crucible-related-heading">';
-    html += '<div class="crucible-related-head">';
-    html += '<h2 id="crucible-related-heading" class="crucible-related-heading">Related reading</h2>';
-    html +=
-      '<button type="button" class="crucible-btn-secondary crucible-related-fetch" id="crucible-related-fetch"' +
-      (relatedLoading ? ' disabled' : '') +
-      '>Get suggestions</button>';
-    html += '</div>';
-    html += '<div class="crucible-related-body">' + renderRelatedBodyHtml() + '</div>';
-    html += '</section>';
-
     const displayList = orderedSources();
 
     if (!displayList.length && !showAdd) {
-      html += '<p class="crucible-empty">No sources yet. Add a citation to build your bibliography for this project.</p>';
+      if (sources.length && (filterTags.size > 0 || filterSectionIds.size > 0)) {
+        html +=
+          '<p class="crucible-empty">No sources match the current filters. <button type="button" class="crucible-inline-clear" id="crucible-filter-clear-empty">Clear filters</button></p>';
+      } else {
+        html +=
+          '<p class="crucible-empty">No sources yet. Add a citation to build your bibliography for this project.</p>';
+      }
     }
 
     html += '<ul class="crucible-list">';
@@ -515,6 +690,12 @@
           '<input type="text" class="crucible-input" name="doi" autocomplete="off" value="' +
           escapeHtml(src.doi || '') +
           '" placeholder="e.g. 10.1038/… or https://doi.org/…" />';
+        html +=
+          '<label class="crucible-label">Tags <span class="crucible-optional">(optional)</span></label>';
+        html +=
+          '<input type="text" class="crucible-input" name="tags" autocomplete="off" value="' +
+          escapeHtml((src.tags || []).join(', ')) +
+          '" placeholder="Comma-separated" />';
         html += renderSectionCheckboxes('editSec-' + src.id, src.sectionIds);
         html += '<div class="crucible-form-actions">';
         html += '<button type="submit" class="app-btn-primary">Save</button> ';
@@ -549,15 +730,24 @@
         if (src.notes) {
           html += '<div class="crucible-notes">' + escapeHtml(src.notes) + '</div>';
         }
-        const ids = src.sectionIds || [];
-        if (ids.length) {
-          html += '<div class="crucible-tags">';
-          ids.forEach(function (sid) {
-            html += '<span class="crucible-tag">' + escapeHtml(sectionLabel(sid)) + '</span>';
+        const userTags = src.tags || [];
+        if (userTags.length) {
+          html += '<div class="crucible-source-tags">';
+          userTags.forEach(function (tg) {
+            html += '<span class="crucible-source-tag">' + escapeHtml(tg) + '</span>';
           });
           html += '</div>';
         }
-        html += '<div class="crucible-card-actions">';
+        const ids = src.sectionIds || [];
+        if (ids.length) {
+          html += '<div class="crucible-section-pills">';
+          ids.forEach(function (sid) {
+            html += '<span class="crucible-section-pill">' + escapeHtml(sectionLabel(sid)) + '</span>';
+          });
+          html += '</div>';
+        }
+        html += '<div class="crucible-card-actions crucible-card-actions--split">';
+        html += '<div class="crucible-card-actions-left">';
         html +=
           '<button type="button" class="crucible-btn-link crucible-edit" data-id="' +
           src.id +
@@ -566,6 +756,11 @@
           '<button type="button" class="crucible-btn-link crucible-delete" data-id="' +
           src.id +
           '">Delete</button>';
+        html += '</div>';
+        html +=
+          '<button type="button" class="crucible-btn-link crucible-tags-link" data-id="' +
+          src.id +
+          '">Tags</button>';
         html += '</div>';
       }
       html += '</li>';
@@ -576,7 +771,7 @@
     html += '<div class="crucible-modal-backdrop" tabindex="-1"></div>';
     html += '<div class="crucible-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="crucible-modal-title">';
     html += '<div class="crucible-modal-header">';
-    html += '<h2 id="crucible-modal-title" class="crucible-modal-h">In-text usage</h2>';
+    html += '<h2 id="crucible-modal-title" class="crucible-modal-h">Insertion Points of In-text Citations</h2>';
     html +=
       '<button type="button" class="crucible-modal-close" aria-label="Close dialog">&times;</button>';
     html += '</div>';
@@ -586,7 +781,19 @@
     html += '</div>';
 
     root.innerHTML = html;
+    syncRelatedRail();
     bind();
+  }
+
+  function syncRelatedRail() {
+    const mount = document.getElementById('crucible-related-rail-mount');
+    if (mount) {
+      mount.innerHTML = renderRelatedBodyHtml();
+    }
+    const fetchBtn = document.getElementById('crucible-related-fetch');
+    if (fetchBtn) {
+      fetchBtn.disabled = !!relatedLoading;
+    }
   }
 
   function showError(msg) {
@@ -689,12 +896,14 @@
         const notes = (fd.get('notes') || '').toString().trim() || null;
         const doiRaw = (fd.get('doi') || '').toString().trim();
         const sectionIds = collectSectionIds(formAdd, 'addSec');
+        const tags = parseTagsInput(fd.get('tags'));
         try {
           await api('/projects/' + projectId + '/sources', 'POST', {
             citationText,
             notes,
             doi: doiRaw || null,
             sectionIds,
+            tags,
           });
           showAdd = false;
           await load();
@@ -707,6 +916,17 @@
     root.querySelectorAll('.crucible-edit').forEach(function (btn) {
       btn.addEventListener('click', function () {
         editingId = parseInt(btn.getAttribute('data-id'), 10);
+        focusTagsAfterEdit = false;
+        showAdd = false;
+        clearError();
+        render();
+      });
+    });
+
+    root.querySelectorAll('.crucible-tags-link').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        editingId = parseInt(btn.getAttribute('data-id'), 10);
+        focusTagsAfterEdit = true;
         showAdd = false;
         clearError();
         render();
@@ -748,12 +968,14 @@
         const notes = (fd.get('notes') || '').toString();
         const doiRaw = (fd.get('doi') || '').toString().trim();
         const sectionIds = collectSectionIds(form, 'editSec-' + id);
+        const tags = parseTagsInput(fd.get('tags'));
         try {
           await api('/sources/' + id, 'PATCH', {
             citationText,
             notes: notes === '' ? null : notes,
             doi: doiRaw,
             sectionIds,
+            tags,
           });
           editingId = null;
           await load();
@@ -762,7 +984,44 @@
         }
       });
     });
+
+    if (focusTagsAfterEdit && editingId) {
+      const card = root.querySelector('.crucible-card[data-source-id="' + editingId + '"]');
+      const tagsInput = card && card.querySelector('input[name="tags"]');
+      if (tagsInput) {
+        tagsInput.focus();
+        tagsInput.select();
+      }
+      focusTagsAfterEdit = false;
+    }
   }
+
+  root.addEventListener('click', function (ev) {
+    const chip = ev.target.closest('.crucible-filter-chip');
+    if (chip && root.contains(chip)) {
+      const kind = chip.getAttribute('data-filter-kind');
+      if (kind === 'tag') {
+        const t = chip.getAttribute('data-tag');
+        if (t == null || t === '') return;
+        if (filterTags.has(t)) filterTags.delete(t);
+        else filterTags.add(t);
+      } else if (kind === 'section') {
+        const sid = parseInt(chip.getAttribute('data-section-id'), 10);
+        if (Number.isNaN(sid)) return;
+        if (filterSectionIds.has(sid)) filterSectionIds.delete(sid);
+        else filterSectionIds.add(sid);
+      }
+      clearError();
+      render();
+      return;
+    }
+    if (ev.target.closest('#crucible-filter-clear, #crucible-filter-clear-empty')) {
+      filterTags.clear();
+      filterSectionIds.clear();
+      clearError();
+      render();
+    }
+  });
 
   document.addEventListener('keydown', function (ev) {
     if (ev.key !== 'Escape') return;

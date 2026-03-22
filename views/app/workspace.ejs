@@ -6,7 +6,7 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" crossorigin="anonymous" />
   <% } %>
 </head>
-<body class="app-body app-body--workspace-shell<%= phaseSlug === 'anvil' ? ' app-body--anvil' : '' %>">
+<body class="app-body app-body--workspace-shell<%= phaseSlug === 'anvil' ? ' app-body--anvil' : '' %><%= phaseSlug === 'crucible' ? ' app-body--crucible' : '' %>">
   <div class="app-grid">
     <%- include('../partials/app-sidebar', { user: user, navActive: 'workspace', projects: projects, currentProjectId: currentProjectId, workspaceSlug: phaseSlug, appAccess: appAccess, anvilSections: typeof anvilSections !== 'undefined' ? anvilSections : [], anvilSectionId: typeof anvilSectionId !== 'undefined' ? anvilSectionId : null }) %>
     <main class="app-canvas">
@@ -15,7 +15,7 @@
       <% } %>
       <h1><%= phaseTitle %></h1>
       <% if (phaseSlug === 'crucible') { %>
-        <p class="sub">Citations and notes for <strong><%= projectTitle %></strong> — link sources to your outline sections.</p>
+        <p class="sub">Sources and Notes for your project, &ldquo;<%= projectTitle %>&rdquo;.</p>
       <% } else if (phaseSlug === 'anvil') { %>
         <p class="sub">Section drafts for <strong><%= projectTitle %></strong> — rich text (Quill), stored as HTML, autosaved to your outline.</p>
       <% } else if (phaseSlug === 'framework') { %>
@@ -47,6 +47,8 @@
     </main>
     <% if (phaseSlug === 'anvil') { %>
       <%- include('../partials/app-anvil-rail') %>
+    <% } else if (phaseSlug === 'crucible') { %>
+      <%- include('../partials/app-crucible-rail', { insightHint: insightHint || 'Feedback and suggestions for this step will appear here.' }) %>
     <% } else { %>
       <%- include('../partials/app-insight-panel', { insightHint: insightHint || 'Feedback and suggestions for this step will appear here.' }) %>
     <% } %>
