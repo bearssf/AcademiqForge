@@ -793,7 +793,7 @@
     }
   }
 
-  /** Phase 10: center-column progress (word count, section status, last AI review). */
+  /** Phase 10: center-column progress (word count, section status). */
   function wordCountFromHtml(html) {
     if (htmlIsEffectivelyEmpty(html)) return 0;
     var lines = htmlToPlainLinesClient(html);
@@ -817,28 +817,14 @@
     return stLabel;
   }
 
-  function formatRelativeTime(tsMs) {
-    if (tsMs == null || tsMs <= 0) return '—';
-    var s = Math.floor((Date.now() - tsMs) / 1000);
-    if (s < 15) return 'just now';
-    if (s < 60) return s + 's ago';
-    var m = Math.floor(s / 60);
-    if (m < 60) return m + 'm ago';
-    var h = Math.floor(m / 60);
-    if (h < 48) return h + 'h ago';
-    return new Date(tsMs).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-  }
-
   function updateProgressBar() {
     var wEl = document.getElementById('anvil-progress-words');
     var sEl = document.getElementById('anvil-progress-section');
-    var rEl = document.getElementById('anvil-progress-review');
-    if (!wEl || !sEl || !rEl) return;
+    if (!wEl || !sEl) return;
     var html = getEditorHtml();
     wEl.textContent = String(wordCountFromHtml(html));
     var sec = sectionById(selectedId);
     sEl.textContent = humanizeSectionStatus(sec);
-    rEl.textContent = formatRelativeTime(lastReviewAt);
   }
 
   function render() {
@@ -878,9 +864,6 @@
       '<span class="anvil-progress__sep" aria-hidden="true">·</span>' +
       '<span class="anvil-progress__item"><span class="anvil-progress__k">Section</span> ' +
       '<span id="anvil-progress-section">—</span></span>' +
-      '<span class="anvil-progress__sep" aria-hidden="true">·</span>' +
-      '<span class="anvil-progress__item"><span class="anvil-progress__k">Last AI review</span> ' +
-      '<span id="anvil-progress-review">—</span></span>' +
       '</div>' +
       '<div class="anvil-quill-wrap" id="anvil-quill-wrap">' +
       '<div id="anvil-editor" class="anvil-quill"></div>' +
