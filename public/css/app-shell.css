@@ -297,16 +297,27 @@
   color: var(--muted);
 }
 .app-field input,
-.app-field select {
+.app-field select,
+.app-field textarea {
   padding: 0.5rem 0.65rem;
   border-radius: 8px;
   border: 1px solid var(--line);
   background: rgba(0, 0, 0, 0.25);
   color: #fff;
   font-size: 0.92rem;
+  font-family: inherit;
+}
+.app-field input[readonly] {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+.app-field textarea {
+  min-height: 4.5rem;
+  resize: vertical;
 }
 .app-field input:focus,
-.app-field select:focus {
+.app-field select:focus,
+.app-field textarea:focus {
   outline: none;
   border-color: rgba(47, 128, 237, 0.55);
 }
@@ -668,6 +679,37 @@
 }
 .account-btn-yearly:hover {
   filter: brightness(1.12);
+}
+
+.account-signed-in {
+  margin: 0 0 1rem;
+}
+.account-meta--profile {
+  margin: 0 0 1rem;
+}
+.account-optional {
+  font-weight: 400;
+  color: var(--muted);
+}
+.account-form {
+  margin-bottom: 1.75rem;
+}
+.account-form-msg {
+  padding: 0.55rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  margin-bottom: 0.5rem;
+  max-width: 26rem;
+}
+.account-form-msg--ok {
+  background: rgba(80, 160, 100, 0.12);
+  border: 1px solid rgba(80, 160, 100, 0.35);
+  color: rgba(200, 240, 210, 0.95);
+}
+.account-form-msg--error {
+  background: rgba(220, 80, 80, 0.12);
+  border: 1px solid rgba(220, 80, 80, 0.35);
+  color: rgba(255, 200, 200, 0.95);
 }
 
 .billing-subscribe-card {

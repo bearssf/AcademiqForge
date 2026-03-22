@@ -63,7 +63,9 @@ On startup the app creates (if missing): **`subscriptions`** (trial / future Str
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| GET | `/api/me` | Current user, subscription row, computed `appAccess` |
+| GET | `/api/me` | Profile fields, subscription row, computed `appAccess` |
+| PATCH | `/api/me` | Update profile: `title`, `firstName`, `lastName`, `university`, `researchFocus`, `preferredSearchEngine` (email not changeable here) |
+| POST | `/api/me/password` | `currentPassword`, `newPassword`, `confirmPassword` |
 | GET | `/api/templates` | Available `templateKey` values + labels |
 | GET | `/api/projects` | List projects for the signed-in user |
 | POST | `/api/projects` | Body: `name`, `purpose`, `citationStyle`, `templateKey` — creates project + sections |
@@ -89,13 +91,15 @@ On startup the app creates (if missing): **`subscriptions`** (trial / future Str
 - **Home:** Marketing landing + sign-in; **Workspace** (`/app/dashboard`) when signed in.
 - **Header (signed out):** Email and password, Sign in, and **Create an account** below.
 - **Header (signed in):** **Welcome, [first name]** and Sign out (login UI hidden).
+- **Account** (`/app/account`): Edit profile (same fields as registration; email read-only) and change password; subscription and billing (see **Billing**).
 - **Registration:** Title (Mr., Mrs., Ms., Miss, Mx., Dr.), first/last name, email, password + confirmation; optional university (datalist of US institutions + free text), research focus, preferred search engine (preset list including “Other/University Specific”).
 - Passwords hashed with **bcrypt**. On first connection, the app ensures a `users` table and profile columns exist in your database.
 
 ## Backlog
 
 - **Account / billing:** Let a signed-in user **cancel** (or manage) their subscription from the Account page — typically [Stripe Customer Portal](https://stripe.com/docs/customer-management) (`billingPortal.sessions.create`) and/or cancel-at-period-end via the API, with **`customer.subscription.*`** webhooks keeping `subscriptions` in sync.
-- **User management:** Profile edit, password change, email verification — not started.
+- **Account / billing (post-payment UX):** After returning from payment (`?subscription=success`), subscription can show **pending** until webhooks update the row — usually seconds. **Backlog:** light polling or a **Refresh status** control on Account, and/or short copy that webhook confirmation is typically immediate but can occasionally lag.
+- **User management:** **Profile edit** and **password change** are on **Account** (`PATCH /api/me`, `POST /api/me/password`). **Email** change / verification — not started (would require a verified flow and Stripe sync if billing email must match).
 
 ## Repository
 

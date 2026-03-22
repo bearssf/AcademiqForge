@@ -193,7 +193,7 @@
           <label for="title">Title *</label>
           <select id="title" name="title" required>
             <option value="" disabled <%= !form.title ? 'selected' : '' %>>Select…</option>
-            <% ['Mr.', 'Mrs.', 'Ms.', 'Miss', 'Mx.', 'Dr.'].forEach(function (t) { %>
+            <% (typeof allowedTitles !== 'undefined' ? allowedTitles : ['Mr.', 'Mrs.', 'Ms.', 'Miss', 'Mx.', 'Dr.']).forEach(function (t) { %>
               <option value="<%= t %>" <%= form.title === t ? 'selected' : '' %>><%= t %></option>
             <% }); %>
           </select>

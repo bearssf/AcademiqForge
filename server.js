@@ -20,6 +20,8 @@ const {
   PURPOSES,
   CITATION_STYLES,
 } = require('./lib/projectService');
+const { ALLOWED_TITLES, SEARCH_ENGINES } = require('./lib/userConstants');
+const { getUserProfileRow, rowToPublicUser } = require('./lib/userProfile');
 const createApiRouter = require('./routes/api');
 const createBillingApiRouter = require('./routes/billingApi');
 const { handleStripeWebhook } = require('./lib/billingStripe');
@@ -196,18 +198,6 @@ function loadUniversities() {
   }
 }
 
-const SEARCH_ENGINES = [
-  'Google Scholar',
-  'Worldcat.org',
-  'PubMed Central',
-  'JSTOR',
-  'CORE',
-  'Semantic Scholar',
-  'ResearchGate',
-  'Lens.org',
-  'Other/University Specific',
-];
-
 function safeReturnTo(val) {
   const s = String(val || '').trim();
   if (!s.startsWith('/') || s.startsWith('//')) return '/';
@@ -368,6 +358,20 @@ app.get(
       billingFlash = { kind: 'muted', text: 'Checkout was canceled. No charges were made.' };
     }
     const subscriptionRow = await getSubscriptionRow(getPool, req.session.userId);
+    const profileRow = await getUserProfileRow(getPool, req.session.userId);
+    let profile = rowToPublicUser(profileRow);
+    if (!profile) {
+      profile = {
+        id: req.session.userId,
+        email: req.session.user.email,
+        firstName: req.session.user.firstName,
+        lastName: req.session.user.lastName,
+        title: '',
+        university: '',
+        researchFocus: '',
+        preferredSearchEngine: '',
+      };
+    }
     const priceCfg = getStripePriceConfig();
     const hasStripeSecret = !!process.env.STRIPE_SECRET_KEY;
     const hasPublicBaseUrl = !!process.env.PUBLIC_BASE_URL;
@@ -384,6 +388,10 @@ app.get(
       currentProjectId,
       billingFlash,
       subscriptionRow,
+      profile,
+      universities: loadUniversities(),
+      searchEngines: SEARCH_ENGINES,
+      allowedTitles: ALLOWED_TITLES,
       stripeConfigured,
       stripeElementsConfigured,
       billingEnvMissing,
@@ -482,6 +490,7 @@ app.get('/register', (req, res) => {
     error: null,
     universities: loadUniversities(),
     searchEngines: SEARCH_ENGINES,
+    allowedTitles: ALLOWED_TITLES,
     form: {},
   });
 });
@@ -547,16 +556,16 @@ app.post('/register', async (req, res) => {
     preferredSearchEngine: (preferredSearchEngine || '').trim(),
   };
 
-  const allowedTitles = ['Mr.', 'Mrs.', 'Ms.', 'Miss', 'Mx.', 'Dr.'];
   const renderErr = (msg) =>
     res.render('register', {
       error: msg,
       universities: loadUniversities(),
       searchEngines: SEARCH_ENGINES,
+      allowedTitles: ALLOWED_TITLES,
       form,
     });
 
-  if (!form.title || !allowedTitles.includes(form.title)) {
+  if (!form.title || !ALLOWED_TITLES.includes(form.title)) {
     return renderErr('Please select a valid title.');
   }
   if (!form.firstName || !form.lastName || !form.email) {

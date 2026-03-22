@@ -17,8 +17,80 @@
       <% } %>
 
       <div class="app-placeholder account-block">
-        <p style="margin:0 0 .5rem"><strong>Signed in as</strong> <%= user.email %></p>
-        <p style="margin:0 0 1rem;color:rgba(255,255,255,.55);font-size:.9rem">Profile editing and password changes will be available in a later update.</p>
+        <p class="account-signed-in"><strong>Signed in as</strong> <%= user.email %></p>
+
+        <h2 class="account-h2">Profile</h2>
+        <p class="account-meta account-meta--profile">Update your details below. Email is your sign-in identity and can’t be changed here.</p>
+        <form id="account-profile-form" class="app-form-stack account-form" autocomplete="off">
+          <% var _titles = typeof allowedTitles !== 'undefined' && allowedTitles.length ? allowedTitles : ['Mr.', 'Mrs.', 'Ms.', 'Miss', 'Mx.', 'Dr.']; %>
+          <label class="app-field">
+            <span>Title</span>
+            <select name="title" required>
+              <option value="" disabled <%= !profile.title ? 'selected' : '' %>>Select…</option>
+              <% _titles.forEach(function (t) { %>
+                <option value="<%= t %>" <%= profile.title === t ? 'selected' : '' %>><%= t %></option>
+              <% }); %>
+            </select>
+          </label>
+          <label class="app-field">
+            <span>First name</span>
+            <input type="text" name="firstName" required maxlength="100" value="<%= profile.firstName || '' %>" />
+          </label>
+          <label class="app-field">
+            <span>Last name</span>
+            <input type="text" name="lastName" required maxlength="100" value="<%= profile.lastName || '' %>" />
+          </label>
+          <label class="app-field">
+            <span>Email</span>
+            <input type="email" value="<%= profile.email || user.email %>" readonly aria-readonly="true" />
+          </label>
+          <label class="app-field">
+            <span>University <span class="account-optional">(optional)</span></span>
+            <input type="text" name="university" list="account-university-list" maxlength="255" placeholder="Type or choose from list" value="<%= profile.university || '' %>" />
+            <datalist id="account-university-list">
+              <% (typeof universities !== 'undefined' ? universities : []).forEach(function (u) { %>
+                <option value="<%= u %>"></option>
+              <% }); %>
+            </datalist>
+          </label>
+          <label class="app-field">
+            <span>Research focus <span class="account-optional">(optional)</span></span>
+            <textarea name="researchFocus" rows="3" maxlength="8000" placeholder="Short description"><%= profile.researchFocus || '' %></textarea>
+          </label>
+          <label class="app-field">
+            <span>Preferred search engine <span class="account-optional">(optional)</span></span>
+            <select name="preferredSearchEngine">
+              <option value="" <%= !profile.preferredSearchEngine ? 'selected' : '' %>>Select…</option>
+              <% (typeof searchEngines !== 'undefined' ? searchEngines : []).forEach(function (s) { %>
+                <option value="<%= s %>" <%= profile.preferredSearchEngine === s ? 'selected' : '' %>><%= s %></option>
+              <% }); %>
+            </select>
+          </label>
+          <div id="account-profile-msg" class="account-form-msg" hidden></div>
+          <div class="app-form-actions">
+            <button type="submit" class="app-btn-primary">Save profile</button>
+          </div>
+        </form>
+
+        <h2 class="account-h2">Password</h2>
+        <form id="account-password-form" class="app-form-stack account-form" autocomplete="off">
+          <label class="app-field">
+            <span>Current password</span>
+            <input type="password" name="currentPassword" required autocomplete="current-password" />
+          </label>
+          <label class="app-field">
+            <span>New password</span>
+            <input type="password" name="newPassword" required minlength="8" autocomplete="new-password" />
+          </label>
+          <label class="app-field">
+            <span>Confirm new password</span>
+            <input type="password" name="confirmPassword" required minlength="8" autocomplete="new-password" />
+          </label>
+          <div id="account-password-msg" class="account-form-msg" hidden></div>
+          <div class="app-form-actions">
+            <button type="submit" class="app-btn-primary">Update password</button>
+          </div>
+        </form>
 
         <h2 class="account-h2">Subscription</h2>
         <% if (appAccess.paid) { %>
@@ -71,5 +143,6 @@
     </main>
     <%- include('../partials/app-insight-panel', { insightHint: 'Account alerts (renewal, payment issues) will surface here.' }) %>
   </div>
+  <script src="/js/account.js" defer></script>
 </body>
 </html>

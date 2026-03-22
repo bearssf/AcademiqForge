@@ -1,6 +1,9 @@
 const express = require('express');
 const sql = require('mssql');
+const bcrypt = require('bcryptjs');
 const { ensureSubscriptionRow, getSubscriptionRow, appAccessFromRow } = require('../lib/subscriptions');
+const { ALLOWED_TITLES, SEARCH_ENGINES } = require('../lib/userConstants');
+const { getUserProfileRow, rowToPublicUser } = require('../lib/userProfile');
 const {
   PURPOSES,
   CITATION_STYLES,
@@ -23,16 +26,123 @@ function createApiRouter(getPool) {
     try {
       await ensureSubscriptionRow(getPool, req.session.userId);
       const sub = await getSubscriptionRow(getPool, req.session.userId);
+      const row = await getUserProfileRow(getPool, req.session.userId);
+      const user = row ? rowToPublicUser(row) : {
+        id: req.session.user.id,
+        email: req.session.user.email,
+        firstName: req.session.user.firstName,
+        lastName: req.session.user.lastName,
+        title: null,
+        university: null,
+        researchFocus: null,
+        preferredSearchEngine: null,
+      };
       res.json({
-        user: {
-          id: req.session.user.id,
-          email: req.session.user.email,
-          firstName: req.session.user.firstName,
-          lastName: req.session.user.lastName,
-        },
+        user,
         subscription: sub,
         appAccess: appAccessFromRow(sub),
       });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  router.patch('/me', async (req, res, next) => {
+    try {
+      const body = req.body || {};
+      const title = (body.title || '').trim();
+      const firstName = (body.firstName || '').trim();
+      const lastName = (body.lastName || '').trim();
+      const university = (body.university || '').trim();
+      const researchFocus = (body.researchFocus || '').trim();
+      const preferredSearchEngine = (body.preferredSearchEngine || '').trim();
+
+      if (!ALLOWED_TITLES.includes(title)) {
+        return res.status(400).json({ error: 'Invalid title.' });
+      }
+      if (!firstName || !lastName) {
+        return res.status(400).json({ error: 'First and last name are required.' });
+      }
+      if (preferredSearchEngine && !SEARCH_ENGINES.includes(preferredSearchEngine)) {
+        return res.status(400).json({ error: 'Invalid preferred search engine.' });
+      }
+
+      const p = await getPool();
+      await p
+        .request()
+        .input('id', sql.Int, req.session.userId)
+        .input('title', sql.NVarChar(20), title)
+        .input('first_name', sql.NVarChar(100), firstName)
+        .input('last_name', sql.NVarChar(100), lastName)
+        .input('university', sql.NVarChar(255), university || null)
+        .input('research_focus', sql.NVarChar(sql.MAX), researchFocus || null)
+        .input('preferred_search_engine', sql.NVarChar(100), preferredSearchEngine || null)
+        .query(
+          `UPDATE users SET
+            title = @title,
+            first_name = @first_name,
+            last_name = @last_name,
+            university = @university,
+            research_focus = @research_focus,
+            preferred_search_engine = @preferred_search_engine
+           WHERE id = @id`
+        );
+
+      req.session.user = {
+        id: req.session.userId,
+        firstName,
+        lastName,
+        email: req.session.user.email,
+      };
+
+      await ensureSubscriptionRow(getPool, req.session.userId);
+      const sub = await getSubscriptionRow(getPool, req.session.userId);
+      const row = await getUserProfileRow(getPool, req.session.userId);
+      res.json({
+        user: rowToPublicUser(row),
+        subscription: sub,
+        appAccess: appAccessFromRow(sub),
+      });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  router.post('/me/password', async (req, res, next) => {
+    try {
+      const body = req.body || {};
+      const currentPassword = body.currentPassword || '';
+      const newPassword = body.newPassword || '';
+      const confirmPassword = body.confirmPassword || '';
+
+      if (!currentPassword) {
+        return res.status(400).json({ error: 'Current password is required.' });
+      }
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: 'New password must be at least 8 characters.' });
+      }
+      if (newPassword !== confirmPassword) {
+        return res.status(400).json({ error: 'New password and confirmation do not match.' });
+      }
+
+      const p = await getPool();
+      const r = await p
+        .request()
+        .input('id', sql.Int, req.session.userId)
+        .query('SELECT password_hash FROM users WHERE id = @id');
+      const row = r.recordset[0];
+      if (!row || !(await bcrypt.compare(currentPassword, row.password_hash))) {
+        return res.status(400).json({ error: 'Current password is incorrect.' });
+      }
+
+      const hash = await bcrypt.hash(newPassword, 10);
+      await p
+        .request()
+        .input('id', sql.Int, req.session.userId)
+        .input('password_hash', sql.NVarChar(255), hash)
+        .query('UPDATE users SET password_hash = @password_hash WHERE id = @id');
+
+      res.json({ ok: true });
     } catch (e) {
       next(e);
     }
