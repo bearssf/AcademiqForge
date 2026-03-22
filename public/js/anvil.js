@@ -1,6 +1,7 @@
 /**
  * The Anvil — section draft editor with autosave (PATCH /api/projects/:pid/sections/:sid body).
  * Citations rail: sources linked to the active section (GET /api/projects/:pid/sources).
+ * Insert citation: in-text snippet from project citation_style + heuristic parse of full reference.
  */
 (function () {
   const root = document.getElementById('anvil-root');
@@ -66,6 +67,63 @@
     });
   }
 
+  function projectCitationStyle() {
+    if (!bundle || !bundle.project) return 'APA';
+    const p = bundle.project;
+    const raw = p.citation_style != null ? p.citation_style : p.citationStyle;
+    const s = raw != null ? String(raw).trim() : '';
+    return s || 'APA';
+  }
+
+  function extractYear(citationText) {
+    const m = String(citationText || '').match(/\b(19\d{2}|20\d{2})\b/);
+    return m ? m[1] : '';
+  }
+
+  function extractAuthorLastName(citationText) {
+    const s = String(citationText || '').trim();
+    let m = s.match(/^\s*([A-Za-z][A-Za-z'\-]+),/);
+    if (m) return m[1];
+    m = s.match(/^\s*([A-Za-z][A-Za-z'\-]+)\s+(?:&|and)\s+/i);
+    if (m) return m[1];
+    m = s.match(/^([A-Za-z][A-Za-z'\-]+)\s+/);
+    if (m) return m[1];
+    return 'Source';
+  }
+
+  /**
+   * @param {string} citationText - full reference from Crucible
+   * @param {string} styleRaw - APA | MLA | Chicago | Turabian | IEEE
+   * @param {number} ieeeIndex - 1-based index in this section's linked list (IEEE [n])
+   */
+  function buildInTextCitation(citationText, styleRaw, ieeeIndex) {
+    const style = String(styleRaw || 'APA').toUpperCase();
+    const author = extractAuthorLastName(citationText);
+    const year = extractYear(citationText) || 'n.d.';
+    if (style === 'IEEE') {
+      return '[' + ieeeIndex + ']';
+    }
+    if (style === 'MLA') {
+      return '(' + author + ')';
+    }
+    if (style === 'CHICAGO' || style === 'TURABIAN') {
+      return '(' + author + ' ' + year + ')';
+    }
+    return '(' + author + ', ' + year + ')';
+  }
+
+  function insertAtCursor(textarea, text) {
+    if (!textarea || text == null) return;
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const v = textarea.value;
+    textarea.value = v.slice(0, start) + text + v.slice(end);
+    const pos = start + text.length;
+    textarea.selectionStart = pos;
+    textarea.selectionEnd = pos;
+    textarea.focus();
+  }
+
   function renderCitationsRail() {
     const mount = document.getElementById('anvil-citations-mount');
     if (!mount) return;
@@ -99,13 +157,34 @@
       return;
     }
 
-    let html = '<ul class="anvil-citations-list">';
-    linked.forEach(function (src) {
+    const style = projectCitationStyle();
+    let html =
+      '<p class="anvil-citations-style-hint">In-text format: <strong>' +
+      escapeHtml(style) +
+      '</strong> (from project settings)</p>';
+    html += '<ul class="anvil-citations-list">';
+    linked.forEach(function (src, i) {
+      const ieeeIdx = i + 1;
+      const preview = buildInTextCitation(src.citation_text, style, ieeeIdx);
+      const titleAttr = escapeHtml('Insert at cursor: ' + preview);
       html += '<li class="anvil-citation-card">';
       html += '<div class="anvil-citation-text">' + escapeHtml(src.citation_text) + '</div>';
       if (src.notes) {
         html += '<div class="anvil-citation-notes">' + escapeHtml(src.notes) + '</div>';
       }
+      html += '<div class="anvil-citation-actions">';
+      html +=
+        '<button type="button" class="anvil-citation-insert" data-source-id="' +
+        Number(src.id) +
+        '" data-ieee-index="' +
+        ieeeIdx +
+        '" title="' +
+        titleAttr +
+        '" aria-label="' +
+        titleAttr +
+        '">Insert citation</button>';
+      html += '<span class="anvil-citation-preview">' + escapeHtml(preview) + '</span>';
+      html += '</div>';
       html += '</li>';
     });
     html += '</ul>';
@@ -299,6 +378,31 @@
 
     render();
   }
+
+  (function bindCitationInsert() {
+    const pane = document.getElementById('anvil-citations-pane');
+    if (!pane) return;
+    pane.addEventListener('click', function (e) {
+      const btn = e.target.closest('.anvil-citation-insert');
+      if (!btn) return;
+      const sid = parseInt(btn.getAttribute('data-source-id'), 10);
+      if (Number.isNaN(sid)) return;
+      const src = anvilSources.find(function (s) {
+        return Number(s.id) === sid;
+      });
+      if (!src) return;
+      const ta = getTextarea();
+      if (!ta) return;
+      const ieeeIdx = parseInt(btn.getAttribute('data-ieee-index'), 10);
+      const snippet = buildInTextCitation(
+        src.citation_text,
+        projectCitationStyle(),
+        Number.isNaN(ieeeIdx) ? 1 : ieeeIdx
+      );
+      insertAtCursor(ta, snippet);
+      scheduleSave();
+    });
+  })();
 
   load();
 })();
