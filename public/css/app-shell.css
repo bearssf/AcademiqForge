@@ -1875,6 +1875,14 @@
 .anvil-citations-msg--error {
   color: rgba(255, 180, 180, 0.95);
 }
+.anvil-citations-msg .anvil-inline-link {
+  color: var(--blue);
+  text-decoration: none;
+  font-weight: 600;
+}
+.anvil-citations-msg .anvil-inline-link:hover {
+  text-decoration: underline;
+}
 .anvil-citations-list {
   list-style: none;
   margin: 0;
