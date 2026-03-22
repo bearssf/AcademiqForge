@@ -508,12 +508,14 @@ app.get(
     const renewalDateLabel = subscriptionRow?.current_period_end
       ? formatLongDate(subscriptionRow.current_period_end)
       : null;
+    const subscriptionSuccessReturn = subQ === 'success';
     res.render('app/account', {
       user: req.session.user,
       appAccess: res.locals.appAccess,
       projects,
       currentProjectId,
       billingFlash,
+      subscriptionSuccessReturn,
       subscriptionRow,
       billingSummary,
       within30DaysOfRenewal,

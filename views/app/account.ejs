@@ -5,7 +5,7 @@
   <!-- deploy: git <%= process.env.RENDER_GIT_COMMIT || 'unknown' %> -->
   <%- include('../partials/app-head', { title: 'Account' }) %>
 </head>
-<body class="app-body app-body--account-page">
+<body class="app-body app-body--account-page" data-subscription-success="<%= typeof subscriptionSuccessReturn !== 'undefined' && subscriptionSuccessReturn ? '1' : '' %>">
   <div class="app-grid app-grid--account">
     <%- include('../partials/app-sidebar', { user: user, navActive: 'account', projects: projects, currentProjectId: currentProjectId, workspaceSlug: '', appAccess: appAccess }) %>
     <main class="app-canvas">
@@ -14,6 +14,12 @@
 
       <% if (typeof billingFlash !== 'undefined' && billingFlash) { %>
         <div class="account-flash account-flash--<%= billingFlash.kind %>"><%= billingFlash.text %></div>
+      <% } %>
+      <% if (typeof subscriptionSuccessReturn !== 'undefined' && subscriptionSuccessReturn && !appAccess.paid) { %>
+        <div id="account-billing-pending" class="account-billing-pending">
+          <p class="account-billing-pending__text">Stripe is confirming your membership — this usually takes a few seconds. We’ll reload when you’re active, or <button type="button" id="account-billing-refresh-btn" class="account-billing-pending__btn">refresh status</button>.</p>
+          <p id="account-billing-poll-status" class="account-meta account-billing-pending__meta" hidden>Still confirming…</p>
+        </div>
       <% } %>
 
       <% var showSubMaintain = stripeConfigured && subscriptionRow && subscriptionRow.stripe_subscription_id && (appAccess.paid || subscriptionRow.status === 'past_due'); %>
@@ -83,17 +89,26 @@
             <section class="account-rail-section">
               <h2 class="account-h2">Password</h2>
               <form id="account-password-form" class="app-form-stack account-form" autocomplete="off">
-                <label class="app-field">
+                <label class="app-field account-password-field">
                   <span>Current password</span>
-                  <input type="password" name="currentPassword" required autocomplete="current-password" />
+                  <span class="account-password-field__row">
+                    <input type="password" name="currentPassword" required autocomplete="current-password" />
+                    <button type="button" class="account-password-toggle" data-password-toggle data-password-label="current password" aria-label="Show current password" aria-pressed="false">Show</button>
+                  </span>
                 </label>
-                <label class="app-field">
+                <label class="app-field account-password-field">
                   <span>New password</span>
-                  <input type="password" name="newPassword" required minlength="8" autocomplete="new-password" />
+                  <span class="account-password-field__row">
+                    <input type="password" name="newPassword" required minlength="8" autocomplete="new-password" />
+                    <button type="button" class="account-password-toggle" data-password-toggle data-password-label="new password" aria-label="Show new password" aria-pressed="false">Show</button>
+                  </span>
                 </label>
-                <label class="app-field">
+                <label class="app-field account-password-field">
                   <span>Confirm new password</span>
-                  <input type="password" name="confirmPassword" required minlength="8" autocomplete="new-password" />
+                  <span class="account-password-field__row">
+                    <input type="password" name="confirmPassword" required minlength="8" autocomplete="new-password" />
+                    <button type="button" class="account-password-toggle" data-password-toggle data-password-label="confirm password" aria-label="Show confirm password" aria-pressed="false">Show</button>
+                  </span>
                 </label>
                 <div id="account-password-msg" class="account-form-msg" hidden></div>
                 <div class="app-form-actions">

@@ -4,6 +4,70 @@
   const profileMsg = document.getElementById('account-profile-msg');
   const passwordMsg = document.getElementById('account-password-msg');
 
+  if (document.body.getAttribute('data-subscription-success') === '1') {
+    try {
+      var u = new URL(window.location.href);
+      if (u.searchParams.has('subscription')) {
+        u.searchParams.delete('subscription');
+        window.history.replaceState({}, '', u.pathname + u.search + u.hash);
+      }
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  const billingPending = document.getElementById('account-billing-pending');
+  const pollStatus = document.getElementById('account-billing-poll-status');
+  const refreshBtn = document.getElementById('account-billing-refresh-btn');
+
+  async function fetchMePaid() {
+    var res = await fetch('/api/me', { credentials: 'same-origin' });
+    var data = await res.json().catch(function () {
+      return {};
+    });
+    return !!(data.appAccess && data.appAccess.paid);
+  }
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', function () {
+      window.location.reload();
+    });
+  }
+
+  if (billingPending) {
+    var attempts = 0;
+    var maxAttempts = 24;
+    var intervalMs = 2500;
+    async function pollTick() {
+      attempts += 1;
+      if (await fetchMePaid()) {
+        window.location.reload();
+        return;
+      }
+      if (pollStatus) {
+        pollStatus.hidden = false;
+      }
+      if (attempts < maxAttempts) {
+        setTimeout(pollTick, intervalMs);
+      }
+    }
+    setTimeout(pollTick, 1800);
+  }
+
+  document.querySelectorAll('[data-password-toggle]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var row = btn.closest('.account-password-field__row');
+      var input = row && row.querySelector('input');
+      if (!input) return;
+      var show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+      btn.textContent = show ? 'Hide' : 'Show';
+      var pl = btn.getAttribute('data-password-label') || 'password';
+      btn.setAttribute('aria-label', (show ? 'Hide ' : 'Show ') + pl);
+    });
+  });
+
   function showMsg(el, text, kind) {
     if (!el) return;
     if (!text) {

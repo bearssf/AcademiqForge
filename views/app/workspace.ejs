@@ -3,7 +3,7 @@
 <head>
   <%- include('../partials/app-head', { title: phaseTitle }) %>
 </head>
-<body class="app-body">
+<body class="app-body app-body--workspace-shell">
   <div class="app-grid">
     <%- include('../partials/app-sidebar', { user: user, navActive: 'workspace', projects: projects, currentProjectId: currentProjectId, workspaceSlug: phaseSlug, appAccess: appAccess }) %>
     <main class="app-canvas">

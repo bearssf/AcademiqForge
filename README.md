@@ -98,7 +98,8 @@ On startup the app creates (if missing): **`subscriptions`** (Stripe IDs, `curre
 - **Home:** Marketing landing + sign-in; **Workspace** (`/app/dashboard`) when signed in.
 - **Header (signed out):** Email and password, Sign in, and **Create an account** below.
 - **Header (signed in):** **Welcome, [first name]** and Sign out (login UI hidden).
-- **Account** (`/app/account`): Edit profile (same fields as registration; email read-only) and change password; subscription and billing (see **Billing**).
+- **Account** (`/app/account`): Edit profile (same fields as registration; email read-only) and change password (**Show/Hide** on each password field); subscription and billing (see **Billing**). After hosted Checkout success (`?subscription=success`), the URL is cleaned up, copy explains webhook delay, and the page **polls** `/api/me` until membership is active (with a **refresh status** control).
+- **Workspace shell** (`body.app-body--workspace-shell` on dashboard, project workspace, and on-site billing pages with an insight column): the **left sidebar** and **right insight** column stay in view; **only the center canvas** scrolls when content is tall (e.g. Anvil, Crucible). The Account page uses a two-column grid and scrolls with the window.
 - **Registration:** Title (Mr., Mrs., Ms., Miss, Mx., Dr.), first/last name, email, password + confirmation; optional university (datalist of US institutions + free text), research focus, preferred search engine (preset list including “Other/University Specific”).
 - Passwords hashed with **bcrypt**. On first connection, the app ensures a `users` table and profile columns exist in your database.
 
@@ -115,10 +116,7 @@ Work to keep **subscription management on AcademiqForge** (API + your UI), simil
 ## Backlog
 
 - **Account / billing:** **Manage billing** uses Stripe [Customer Portal](https://stripe.com/docs/customer-management) (`GET /billing/portal`) for invoices and other Stripe-hosted actions. On-site: subscription summary, auto-renew, payment method, and plan change (dual prices) per **Billing maintenance track**.
-- **Account / billing (post-payment UX):** After returning from payment (`?subscription=success`), subscription can show **pending** until webhooks update the row — usually seconds. **Backlog:** light polling or a **Refresh status** control on Account, and/or short copy that webhook confirmation is typically immediate but can occasionally lag.
 - **User management:** **Profile edit** and **password change** are on **Account** (`PATCH /api/me`, `POST /api/me/password`). **Email** change / verification — not started (would require a verified flow and Stripe sync if billing email must match).
-- **Account page (UX):** **Show/hide toggles** for password fields. *(Auto-renew / summary: **Billing maintenance** #1–2.)*
-- **Workspace layout (app shell):** Keep the **left sidebar** and **right insight / feedback column** visually **anchored** (fixed or sticky), with **only the middle canvas** **scrollable** so navigation and context stay on screen during long content (Anvil, Crucible, Account, etc.).
 
 ## Repository
 
