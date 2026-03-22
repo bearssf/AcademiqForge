@@ -341,6 +341,37 @@ app.get(
 );
 
 app.get(
+  '/billing/portal',
+  requireAuth,
+  asyncHandler(async (req, res) => {
+    if (!isStripeBillingConfigured(stripe)) {
+      return res.status(503).send(
+        `Billing is not configured. Set STRIPE_SECRET_KEY, PUBLIC_BASE_URL, and ${billingPriceEnvHint()} (see README).`
+      );
+    }
+    await ensureSubscriptionRow(getPool, req.session.userId);
+    const subRow = await getSubscriptionRow(getPool, req.session.userId);
+    if (!subRow || !subRow.stripe_customer_id) {
+      return res.redirect(302, '/app/account?billing=portal_no_customer');
+    }
+    const base = String(process.env.PUBLIC_BASE_URL).replace(/\/$/, '');
+    try {
+      const portalSession = await stripe.billingPortal.sessions.create({
+        customer: subRow.stripe_customer_id,
+        return_url: `${base}/app/account?billing=portal_return`,
+      });
+      if (!portalSession.url) {
+        return res.redirect(302, '/app/account?billing=portal_error');
+      }
+      return res.redirect(303, portalSession.url);
+    } catch (e) {
+      console.error('Stripe Customer Portal:', e.message || e);
+      return res.redirect(302, '/app/account?billing=portal_error');
+    }
+  })
+);
+
+app.get(
   '/app/account',
   requireAuth,
   asyncHandler(loadAppAccess),
@@ -348,6 +379,7 @@ app.get(
     const projects = await listProjects(getPool, req.session.userId);
     const currentProjectId = projects.length ? projects[0].id : null;
     const subQ = req.query.subscription;
+    const billingQ = req.query.billing;
     let billingFlash = null;
     if (subQ === 'success') {
       billingFlash = {
@@ -356,6 +388,22 @@ app.get(
       };
     } else if (subQ === 'canceled') {
       billingFlash = { kind: 'muted', text: 'Checkout was canceled. No charges were made.' };
+    } else if (billingQ === 'portal_return') {
+      billingFlash = {
+        kind: 'ok',
+        text: 'You’re back from the billing portal. Subscription changes usually show here within a few seconds.',
+      };
+    } else if (billingQ === 'portal_no_customer') {
+      billingFlash = {
+        kind: 'muted',
+        text: 'Manage billing is available after you have a Stripe customer (subscribe to a plan first).',
+      };
+    } else if (billingQ === 'portal_error') {
+      billingFlash = {
+        kind: 'muted',
+        text:
+          'Could not open the billing portal. In the Stripe Dashboard, enable Customer Portal (Settings → Billing → Customer portal) and try again.',
+      };
     }
     const subscriptionRow = await getSubscriptionRow(getPool, req.session.userId);
     const profileRow = await getUserProfileRow(getPool, req.session.userId);

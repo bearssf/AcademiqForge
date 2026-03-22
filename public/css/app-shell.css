@@ -681,6 +681,17 @@
   filter: brightness(1.12);
 }
 
+.account-btn-portal {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+.account-btn-portal:hover {
+  filter: brightness(1.1);
+}
+.account-portal-actions {
+  margin: 0.75rem 0 0;
+}
+
 .account-signed-in {
   margin: 0 0 1rem;
 }

@@ -36,6 +36,7 @@ Used for **Upgrade to member** on **Account** and **`subscriptions`** rows (`sta
    - `customer.subscription.deleted`  
    Copy the **Signing secret** into **`STRIPE_WEBHOOK_SECRET`**.
 4. **Local testing:** Install [Stripe CLI](https://stripe.com/docs/stripe-cli), run `stripe listen --forward-to localhost:3000/webhooks/stripe`, and paste the CLI webhook secret into **`STRIPE_WEBHOOK_SECRET`** for that session.
+5. **Customer Portal (manage subscription):** In the [Stripe Dashboard → Customer portal](https://dashboard.stripe.com/settings/billing/portal), **activate** the portal and choose allowed actions (e.g. cancel subscription, update payment method, view invoices). After a member has a Stripe customer ID (stored in **`subscriptions.stripe_customer_id`**), **Account** shows **Manage billing**, which opens **`GET /billing/portal`** and returns them to **`/app/account?billing=portal_return`**.
 
 **Troubleshooting on-site billing:** After deploy, check Render **Logs** on boot: you should see `Stripe: on-site billing enabled` when **`STRIPE_PUBLISHABLE_KEY`** is recognized. If you see `hosted Checkout only`, the publishable key was not loaded (wrong name, wrong service, or value not starting with `pk_`). On **Account**, use **View page source** and look for `<!-- billing: subscribe-on-site -->` vs `checkout-redirect`.
 
@@ -84,7 +85,7 @@ On startup the app creates (if missing): **`subscriptions`** (trial / future Str
 
 ## Features
 
-- **Billing:** **Account** → **`/billing/subscribe`** (on-site payment when **`STRIPE_PUBLISHABLE_KEY`** is set) or **`/billing/checkout`** (hosted Stripe Checkout otherwise); optional `?interval=month|year` when both prices are set. **`POST /webhooks/stripe`** updates `subscriptions` (see **Stripe** section above).
+- **Billing:** **Account** → subscribe via **`/billing/subscribe`** (on-site when **`STRIPE_PUBLISHABLE_KEY`** is set) or **`/billing/checkout`** (hosted Checkout otherwise); **`GET /billing/portal`** opens Stripe **Customer Portal** for payment method / invoices / cancel at period end when a Stripe customer exists. **`POST /webhooks/stripe`** updates `subscriptions` (see **Stripe** section above).
 - **The Crucible** (`/app/project/:id/crucible`): list, add, edit, and delete sources; link each source to outline sections via the REST API (`fetch` with `credentials: 'same-origin'`).
 - **The Anvil** (`/app/project/:id/anvil`): per-section draft editor with autosave; drafts persist in `project_sections.body`.
 - **Framework** (`/app/project/:id/framework`): placeholder (“coming soon”) until outline/evidence UX is defined.
@@ -97,9 +98,11 @@ On startup the app creates (if missing): **`subscriptions`** (trial / future Str
 
 ## Backlog
 
-- **Account / billing:** Let a signed-in user **cancel** (or manage) their subscription from the Account page — typically [Stripe Customer Portal](https://stripe.com/docs/customer-management) (`billingPortal.sessions.create`) and/or cancel-at-period-end via the API, with **`customer.subscription.*`** webhooks keeping `subscriptions` in sync.
+- **Account / billing:** **Manage billing** uses Stripe [Customer Portal](https://stripe.com/docs/customer-management) (`GET /billing/portal`). **Backlog:** richer in-app messaging (e.g. renewal date, cancel-at-period-end state) without opening Stripe; optional proration / plan-change UX beyond the portal.
 - **Account / billing (post-payment UX):** After returning from payment (`?subscription=success`), subscription can show **pending** until webhooks update the row — usually seconds. **Backlog:** light polling or a **Refresh status** control on Account, and/or short copy that webhook confirmation is typically immediate but can occasionally lag.
 - **User management:** **Profile edit** and **password change** are on **Account** (`PATCH /api/me`, `POST /api/me/password`). **Email** change / verification — not started (would require a verified flow and Stripe sync if billing email must match).
+- **Account page (UX):** Clearer **subscription / period end date** (renewal date) presentation; **auto-renewal on/off** (or cancel-at-period-end) wired to Stripe (`cancel_at_period_end` / Customer Portal / subscription update); **show/hide toggles** for password fields (instead of always-visible inputs).
+- **Workspace layout (app shell):** Keep the **left sidebar** and **right insight / feedback column** visually **anchored** (fixed or sticky), with **only the middle canvas** **scrollable** so navigation and context stay on screen during long content (Anvil, Crucible, Account, etc.).
 
 ## Repository
 

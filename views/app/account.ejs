@@ -106,6 +106,13 @@
           <p class="account-status">No active paid subscription.</p>
         <% } %>
 
+        <% if (stripeConfigured && subscriptionRow && subscriptionRow.stripe_customer_id) { %>
+          <p class="account-portal-actions">
+            <a class="app-btn-primary account-btn-portal" href="/billing/portal">Manage billing</a>
+          </p>
+          <p class="account-meta">Payment method, invoices, and cancel at period end — opens Stripe’s secure Customer Portal.</p>
+        <% } %>
+
         <% if (!appAccess.paid) { %>
           <% if (stripeConfigured) { %>
             <% if (billingPriceMode === 'dual') { %>
