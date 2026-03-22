@@ -1,4 +1,3 @@
-<% var na = typeof navActive !== 'undefined' ? navActive : ''; %>
 <header class="top">
   <div class="brand-row">
     <a href="/" class="brand-icon-link" title="Home" aria-label="AcademiqForge home">
@@ -6,13 +5,6 @@
     </a>
     <div class="brand-text"><span class="a">Academiq</span><span>Forge</span></div>
   </div>
-  <nav class="nav" aria-label="Primary">
-    <% if (user) { %>
-      <a href="/app/dashboard" class="<%= na === 'workspace' ? 'nav-active' : '' %>">Workspace</a>
-    <% } %>
-    <a href="#">Features</a>
-    <a href="#">Start</a>
-  </nav>
   <div class="actions">
     <% if (user) { %>
       <span class="welcome">Welcome, <%= user.firstName %></span>
@@ -20,6 +12,6 @@
     <% } else { %>
       <button type="button" class="btn btn-outline" id="open-signin">Sign In</button>
     <% } %>
-    <button type="button" class="btn btn-blue">Start Forging</button>
+    <a href="/app/dashboard" class="btn btn-blue">Start Forging</a>
   </div>
 </header>
