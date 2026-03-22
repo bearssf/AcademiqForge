@@ -719,6 +719,50 @@
   font-size: 0.86rem;
 }
 
+.anvil-citations-mount {
+  min-height: 2rem;
+}
+.anvil-citations-placeholder,
+.anvil-citations-msg {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+.anvil-citations-msg--error {
+  color: rgba(255, 180, 180, 0.95);
+}
+.anvil-citations-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.anvil-citation-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.65rem 0.75rem;
+  font-size: 0.84rem;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.45;
+}
+.anvil-citation-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.anvil-citation-notes {
+  margin-top: 0.45rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.55);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .account-flash {
   padding: 0.65rem 0.85rem;
   border-radius: 10px;

@@ -1,5 +1,6 @@
 /**
  * The Anvil — section draft editor with autosave (PATCH /api/projects/:pid/sections/:sid body).
+ * Citations rail: sources linked to the active section (GET /api/projects/:pid/sources).
  */
 (function () {
   const root = document.getElementById('anvil-root');
@@ -12,6 +13,8 @@
   let selectedId = null;
   let debounceTimer = null;
   const DEBOUNCE_MS = 900;
+  let anvilSources = [];
+  let anvilSourcesError = null;
 
   async function api(path, method, body) {
     const opts = {
@@ -51,6 +54,62 @@
     return bundle.sections.find(function (s) {
       return Number(s.id) === n;
     });
+  }
+
+  function sourcesLinkedToSection(sectionId) {
+    const sid = Number(sectionId);
+    return (anvilSources || []).filter(function (src) {
+      const ids = src.sectionIds || [];
+      return ids.some(function (x) {
+        return Number(x) === sid;
+      });
+    });
+  }
+
+  function renderCitationsRail() {
+    const mount = document.getElementById('anvil-citations-mount');
+    if (!mount) return;
+
+    if (anvilSourcesError) {
+      mount.innerHTML =
+        '<p class="anvil-citations-msg anvil-citations-msg--error" role="alert">' +
+        escapeHtml(anvilSourcesError) +
+        '</p>';
+      return;
+    }
+
+    if (!bundle || !(bundle.sections && bundle.sections.length)) {
+      mount.innerHTML =
+        '<p class="anvil-citations-msg">Sources for this section will appear here when the project has outline sections.</p>';
+      return;
+    }
+
+    if (selectedId == null) {
+      mount.innerHTML = '<p class="anvil-citations-msg">Select a section to see linked sources.</p>';
+      return;
+    }
+
+    const linked = sourcesLinkedToSection(selectedId);
+    if (!linked.length) {
+      const cur = sectionById(selectedId);
+      mount.innerHTML =
+        '<p class="anvil-citations-msg">No sources linked to <strong>' +
+        escapeHtml(cur ? cur.title : 'this section') +
+        '</strong>. Link sources in the Crucible.</p>';
+      return;
+    }
+
+    let html = '<ul class="anvil-citations-list">';
+    linked.forEach(function (src) {
+      html += '<li class="anvil-citation-card">';
+      html += '<div class="anvil-citation-text">' + escapeHtml(src.citation_text) + '</div>';
+      if (src.notes) {
+        html += '<div class="anvil-citation-notes">' + escapeHtml(src.notes) + '</div>';
+      }
+      html += '</li>';
+    });
+    html += '</ul>';
+    mount.innerHTML = html;
   }
 
   function setStatus(html) {
@@ -127,6 +186,7 @@
     if (!sections.length) {
       root.innerHTML =
         '<div class="anvil-panel"><p class="anvil-muted">No sections in this project. Add sections via your project template or create a new project.</p></div>';
+      renderCitationsRail();
       return;
     }
 
@@ -204,23 +264,40 @@
         await saveDraft('saved now');
       });
     }
+
+    renderCitationsRail();
   }
 
   async function load() {
     root.innerHTML = '<p class="anvil-loading">Loading workspace…</p>';
+    anvilSources = [];
+    anvilSourcesError = null;
     try {
       bundle = await api('/projects/' + projectId, 'GET');
       selectedId = null;
       if (bundle.sections && bundle.sections.length) {
         selectedId = Number(bundle.sections[0].id);
       }
-      render();
     } catch (e) {
+      bundle = null;
       root.innerHTML =
         '<div class="anvil-panel"><p class="anvil-error-banner" role="alert">Could not load project. ' +
         escapeHtml(e.message) +
         '</p></div>';
+      renderCitationsRail();
+      return;
     }
+
+    try {
+      const srcData = await api('/projects/' + projectId + '/sources', 'GET');
+      anvilSources = (srcData && srcData.sources) || [];
+      anvilSourcesError = null;
+    } catch (e) {
+      anvilSources = [];
+      anvilSourcesError = e.message || 'Could not load sources.';
+    }
+
+    render();
   }
 
   load();

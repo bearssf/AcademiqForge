@@ -1,6 +1,6 @@
 <%#
   Anvil-only right column: feedback & suggestions (top), citations (bottom).
-  Placeholders until Phases 2+ wire real data and Bedrock.
+  Citations list populated by public/js/anvil.js (GET /api/projects/:id/sources).
 %>
 <aside class="app-insight app-anvil-rail" aria-label="Writing feedback and citations">
   <div class="app-anvil-rail__stack">
@@ -15,8 +15,8 @@
     <section class="app-anvil-rail__pane" aria-labelledby="anvil-rail-citations-h">
       <div id="anvil-rail-citations-h" class="insight-h">Citations</div>
       <div class="app-anvil-rail__scroll">
-        <div class="app-insight-card app-anvil-rail__placeholder-card">
-          Sources linked to the active section (from the Crucible) and in-text citation actions will appear here.
+        <div id="anvil-citations-mount" class="anvil-citations-mount" aria-live="polite">
+          <p class="anvil-citations-placeholder">Loading sources…</p>
         </div>
       </div>
     </section>
