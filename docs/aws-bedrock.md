@@ -36,6 +36,38 @@ If you have a **Bedrock-only** key whose id looks like **`bedrock-api-key-...`**
 
 Create or attach a policy that allows **`bedrock:InvokeModel`** (and **`bedrock:InvokeModelWithResponseStream`** if you stream) on the resources you need. In the AWS console, enable **model access** for the chosen foundation model in **Bedrock → Model access**.
 
+### Fixing “Bedrock access denied” (`AccessDeniedException`)
+
+That message means the **IAM user** behind `AWS_ACCESS_KEY_ID` is not allowed to call **`bedrock:InvokeModel`** for the **model + region** you’re using, or the **model isn’t enabled** for the account in that region.
+
+Work through this in order:
+
+1. **Region match** — In Render, **`AWS_REGION`** must be the **same region** where you enabled Bedrock and **Model access** (e.g. both `us-east-1`). **`BEDROCK_MODEL_ID`** must be a model (or inference profile) that exists **in that region** (copy the id from **Bedrock → Chat / Text** or **Model access**, not from another region).
+
+2. **Model access (console)** — AWS Console → **Amazon Bedrock** → **Model access** (or **Bedrock configurations** → model access, depending on UI). Request access to **Anthropic Claude** (the family your `BEDROCK_MODEL_ID` uses). Wait until access shows as **Available** / granted.
+
+3. **IAM policy on your app user** — Attach an inline or managed policy to the **same IAM user** whose keys you put in Render. Minimal example (tighten `Resource` later for production):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "BedrockInvokeClaude",
+      "Effect": "Allow",
+      "Action": ["bedrock:InvokeModel"],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+If your organization uses **SCPs** or permission boundaries, an admin may need to allow `bedrock:InvokeModel` there as well.
+
+4. **Inference profile** — If **`BEDROCK_MODEL_ID`** is an **application inference profile** id or ARN, IAM must still allow `InvokeModel` on that profile; some setups use `bedrock:InvokeModel` with the profile ARN as resource—if access is still denied, scope **`Resource`** to the exact ARN shown in the Bedrock console for that profile.
+
+5. **Redeploy** — After changing IAM or env vars, **save** the IAM policy and **redeploy** Render so the app picks up any env changes.
+
 ## Local development
 
 1. Copy `.env.example` to `.env` (never commit `.env`).
