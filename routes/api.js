@@ -1,4 +1,7 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const sql = require('mssql');
 const bcrypt = require('bcryptjs');
 const { ensureSubscriptionRow, getSubscriptionRow, appAccessFromRow } = require('../lib/subscriptions');
@@ -80,6 +83,60 @@ async function loadSourcesWithSections(getPool, projectId) {
 function createApiRouter(getPool) {
   const router = express.Router();
   router.use(requireApiAuth);
+
+  const anvilUploadDir = path.join(__dirname, '..', 'public', 'uploads', 'anvil');
+  const anvilUpload = multer({
+    storage: multer.diskStorage({
+      destination: function (req, file, cb) {
+        try {
+          fs.mkdirSync(anvilUploadDir, { recursive: true });
+        } catch (e) {
+          /* ignore */
+        }
+        cb(null, anvilUploadDir);
+      },
+      filename: function (req, file, cb) {
+        const ext = path.extname(file.originalname || '').toLowerCase();
+        const allowed = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
+        const safeExt = allowed.includes(ext) ? ext : '.png';
+        cb(null, Date.now() + '-' + Math.random().toString(36).slice(2, 12) + safeExt);
+      },
+    }),
+    limits: { fileSize: 5 * 1024 * 1024 },
+    fileFilter: function (req, file, cb) {
+      if (!file.mimetype || !file.mimetype.startsWith('image/')) {
+        return cb(new Error('Only image files are allowed.'));
+      }
+      cb(null, true);
+    },
+  });
+
+  router.post(
+    '/projects/:projectId/anvil/upload',
+    function (req, res, next) {
+      anvilUpload.single('image')(req, res, function (err) {
+        if (err) {
+          if (err.code === 'LIMIT_FILE_SIZE') {
+            return res.status(400).json({ error: 'File too large (max 5 MB).' });
+          }
+          return res.status(400).json({ error: err.message || 'Upload failed.' });
+        }
+        next();
+      });
+    },
+    async function (req, res, next) {
+      try {
+        const projectId = parseInt(req.params.projectId, 10);
+        if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+        const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
+        if (!bundle) return res.status(404).json({ error: 'Not found' });
+        if (!req.file) return res.status(400).json({ error: 'No image file.' });
+        res.json({ url: '/uploads/anvil/' + req.file.filename });
+      } catch (e) {
+        next(e);
+      }
+    }
+  );
 
   router.get('/me', async (req, res, next) => {
     try {

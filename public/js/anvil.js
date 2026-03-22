@@ -23,8 +23,82 @@
   let anvilSources = [];
   let anvilSourcesError = null;
   let quillEditor = null;
+  var anvilQuillFormatsRegistered = false;
 
   const PAPER_PREF_KEY = 'af.anvil.paper';
+
+  var ANVIL_QUILL_FONTS = [
+    'times-new-roman',
+    'arial',
+    'georgia',
+    'courier-new',
+    'verdana',
+    'garamond',
+    'calibri',
+    'cambria',
+    'helvetica',
+  ];
+  var ANVIL_QUILL_SIZES = ['8pt', '9pt', '10pt', '11pt', '12pt', '14pt', '16pt', '18pt', '20pt', '24pt'];
+
+  function registerAnvilQuillFormatsOnce() {
+    if (anvilQuillFormatsRegistered || typeof Quill === 'undefined') return;
+    try {
+      var Font = Quill.import('formats/font');
+      Font.whitelist = ANVIL_QUILL_FONTS;
+      Quill.register(Font, true);
+    } catch (e) {
+      /* ignore */
+    }
+    try {
+      var SizeStyle = Quill.import('attributors/style/size');
+      SizeStyle.whitelist = ANVIL_QUILL_SIZES;
+      Quill.register(SizeStyle, true);
+    } catch (e) {
+      /* ignore */
+    }
+    anvilQuillFormatsRegistered = true;
+  }
+
+  function buildAnvilImageUploadHandler() {
+    return function anvilImageHandler() {
+      var input = document.createElement('input');
+      input.setAttribute('type', 'file');
+      input.setAttribute('accept', 'image/jpeg,image/png,image/gif,image/webp');
+      input.click();
+      input.onchange = function () {
+        var file = input.files && input.files[0];
+        if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+          alert('Image must be 5 MB or smaller.');
+          return;
+        }
+        var fd = new FormData();
+        fd.append('image', file);
+        fetch('/api/projects/' + projectId + '/anvil/upload', {
+          method: 'POST',
+          body: fd,
+          credentials: 'same-origin',
+        })
+          .then(function (res) {
+            return res.json().then(function (data) {
+              if (!res.ok) throw new Error((data && data.error) || 'Upload failed');
+              return data.url;
+            });
+          })
+          .then(function (url) {
+            if (!quillEditor || !url) return;
+            var range = quillEditor.getSelection(true);
+            var idx = range ? range.index : quillEditor.getLength();
+            quillEditor.insertEmbed(idx, 'image', url, 'user');
+            quillEditor.setSelection(idx + 1, 0);
+            scheduleSave();
+          })
+          .catch(function (err) {
+            alert(err.message || 'Could not upload image.');
+          });
+      };
+    };
+  }
 
   function readPaperPreference() {
     try {
@@ -372,17 +446,24 @@
     const htmlLoad = initialHtml && String(initialHtml).trim() ? initialHtml : '';
 
     if (typeof Quill !== 'undefined') {
+      registerAnvilQuillFormatsOnce();
       quillEditor = new Quill('#anvil-editor', {
         theme: 'snow',
         modules: {
-          toolbar: [
-            [{ header: [1, 2, 3, false] }],
-            ['bold', 'italic', 'underline', 'strike'],
-            [{ list: 'ordered' }, { list: 'bullet' }],
-            [{ indent: '-1' }, { indent: '+1' }],
-            ['link'],
-            ['clean'],
-          ],
+          toolbar: {
+            container: [
+              [{ header: [1, 2, 3, false] }],
+              [{ font: ANVIL_QUILL_FONTS }, { size: ANVIL_QUILL_SIZES }],
+              ['bold', 'italic', 'underline', 'strike'],
+              [{ list: 'ordered' }, { list: 'bullet' }],
+              [{ indent: '-1' }, { indent: '+1' }],
+              ['link', 'image'],
+              ['clean'],
+            ],
+            handlers: {
+              image: buildAnvilImageUploadHandler(),
+            },
+          },
         },
         placeholder: 'Write your draft here…',
       });
@@ -765,7 +846,6 @@
     root.querySelectorAll('[style]').forEach(function (el) {
       var st = el.style;
       st.removeProperty('font-family');
-      st.removeProperty('font-size');
       st.removeProperty('line-height');
       st.removeProperty('letter-spacing');
       st.removeProperty('font');
@@ -965,6 +1045,10 @@
     });
     root.querySelectorAll('blockquote p').forEach(function (el) {
       setStyleImportant(el, 'text-indent', '0');
+    });
+    root.querySelectorAll('img').forEach(function (el) {
+      el.style.setProperty('max-width', '100%', 'important');
+      el.style.setProperty('height', 'auto', 'important');
     });
 
     var inlineSel =
