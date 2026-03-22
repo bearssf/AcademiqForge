@@ -604,7 +604,7 @@
       renderScoreStrip(list);
       if (!list.length) {
         mount.innerHTML =
-          '<p class="anvil-feedback-msg">No suggestions yet. When Bedrock is configured, suggestions can appear after you pause typing.</p>';
+          '<p class="anvil-feedback-msg">No feedback or suggestions yet. These appear after writing stops.</p>';
         return;
       }
       let html = '<ul class="anvil-feedback-list">';
@@ -855,7 +855,7 @@
 
     const editor =
       '<div class="anvil-editor">' +
-      '<div class="anvil-editor-label">Draft for <strong>' +
+      '<div class="anvil-editor-label">Section: <strong>' +
       escapeHtml(current ? current.title : '') +
       '</strong></div>' +
       '<div class="anvil-progress" id="anvil-progress" aria-label="Writing progress">' +

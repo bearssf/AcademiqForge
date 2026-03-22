@@ -361,6 +361,35 @@
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.55);
 }
+.app-sidebar-footer {
+  margin-top: auto;
+  padding-top: 1rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.38);
+}
+.app-sidebar-home {
+  color: rgba(255, 255, 255, 0.55);
+  text-decoration: none;
+}
+.app-sidebar-home:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+.app-body--anvil .app-sidebar-home {
+  color: #1eb8c6;
+}
+.app-body--anvil .app-sidebar-home:hover {
+  color: #3dd4e0;
+}
+.app-body--anvil .app-sidebar-project-name {
+  color: #1eb8c6;
+}
+.app-body--anvil .app-project-picker a.active {
+  color: #1eb8c6;
+}
+.app-body--anvil .app-canvas .sub.app-anvil-intro {
+  color: #1eb8c6;
+}
 .app-project-picker a {
   font-size: 0.82rem;
   padding: 0.35rem 0.55rem;
@@ -1598,7 +1627,7 @@
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.14em;
-  color: rgba(255, 255, 255, 0.45);
+  color: var(--blue);
   margin-right: 0.15rem;
 }
 .anvil-export-btn {
