@@ -139,6 +139,10 @@ Add the same keys under **Environment** → **Environment Variables**. Prefer **
 - **Timing:** review runs **~4.5s after you stop typing**, not 30s; there is also a **minimum gap** between successful reviews (~28s) so the same edit isn’t sent repeatedly.
 - **Network tab:** `POST .../review` — **503** = env not set; **502** = Bedrock/AWS error (read JSON `error`).
 
+## References section (Anvil)
+
+**Build References section** (citations rail) calls `POST /api/projects/:projectId/references/build-from-cited` and uses the same Bedrock client as section review (`lib/bedrockReferences.js`). It gathers Crucible sources that are linked to at least one section and detected as cited in non-References draft text, then asks the model to emit an HTML reference list for the project’s citation style. If Bedrock is not configured, the API returns **503**.
+
 ## Security
 
 - Do **not** expose AWS credentials to the browser.

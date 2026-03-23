@@ -791,6 +791,27 @@
     });
   }
 
+  function referencesSectionId() {
+    const secs = bundle && bundle.sections;
+    if (!secs || !secs.length) return null;
+    for (let i = 0; i < secs.length; i += 1) {
+      const s = secs[i];
+      const slug = String(s.slug || '').toLowerCase();
+      const title = String(s.title || '').trim().toLowerCase();
+      if (
+        slug === 'references' ||
+        slug === 'works-cited' ||
+        slug === 'bibliography' ||
+        title === 'references' ||
+        title === 'works cited' ||
+        title === 'bibliography'
+      ) {
+        return s.id;
+      }
+    }
+    return null;
+  }
+
   function sourcesLinkedToSection(sectionId) {
     const sid = Number(sectionId);
     return (anvilSources || []).filter(function (src) {
@@ -1416,6 +1437,24 @@
     }
   }
 
+  async function runBuildReferences() {
+    const btn = document.getElementById('anvil-build-references');
+    if (btn) btn.disabled = true;
+    try {
+      const data = await api('/projects/' + projectId + '/references/build-from-cited', 'POST', {});
+      if (data && data.bundle) bundle = data.bundle;
+      if (data && data.referencesSectionId != null) {
+        selectedId = Number(data.referencesSectionId);
+      }
+      render();
+    } catch (e) {
+      alert(e.message || 'Could not build references.');
+    } finally {
+      const b = document.getElementById('anvil-build-references');
+      if (b) b.disabled = false;
+    }
+  }
+
   function categoryLabel(cat) {
     const m = {
       logic: 'Logic',
@@ -1564,8 +1603,19 @@
     const mount = document.getElementById('anvil-citations-mount');
     if (!mount) return;
 
+    const rid = referencesSectionId();
+    const buildBar = rid
+      ? '<div class="anvil-citations-build">' +
+        '<p class="anvil-citations-build-row">' +
+        '<button type="button" class="anvil-citations-build-btn" id="anvil-build-references">Build References section</button>' +
+        '</p>' +
+        '<p class="anvil-citations-build-hint">Fills the References section with linked Crucible sources that appear in your draft, formatted to your project citation style (AWS Bedrock).</p>' +
+        '</div>'
+      : '';
+
     if (anvilSourcesError) {
       mount.innerHTML =
+        buildBar +
         '<p class="anvil-citations-msg anvil-citations-msg--error" role="alert">' +
         escapeHtml(anvilSourcesError) +
         '</p>';
@@ -1574,12 +1624,14 @@
 
     if (!bundle || !(bundle.sections && bundle.sections.length)) {
       mount.innerHTML =
+        buildBar +
         '<p class="anvil-citations-msg">Sources for this section will appear here when the project has outline sections.</p>';
       return;
     }
 
     if (selectedId == null) {
-      mount.innerHTML = '<p class="anvil-citations-msg">Select a section to see linked sources.</p>';
+      mount.innerHTML =
+        buildBar + '<p class="anvil-citations-msg">Select a section to see linked sources.</p>';
       return;
     }
 
@@ -1592,6 +1644,7 @@
     if (!linked.length) {
       const cur = sectionById(selectedId);
       mount.innerHTML =
+        buildBar +
         '<p class="anvil-citations-msg">No sources linked to <strong>' +
         escapeHtml(cur ? cur.title : 'this section') +
         '</strong>. Link sources in the <a class="anvil-inline-link" href="/app/project/' +
@@ -1602,6 +1655,7 @@
 
     const style = projectCitationStyle();
     let html =
+      buildBar +
       '<p class="anvil-citations-style-hint">In-text format: <strong>' +
       escapeHtml(style) +
       '</strong> (from project settings)</p>';
@@ -1738,6 +1792,20 @@
     return t.split(/\s+/).filter(Boolean).length;
   }
 
+  function wordCountFromStoredBody(raw) {
+    if (raw == null || !String(raw).trim()) return 0;
+    return wordCountFromHtml(sectionBodyToHtml(raw));
+  }
+
+  function totalProjectWordCount() {
+    if (!bundle || !bundle.sections) return 0;
+    var sum = 0;
+    bundle.sections.forEach(function (s) {
+      sum += wordCountFromStoredBody(sectionBodyProp(s));
+    });
+    return sum;
+  }
+
   function humanizeSectionStatus(sec) {
     if (!sec) return '—';
     var st = sec.status != null ? String(sec.status) : 'not_started';
@@ -1756,11 +1824,34 @@
   function updateProgressBar() {
     var wEl = document.getElementById('anvil-progress-words');
     var sEl = document.getElementById('anvil-progress-section');
+    var tgtEl = document.getElementById('anvil-progress-section-target');
+    var docEl = document.getElementById('anvil-progress-doc-pct');
     if (!wEl || !sEl) return;
     var html = getEditorHtml();
     wEl.textContent = String(wordCountFromHtml(html));
     var sec = sectionById(selectedId);
     sEl.textContent = humanizeSectionStatus(sec);
+    var tm = bundle && bundle.templateMeta;
+    var totalWords = tm && tm.projectedTotalWords;
+    var pp = sec && (sec.progress_percent != null ? sec.progress_percent : sec.progressPercent);
+    var p = parseInt(pp, 10);
+    if (tgtEl) {
+      if (totalWords && !Number.isNaN(p) && totalWords > 0) {
+        var targetSec = Math.round((totalWords * p) / 100);
+        tgtEl.textContent = '~' + targetSec + ' words';
+      } else {
+        tgtEl.textContent = '—';
+      }
+    }
+    if (docEl) {
+      if (totalWords && totalWords > 0) {
+        var sum = totalProjectWordCount();
+        var pct = Math.min(100, Math.round((sum / totalWords) * 100));
+        docEl.textContent = '~' + pct + '%';
+      } else {
+        docEl.textContent = '—';
+      }
+    }
   }
 
   function render() {
@@ -1799,6 +1890,12 @@
       '<span class="anvil-progress__sep" aria-hidden="true">·</span>' +
       '<span class="anvil-progress__item"><span class="anvil-progress__k">Section</span> ' +
       '<span id="anvil-progress-section">—</span></span>' +
+      '<span class="anvil-progress__sep" aria-hidden="true">·</span>' +
+      '<span class="anvil-progress__item"><span class="anvil-progress__k">Section target</span> ' +
+      '<span id="anvil-progress-section-target">—</span></span>' +
+      '<span class="anvil-progress__sep" aria-hidden="true">·</span>' +
+      '<span class="anvil-progress__item"><span class="anvil-progress__k">Document</span> ' +
+      '<span id="anvil-progress-doc-pct">—</span></span>' +
       '</div>' +
       '<div class="anvil-quill-wrap" id="anvil-quill-wrap">' +
       '<div id="anvil-editor" class="anvil-quill"></div>' +
@@ -2086,6 +2183,11 @@
     const pane = document.getElementById('anvil-citations-pane');
     if (!pane) return;
     pane.addEventListener('click', function (e) {
+      if (e.target.closest('#anvil-build-references')) {
+        e.preventDefault();
+        runBuildReferences();
+        return;
+      }
       const btn = e.target.closest('.anvil-citation-insert');
       if (!btn) return;
       const sid = parseInt(btn.getAttribute('data-source-id'), 10);

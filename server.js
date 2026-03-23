@@ -17,6 +17,7 @@ const {
   getProjectBundle,
   createProject,
   loadTemplates,
+  saveProjectTemplates,
   templateOptionsForForm,
   updateProjectSettings,
   PURPOSES,
@@ -111,6 +112,33 @@ function createSessionMiddleware() {
 }
 
 app.use(createSessionMiddleware());
+
+function requireAdminTemplateEditorToken(req, res, next) {
+  const secret = process.env.ADMIN_TEMPLATE_EDITOR_TOKEN;
+  if (!secret || String(secret).trim().length < 16) {
+    return res.status(404).type('text/plain').send('Not found');
+  }
+  if (String(req.params.token || '') !== String(secret)) {
+    return res.status(404).type('text/plain').send('Not found');
+  }
+  next();
+}
+
+app.get('/admin/project-templates/:token', requireAdminTemplateEditorToken, (req, res) => {
+  const data = JSON.stringify(loadTemplates());
+  const safe = data.replace(/</g, '\\u003c');
+  res.render('admin-project-templates', { templatesData: safe });
+});
+
+app.post('/admin/project-templates/:token', requireAdminTemplateEditorToken, (req, res) => {
+  const tpl = req.body && req.body.templates;
+  if (!tpl || typeof tpl !== 'object' || Array.isArray(tpl)) {
+    return res.status(400).json({ ok: false, error: 'Missing templates object.' });
+  }
+  const result = saveProjectTemplates(tpl);
+  if (!result.ok) return res.status(400).json(result);
+  res.json({ ok: true });
+});
 
 function asyncHandler(fn) {
   return function (req, res, next) {

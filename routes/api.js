@@ -16,6 +16,7 @@ const {
   createProject,
   updateProjectSettings,
   deleteProject,
+  attachTemplateMeta,
 } = require('../lib/projectService');
 const {
   buildSectionDocxBuffer,
@@ -34,6 +35,8 @@ const { isBedrockConfigured, runSectionReview } = require('../lib/bedrockReview'
 const { normalizeDoi } = require('../lib/doi');
 const { getRelatedReadingSuggestions } = require('../lib/relatedArticles');
 const { normalizeTags, replaceSourceTags } = require('../lib/sourceTags');
+const { findReferencesSection, findCitedLinkedSources } = require('../lib/citedSources');
+const { formatReferenceListHtml } = require('../lib/bedrockReferences');
 
 function mapSuggestionRow(r) {
   if (!r) return null;
@@ -288,6 +291,7 @@ function createApiRouter(getPool) {
         if (allowed) payload.allowed = allowed;
         return res.status(status).json(payload);
       }
+      attachTemplateMeta(result.bundle);
       res.status(201).json(result.bundle);
     } catch (e) {
       next(e);
@@ -300,6 +304,7 @@ function createApiRouter(getPool) {
       if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
       const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
       if (!bundle) return res.status(404).json({ error: 'Not found' });
+      attachTemplateMeta(bundle);
       res.json(bundle);
     } catch (e) {
       next(e);
@@ -374,6 +379,7 @@ function createApiRouter(getPool) {
       }
 
       const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
+      attachTemplateMeta(bundle);
       res.json(bundle);
     } catch (e) {
       next(e);
@@ -422,7 +428,83 @@ function createApiRouter(getPool) {
       updates.push('updated_at = GETDATE()');
       await reqB.query(`UPDATE project_sections SET ${updates.join(', ')} WHERE id = @sid`);
       const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
+      attachTemplateMeta(bundle);
       res.json(bundle);
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  router.post('/projects/:projectId/references/build-from-cited', async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      if (!isBedrockConfigured()) {
+        return res.status(503).json({
+          error:
+            'AWS Bedrock is not configured. Set AWS_REGION and an inference profile or model id (see docs/aws-bedrock.md).',
+        });
+      }
+      const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
+      if (!bundle) return res.status(404).json({ error: 'Not found' });
+      const refSection = findReferencesSection(bundle.sections);
+      if (!refSection) {
+        return res.status(400).json({
+          error:
+            'No References section found. Use a template with a References section or add one in project settings (slug/title: references).',
+        });
+      }
+      const sources = await loadSourcesWithSections(getPool, projectId);
+      const cs =
+        bundle.project.citation_style != null
+          ? String(bundle.project.citation_style)
+          : bundle.project.citationStyle != null
+            ? String(bundle.project.citationStyle)
+            : 'APA';
+      const cited = findCitedLinkedSources(sources, bundle, cs);
+      if (!cited.length) {
+        return res.status(400).json({
+          error:
+            'No cited sources found. Link sources to sections in the Crucible, then insert in-text citations (or include citation text) in your draft. The References section text is excluded from detection.',
+        });
+      }
+      let html;
+      try {
+        html = await formatReferenceListHtml(cited, cs);
+      } catch (e) {
+        if (e.code === 'BEDROCK_NOT_CONFIGURED') {
+          return res.status(503).json({ error: e.message });
+        }
+        throw e;
+      }
+      if (!html || !String(html).trim()) {
+        return res.status(502).json({ error: 'Model returned an empty reference list.' });
+      }
+      const p = await getPool();
+      const own = await p
+        .request()
+        .input('sid', sql.Int, refSection.id)
+        .input('pid', sql.Int, projectId)
+        .input('uid', sql.Int, req.session.userId)
+        .query(
+          `SELECT ps.id FROM project_sections ps
+           INNER JOIN projects pr ON pr.id = ps.project_id
+           WHERE ps.id = @sid AND ps.project_id = @pid AND pr.user_id = @uid`
+        );
+      if (!own.recordset[0]) return res.status(404).json({ error: 'Not found' });
+      await p
+        .request()
+        .input('body', sql.NVarChar(sql.MAX), html)
+        .input('sid', sql.Int, refSection.id)
+        .query(`UPDATE project_sections SET body = @body, updated_at = GETDATE() WHERE id = @sid`);
+      const out = await getProjectBundle(getPool, projectId, req.session.userId);
+      attachTemplateMeta(out);
+      res.json({
+        ok: true,
+        citedCount: cited.length,
+        referencesSectionId: refSection.id,
+        bundle: out,
+      });
     } catch (e) {
       next(e);
     }

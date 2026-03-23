@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Project templates (admin)</title>
+  <link rel="stylesheet" href="/css/academiq.css" />
+  <style>
+    body { margin: 0; padding: 1.25rem 1.5rem 3rem; background: #0f1216; color: #e8eaed; font-family: Inter, system-ui, sans-serif; font-size: 0.92rem; line-height: 1.45; }
+    h1 { font-size: 1.35rem; font-weight: 600; margin: 0 0 0.35rem; }
+    .sub { color: rgba(255,255,255,0.55); margin: 0 0 1.25rem; font-size: 0.88rem; max-width: 52rem; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: center; margin-bottom: 1.25rem; }
+    .toolbar button { padding: 0.45rem 0.85rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(47,128,237,0.25); color: #fff; cursor: pointer; font: inherit; }
+    .toolbar button.secondary { background: rgba(255,255,255,0.06); }
+    .toolbar button:disabled { opacity: 0.45; cursor: not-allowed; }
+    #admin-status { font-size: 0.85rem; min-height: 1.25rem; color: #8ab4ff; }
+    #admin-status.err { color: #f28b82; }
+    #admin-status.ok { color: #81c995; }
+    .tpl-card { border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 1rem 1rem 1.1rem; margin-bottom: 1rem; background: rgba(255,255,255,0.03); max-width: 56rem; }
+    .tpl-card h2 { font-size: 1.05rem; margin: 0 0 0.75rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .badge { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 0.15rem 0.4rem; border-radius: 4px; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.75); }
+    .badge.dep { background: rgba(234,179,8,0.2); color: #fcd34d; }
+    .field-row { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; align-items: center; margin-bottom: 0.75rem; }
+    .field-row label { display: flex; flex-direction: column; gap: 0.2rem; font-size: 0.78rem; color: rgba(255,255,255,0.55); }
+    .field-row input[type="text"], .field-row input[type="number"] { padding: 0.35rem 0.5rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.35); color: #fff; font: inherit; min-width: 8rem; }
+    .field-row input.narrow { width: 5rem; min-width: 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.82rem; margin-top: 0.35rem; }
+    th, td { text-align: left; padding: 0.35rem 0.45rem; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    th { color: rgba(255,255,255,0.45); font-weight: 500; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; }
+    td input { width: 100%; box-sizing: border-box; padding: 0.3rem 0.4rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.35); color: #fff; font: inherit; }
+    td input.pct { max-width: 4rem; }
+    .sum-row { font-weight: 600; color: #8ab4ff; }
+    .sum-row.bad { color: #f28b82; }
+    .proj-note { font-size: 0.8rem; color: rgba(255,255,255,0.5); margin-top: 0.5rem; }
+    .tpl-actions { margin-top: 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .tpl-actions button { padding: 0.3rem 0.55rem; font-size: 0.8rem; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.06); color: #e8eaed; cursor: pointer; font: inherit; }
+    .other-note { color: rgba(255,255,255,0.45); font-size: 0.85rem; }
+  </style>
+</head>
+<body>
+  <h1>Project templates</h1>
+  <p class="sub">
+    Set each section&rsquo;s share of the document (must total 100%) and a <strong>projected total word count</strong> for the whole piece.
+    Per-section targets and estimated document completion in the Anvil use these values. This page is not linked in the app &mdash; bookmark your secret URL.
+  </p>
+  <div class="toolbar">
+    <button type="button" id="admin-save">Save to server</button>
+    <button type="button" class="secondary" id="admin-reload">Reload from server</button>
+    <span id="admin-status"></span>
+  </div>
+  <script id="admin-templates-json" type="application/json"><%- templatesData %></script>
+  <div id="admin-root"></div>
+  <script src="/js/admin-project-templates.js" defer></script>
+</body>
+</html>

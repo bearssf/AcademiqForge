@@ -133,6 +133,14 @@ The shipped Anvil is a **section draft editor with autosave**. The full **writin
 - **Account / billing:** **Manage billing** uses Stripe [Customer Portal](https://stripe.com/docs/customer-management) (`GET /billing/portal`) for invoices and other Stripe-hosted actions. On-site: subscription summary, auto-renew, payment method, and plan change (dual prices) per **Billing maintenance track**.
 - **User management:** **Profile edit** and **password change** are on **Account** (`PATCH /api/me`, `POST /api/me/password`). **Email** change / verification — not started (would require a verified flow and Stripe sync if billing email must match).
 
+## Admin: project templates (optional)
+
+Set a long random **`ADMIN_TEMPLATE_EDITOR_TOKEN`** in `.env` (minimum 16 characters; never commit it). The app does **not** link to this page.
+
+**URL:** `https://YOUR_HOST/admin/project-templates/<ADMIN_TEMPLATE_EDITOR_TOKEN>`
+
+Use it to edit section titles, slugs, each section’s **% of the document** (must total 100% per template), and **projected total word count** for the whole piece. Data is stored in `data/project-templates.json`. New projects inherit section weights from their template. In the Anvil, the progress row shows **Section target** (~words for the current section) and **Document** (~% complete vs the projected total) when those values are set.
+
 ## Repository
 
 ```bash

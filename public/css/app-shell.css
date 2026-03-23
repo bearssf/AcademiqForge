@@ -1390,6 +1390,8 @@
 }
 .anvil-layout--single .anvil-editor-footer {
   flex-shrink: 0;
+  /* Space below paper / light-mode row before export buttons (~¼ in / 25px) */
+  padding-bottom: 25px;
 }
 .anvil-layout--single .anvil-quill-wrap {
   flex: 1;
@@ -2052,6 +2054,40 @@
   font-size: 0.86rem;
 }
 
+.anvil-citations-build {
+  margin-bottom: 0.85rem;
+  padding: 0.6rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid rgba(47, 128, 237, 0.35);
+  background: rgba(47, 128, 237, 0.08);
+}
+.anvil-citations-build-row {
+  margin: 0;
+}
+.anvil-citations-build-hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  line-height: 1.45;
+}
+.anvil-citations-build-btn {
+  padding: 0.4rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(47, 128, 237, 0.5);
+  background: rgba(47, 128, 237, 0.2);
+  color: #fff;
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+  font-weight: 600;
+}
+.anvil-citations-build-btn:hover:not(:disabled) {
+  background: rgba(47, 128, 237, 0.32);
+}
+.anvil-citations-build-btn:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
 .anvil-citations-mount {
   min-height: 2rem;
 }
