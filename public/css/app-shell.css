@@ -245,7 +245,7 @@
   margin-bottom: 0.6rem;
 }
 
-/* Anvil: right rail = feedback (top) + citations (bottom), each scrolls independently */
+/* Anvil: right rail = feedback (top) + citations (bottom), each scrolls independently. Research plan: Crucible page */
 .app-body--workspace-shell .app-insight.app-anvil-rail {
   display: flex;
   flex-direction: column;
@@ -582,6 +582,25 @@
 .crucible {
   max-width: none;
   width: 100%;
+}
+.crucible-research-plan {
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+.crucible-research-plan__h {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: rgba(255, 255, 255, 0.38);
+  margin: 0 0 0.65rem;
+}
+.crucible-research-plan__scroll {
+  max-height: min(42vh, 22rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .crucible-split-head {
   display: grid;

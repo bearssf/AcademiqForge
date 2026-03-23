@@ -673,6 +673,13 @@
     const errHtml = errSlot ? errSlot.outerHTML : '';
 
     let html = '<div class="crucible-panel">';
+    html +=
+      '<section class="crucible-research-plan" aria-labelledby="crucible-research-plan-h">' +
+      '<div id="crucible-research-plan-h" class="crucible-research-plan__h">Research plan</div>' +
+      '<div class="crucible-research-plan__scroll">' +
+      '<div id="crucible-research-plan-mount" class="anvil-research-plan-mount" aria-live="polite">' +
+      '<p class="anvil-research-plan-placeholder">Loading…</p>' +
+      '</div></div></section>';
     html += '<div class="crucible-toolbar crucible-toolbar--split">';
     html +=
       '<button type="button" class="app-btn-primary crucible-add-btn" id="crucible-toggle-add">' +
@@ -862,6 +869,60 @@
     root.innerHTML = html;
     syncRelatedRail();
     bind();
+    void renderResearchPlanMount();
+  }
+
+  async function renderResearchPlanMount() {
+    const mount = document.getElementById('crucible-research-plan-mount');
+    if (!mount) return;
+    mount.innerHTML = '<p class="anvil-research-plan-placeholder">Loading…</p>';
+    try {
+      const data = await api('/projects/' + projectId + '/research-plan', 'GET');
+      const items = (data && data.items) || [];
+      if (!items.length) {
+        mount.innerHTML =
+          '<p class="anvil-research-plan-empty">Opportunities you add from <strong>Evidence</strong> feedback in the Anvil appear here.</p>';
+        return;
+      }
+      let html = '<ul class="anvil-research-plan-list">';
+      items.forEach(function (it) {
+        const secTitle = it.sectionTitle != null ? String(it.sectionTitle) : 'Section';
+        const sugId = it.suggestionId != null ? Number(it.suggestionId) : '';
+        const link =
+          '/app/project/' +
+          projectId +
+          '/anvil?section=' +
+          Number(it.sectionId) +
+          (sugId !== '' ? '#anvil-suggestion-' + sugId : '');
+        const ex = it.passageExcerpt != null ? String(it.passageExcerpt) : '';
+        html += '<li class="anvil-research-plan-card">';
+        html += '<div class="anvil-research-plan-card__sec">' + escapeHtml(secTitle) + '</div>';
+        if (ex) {
+          const shortEx = ex.length > 240 ? ex.slice(0, 240) + '…' : ex;
+          html += '<div class="anvil-research-plan-card__excerpt">' + escapeHtml(shortEx) + '</div>';
+        }
+        html +=
+          '<div class="anvil-research-plan-card__body">' +
+          escapeHtml(it.suggestionBody != null ? it.suggestionBody : '') +
+          '</div>';
+        if (it.keywords) {
+          html +=
+            '<div class="anvil-research-plan-card__kw"><span class="anvil-research-plan-card__kw-label">Keywords:</span> ' +
+            escapeHtml(it.keywords) +
+            '</div>';
+        }
+        html +=
+          '<a class="anvil-research-plan-card__link" href="' +
+          escapeHtml(link) +
+          '">Open in Anvil</a>';
+        html += '</li>';
+      });
+      html += '</ul>';
+      mount.innerHTML = html;
+    } catch (e) {
+      mount.innerHTML =
+        '<p class="anvil-feedback-msg anvil-feedback-msg--error" role="alert">' + escapeHtml(e.message) + '</p>';
+    }
   }
 
   function syncRelatedRail() {

@@ -1552,7 +1552,6 @@
       refreshAnvilCitationsInEditor();
       renderCitationsRail();
       renderFeedbackRail();
-      renderResearchPlanRail();
       updateProgressBar();
     } catch (e) {
       /* ignore */
@@ -1748,62 +1747,6 @@
       out.push(w);
     }
     return out.join(', ');
-  }
-
-  async function renderResearchPlanRail() {
-    var mount = document.getElementById('anvil-research-plan-mount');
-    if (!mount) return;
-    if (!bundle || !projectId) {
-      mount.innerHTML =
-        '<p class="anvil-research-plan-empty">Research plan items appear when you add Evidence feedback here.</p>';
-      return;
-    }
-    mount.innerHTML = '<p class="anvil-research-plan-placeholder">Loading…</p>';
-    try {
-      var data = await api('/projects/' + projectId + '/research-plan', 'GET');
-      var items = (data && data.items) || [];
-      if (!items.length) {
-        mount.innerHTML =
-          '<p class="anvil-research-plan-empty">Opportunities you add from <strong>Evidence</strong> feedback appear here.</p>';
-        return;
-      }
-      var html = '<ul class="anvil-research-plan-list">';
-      items.forEach(function (it) {
-        var secTitle = it.sectionTitle != null ? String(it.sectionTitle) : 'Section';
-        var sugId = it.suggestionId != null ? Number(it.suggestionId) : '';
-        var link =
-          '/app/project/' +
-          projectId +
-          '/anvil?section=' +
-          Number(it.sectionId) +
-          (sugId !== '' ? '#anvil-suggestion-' + sugId : '');
-        var ex = it.passageExcerpt != null ? String(it.passageExcerpt) : '';
-        html += '<li class="anvil-research-plan-card">';
-        html += '<div class="anvil-research-plan-card__sec">' + escapeHtml(secTitle) + '</div>';
-        if (ex) {
-          var shortEx = ex.length > 240 ? ex.slice(0, 240) + '…' : ex;
-          html += '<div class="anvil-research-plan-card__excerpt">' + escapeHtml(shortEx) + '</div>';
-        }
-        html +=
-          '<div class="anvil-research-plan-card__body">' + escapeHtml(it.suggestionBody != null ? it.suggestionBody : '') + '</div>';
-        if (it.keywords) {
-          html +=
-            '<div class="anvil-research-plan-card__kw"><span class="anvil-research-plan-card__kw-label">Keywords:</span> ' +
-            escapeHtml(it.keywords) +
-            '</div>';
-        }
-        html +=
-          '<a class="anvil-research-plan-card__link" href="' +
-          escapeHtml(link) +
-          '">Open in Anvil</a>';
-        html += '</li>';
-      });
-      html += '</ul>';
-      mount.innerHTML = html;
-    } catch (e) {
-      mount.innerHTML =
-        '<p class="anvil-feedback-msg anvil-feedback-msg--error" role="alert">' + escapeHtml(e.message) + '</p>';
-    }
   }
 
   function setFeedbackApplyOverlay(show) {
@@ -2160,7 +2103,6 @@
         passageExcerpt: getPassageExcerptForResearch(),
         keywords: extractKeywordsFromPlain(getEditorPlainForKeywords()),
       });
-      await renderResearchPlanRail();
       setStatus('<span class="anvil-status-ok">Added to Research Plan</span>');
     } catch (e) {
       var m = e && e.message ? String(e.message) : 'Could not add to research plan.';
@@ -2211,7 +2153,6 @@
     if (dialog && typeof dialog.close === 'function') dialog.close();
     evidenceResolveSuggestionId = null;
     await renderFeedbackRail();
-    await renderResearchPlanRail();
     scheduleSave();
     setStatus('<span class="anvil-status-ok">Citation inserted · feedback resolved</span>');
   }
@@ -2381,7 +2322,6 @@
         '<div class="anvil-panel"><p class="anvil-muted">No sections in this project. Add sections via your project template or create a new project.</p></div>';
       renderCitationsRail();
       renderFeedbackRail();
-      renderResearchPlanRail();
       return;
     }
 
@@ -2575,7 +2515,6 @@
 
     renderCitationsRail();
     renderFeedbackRail();
-    renderResearchPlanRail();
   }
 
   async function load() {
@@ -2609,7 +2548,6 @@
         '</p></div>';
       renderCitationsRail();
       renderFeedbackRail();
-      renderResearchPlanRail();
       return;
     }
 
@@ -2623,7 +2561,6 @@
     }
 
     render();
-    renderResearchPlanRail();
     requestAnimationFrame(function () {
       try {
         var h = window.location.hash;
