@@ -113,24 +113,48 @@ function createSessionMiddleware() {
 
 app.use(createSessionMiddleware());
 
+/** Strip surrounding quotes (common on Render / .env paste) and whitespace. */
+function trimAdminTemplateToken(v) {
+  if (v == null || v === '') return '';
+  let s = String(v).trim();
+  if (
+    (s.startsWith('"') && s.endsWith('"')) ||
+    (s.startsWith("'") && s.endsWith("'"))
+  ) {
+    s = s.slice(1, -1).trim();
+  }
+  return s;
+}
+
+function adminTemplateTokenFromReq(req) {
+  const q = req.query && req.query.token;
+  if (q != null) {
+    const raw = Array.isArray(q) ? q[0] : q;
+    if (String(raw).trim() !== '') return String(raw);
+  }
+  if (req.params && req.params.token != null) return String(req.params.token);
+  return '';
+}
+
 function requireAdminTemplateEditorToken(req, res, next) {
-  const secret = process.env.ADMIN_TEMPLATE_EDITOR_TOKEN;
-  if (!secret || String(secret).trim().length < 16) {
+  const secret = trimAdminTemplateToken(process.env.ADMIN_TEMPLATE_EDITOR_TOKEN);
+  if (!secret || secret.length < 16) {
     return res.status(404).type('text/plain').send('Not found');
   }
-  if (String(req.params.token || '') !== String(secret)) {
+  const token = trimAdminTemplateToken(adminTemplateTokenFromReq(req));
+  if (token !== secret) {
     return res.status(404).type('text/plain').send('Not found');
   }
   next();
 }
 
-app.get('/admin/project-templates/:token', requireAdminTemplateEditorToken, (req, res) => {
+function renderAdminProjectTemplatesPage(req, res) {
   const data = JSON.stringify(loadTemplates());
   const safe = data.replace(/</g, '\\u003c');
   res.render('admin-project-templates', { templatesData: safe });
-});
+}
 
-app.post('/admin/project-templates/:token', requireAdminTemplateEditorToken, (req, res) => {
+function postAdminProjectTemplatesSave(req, res) {
   const tpl = req.body && req.body.templates;
   if (!tpl || typeof tpl !== 'object' || Array.isArray(tpl)) {
     return res.status(400).json({ ok: false, error: 'Missing templates object.' });
@@ -138,7 +162,14 @@ app.post('/admin/project-templates/:token', requireAdminTemplateEditorToken, (re
   const result = saveProjectTemplates(tpl);
   if (!result.ok) return res.status(400).json(result);
   res.json({ ok: true });
-});
+}
+
+/* Prefer ?token=... — path /:token breaks if the secret contains "/" (only one segment is captured). */
+app.get('/admin/project-templates', requireAdminTemplateEditorToken, renderAdminProjectTemplatesPage);
+app.post('/admin/project-templates', requireAdminTemplateEditorToken, postAdminProjectTemplatesSave);
+
+app.get('/admin/project-templates/:token', requireAdminTemplateEditorToken, renderAdminProjectTemplatesPage);
+app.post('/admin/project-templates/:token', requireAdminTemplateEditorToken, postAdminProjectTemplatesSave);
 
 function asyncHandler(fn) {
   return function (req, res, next) {

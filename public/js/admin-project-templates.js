@@ -14,7 +14,15 @@
     return;
   }
 
-  function tokenFromPath() {
+  /** Prefer ?token= in URL so secrets with "/" work; else last path segment (legacy). */
+  function getAdminToken() {
+    try {
+      const u = new URL(window.location.href);
+      const q = u.searchParams.get('token');
+      if (q) return q;
+    } catch (e) {
+      /* ignore */
+    }
     const parts = window.location.pathname.split('/').filter(Boolean);
     return parts[parts.length - 1] || '';
   }
@@ -242,13 +250,16 @@
   saveBtn.addEventListener('click', async function () {
     saveBtn.disabled = true;
     setStatus('Saving…', '');
-    const token = tokenFromPath();
+    const token = getAdminToken();
     try {
-      const res = await fetch('/admin/project-templates/' + encodeURIComponent(token), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ templates: state }),
-      });
+      const res = await fetch(
+        '/admin/project-templates?token=' + encodeURIComponent(token),
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ templates: state }),
+        }
+      );
       const data = await res.json().catch(function () {
         return {};
       });

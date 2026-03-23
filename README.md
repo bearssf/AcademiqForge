@@ -135,9 +135,11 @@ The shipped Anvil is a **section draft editor with autosave**. The full **writin
 
 ## Admin: project templates (optional)
 
-Set a long random **`ADMIN_TEMPLATE_EDITOR_TOKEN`** in `.env` (minimum 16 characters; never commit it). The app does **not** link to this page.
+Set a long random **`ADMIN_TEMPLATE_EDITOR_TOKEN`** in `.env` (minimum 16 characters; never commit it). The app does **not** link to this page. On Render, paste the value **without** extra quotes in the dashboard (or use quotes consistently— the server strips matching `'` / `"` around the value).
 
-**URL:** `https://YOUR_HOST/admin/project-templates/<ADMIN_TEMPLATE_EDITOR_TOKEN>`
+**URL (recommended):** `https://YOUR_HOST/admin/project-templates?token=YOUR_SECRET`
+
+Use the query form so the secret can contain any character (including `/`). A path-only URL `.../admin/project-templates/<SECRET>` still works if the secret has **no** `/` in it (Express only captures one path segment).
 
 Use it to edit section titles, slugs, each section’s **% of the document** (must total 100% per template), and **projected total word count** for the whole piece. Data is stored in `data/project-templates.json`. New projects inherit section weights from their template. In the Anvil, the progress row shows **Section target** (~words for the current section) and **Document** (~% complete vs the projected total) when those values are set.
 
