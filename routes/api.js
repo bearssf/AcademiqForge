@@ -32,6 +32,7 @@ const {
 } = require('../lib/anvilFeedback');
 const { insertAnvilSuggestions } = require('../lib/anvilSuggestionStore');
 const { isBedrockConfigured, runSectionReview } = require('../lib/bedrockReview');
+const { applySuggestionToDraftHtml } = require('../lib/bedrockApplySuggestion');
 const { normalizeDoi } = require('../lib/doi');
 const { getRelatedReadingSuggestions } = require('../lib/relatedArticles');
 const { normalizeTags, replaceSourceTags } = require('../lib/sourceTags');
@@ -781,6 +782,94 @@ function createApiRouter(getPool) {
       next(e);
     }
   });
+
+  router.post(
+    '/projects/:projectId/sections/:sectionId/suggestions/:suggestionId/apply-draft',
+    async (req, res, next) => {
+      try {
+        if (!isBedrockConfigured()) {
+          return res.status(503).json({
+            error: 'Bedrock is not configured',
+            bedrockConfigured: false,
+          });
+        }
+
+        const projectId = parseInt(req.params.projectId, 10);
+        const sectionId = parseInt(req.params.sectionId, 10);
+        const suggestionId = parseInt(req.params.suggestionId, 10);
+        if (Number.isNaN(projectId) || Number.isNaN(sectionId) || Number.isNaN(suggestionId)) {
+          return res.status(400).json({ error: 'invalid id' });
+        }
+
+        const body = req.body || {};
+        const html = body.html != null ? String(body.html) : '';
+        if (!html.trim()) {
+          return res.status(400).json({ error: 'html is required' });
+        }
+
+        const p = await getPool();
+        const rowRes = await p
+          .request()
+          .input('sid', sql.Int, suggestionId)
+          .input('sec', sql.Int, sectionId)
+          .input('pid', sql.Int, projectId)
+          .input('user_id', sql.Int, req.session.userId)
+          .query(
+            `SELECT sug.id, sug.body, sug.suggestion_status, ps.title AS section_title
+             FROM anvil_suggestions AS sug
+             INNER JOIN projects AS pr ON pr.id = sug.project_id AND pr.user_id = @user_id
+             INNER JOIN project_sections AS ps ON ps.id = sug.section_id AND ps.project_id = sug.project_id
+             WHERE sug.id = @sid AND sug.section_id = @sec AND sug.project_id = @pid`
+          );
+
+        const row = rowRes.recordset[0];
+        if (!row) return res.status(404).json({ error: 'Not found' });
+
+        const st = row.suggestion_status != null ? String(row.suggestion_status).toLowerCase() : 'open';
+        if (st !== 'open') {
+          return res.status(400).json({ error: 'Suggestion is not open' });
+        }
+
+        const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
+        const citationStyle =
+          bundle && bundle.project
+            ? bundle.project.citation_style != null
+              ? bundle.project.citation_style
+              : bundle.project.citationStyle != null
+                ? bundle.project.citationStyle
+                : 'APA'
+            : 'APA';
+
+        const suggestionText = row.body != null ? String(row.body).trim() : '';
+        if (!suggestionText) {
+          return res.status(400).json({ error: 'Suggestion has no text' });
+        }
+
+        let result;
+        try {
+          result = await applySuggestionToDraftHtml({
+            html,
+            suggestionText,
+            sectionTitle: row.section_title,
+            citationStyle,
+          });
+        } catch (err) {
+          let msg = err && err.message ? String(err.message) : 'Bedrock request failed';
+          if (err && err.name === 'AccessDeniedException') {
+            msg = 'Bedrock access denied — check IAM permissions and model access in this region.';
+          } else if (/inference profile/i.test(msg) && /on-demand|throughput/i.test(msg)) {
+            msg +=
+              ' Set BEDROCK_INFERENCE_PROFILE_ARN (recommended) or put the inference profile id/ARN in BEDROCK_MODEL_ID — see docs/aws-bedrock.md.';
+          }
+          return res.status(502).json({ error: msg, bedrockConfigured: true });
+        }
+
+        res.json({ html: result.html, bedrockConfigured: true });
+      } catch (e) {
+        next(e);
+      }
+    }
+  );
 
   router.post('/projects/:projectId/sections/:sectionId/review', async (req, res, next) => {
     try {

@@ -138,6 +138,7 @@ Add the same keys under **Environment** → **Environment Variables**. Prefer **
 - **Minimum draft length:** the server skips Bedrock until plain text (HTML stripped) is at least **`MIN_DRAFT_PLAIN_CHARS`** (see `lib/bedrockReview.js`, currently low — about one short paragraph).
 - **Timing:** review runs **~4.5s after you stop typing**, not 30s; there is also a **minimum gap** between successful reviews (~28s) so the same edit isn’t sent repeatedly.
 - **Network tab:** `POST .../review` — **503** = env not set; **502** = Bedrock/AWS error (read JSON `error`).
+- **Apply (draft edit):** `POST .../sections/:sectionId/suggestions/:suggestionId/apply-draft` with `{ "html": "..." }` (current editor HTML). The model returns `{ "html": "..." }` for preview in the editor; **503** = Bedrock not configured; **502** = model/AWS error.
 
 ## References section (Anvil)
 
