@@ -1812,6 +1812,16 @@
             '">' +
             (st === 'applied' ? 'Applied' : 'Ignored') +
             '</span>';
+          if (
+            bundle &&
+            bundle.anvilStaleFeedbackEnabled &&
+            sug.sectionDraftRevision != null &&
+            sug.draftRevisionAtGeneration != null &&
+            Number(sug.sectionDraftRevision) > Number(sug.draftRevisionAtGeneration)
+          ) {
+            html +=
+              '<span class="anvil-feedback-earlier-draft" title="Accepted or dismissed against an earlier version of this draft">Earlier draft</span>';
+          }
         }
         html += '</div>';
         html += '<div class="anvil-feedback-body">' + escapeHtml(sug.body) + '</div>';
@@ -1976,6 +1986,34 @@
     el.textContent = msg;
   }
 
+  function hideStaleFeedbackBanner() {
+    var b = document.getElementById('anvil-feedback-stale-banner');
+    if (!b) return;
+    b.hidden = true;
+    b.innerHTML = '';
+    b.removeAttribute('data-bound');
+  }
+
+  function showStaleFeedbackBanner(removedCount) {
+    var b = document.getElementById('anvil-feedback-stale-banner');
+    if (!b || !bundle || !bundle.anvilStaleFeedbackEnabled) return;
+    var n = parseInt(removedCount, 10);
+    if (!Number.isFinite(n) || n <= 0) return;
+    b.hidden = false;
+    var label = n === 1 ? '1 open item' : n + ' open items';
+    b.innerHTML =
+      '<span class="anvil-feedback-stale-banner__text">Draft changed — removed ' +
+      escapeHtml(label) +
+      ' that no longer matched this text. Run review again for fresh feedback.</span>' +
+      '<button type="button" class="anvil-feedback-stale-banner__dismiss" aria-label="Dismiss">Dismiss</button>';
+    if (!b.getAttribute('data-bound')) {
+      b.setAttribute('data-bound', '1');
+      b.addEventListener('click', function (ev) {
+        if (ev.target.closest('.anvil-feedback-stale-banner__dismiss')) hideStaleFeedbackBanner();
+      });
+    }
+  }
+
   async function saveDraft(reason, opts) {
     opts = opts || {};
     if (feedbackPreviewActive) {
@@ -2010,7 +2048,11 @@
         { body: text },
         fetchOpts
       );
-      if (data) bundle = data;
+      const payload = data && data.bundle != null ? data.bundle : data;
+      if (payload) bundle = payload;
+      if (data && data.anvilFeedbackInvalidated && data.anvilFeedbackInvalidated.count > 0) {
+        showStaleFeedbackBanner(data.anvilFeedbackInvalidated.count);
+      }
       if (!opts.keepalive) {
         if (opts.statusOkHtml) {
           setStatus(opts.statusOkHtml);
@@ -2022,6 +2064,7 @@
           );
         }
         updateProgressBar();
+        renderFeedbackRail();
       }
       return true;
     } catch (e) {
@@ -2078,12 +2121,11 @@
     feedbackPreviewSuggestionId = null;
     hideFeedbackPreviewBar();
     try {
+      await api('/projects/' + projectId + '/suggestions/' + sid, 'PATCH', { status: 'applied' });
       var saved = await saveDraft('', {
         statusOkHtml: '<span class="anvil-status-ok">Applied and Saved</span>',
       });
       if (!saved) return;
-      await api('/projects/' + projectId + '/suggestions/' + sid, 'PATCH', { status: 'applied' });
-      await renderFeedbackRail();
       updateProgressBar();
     } catch (e) {
       setError(e.message || 'Could not update suggestion.');

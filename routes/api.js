@@ -31,6 +31,7 @@ const {
   rowToSuggestion,
 } = require('../lib/anvilFeedback');
 const { insertAnvilSuggestions } = require('../lib/anvilSuggestionStore');
+const { staleFeedbackEnabled } = require('../lib/anvilStaleFeedback');
 const { isBedrockConfigured, runSectionReview } = require('../lib/bedrockReview');
 const { applySuggestionToDraftHtml } = require('../lib/bedrockApplySuggestion');
 const { normalizeDoi } = require('../lib/doi');
@@ -50,6 +51,8 @@ function mapSuggestionRow(r) {
     body: r.body,
     suggestion_status: r.suggestion_status,
     anchor_json: r.anchor_json,
+    draft_revision_at_generation: r.draft_revision_at_generation,
+    section_draft_revision: r.section_draft_revision,
     created_at: r.created_at,
     updated_at: r.updated_at,
   });
@@ -440,16 +443,49 @@ function createApiRouter(getPool) {
         updates.push('title = @title');
         reqB.input('title', sql.NVarChar(255), String(body.title).trim());
       }
+      let bodyChanged = false;
       if (body.body !== undefined) {
         updates.push('body = @body');
         reqB.input('body', sql.NVarChar(sql.MAX), body.body != null ? String(body.body) : null);
+        if (staleFeedbackEnabled()) {
+          updates.push('draft_revision = draft_revision + 1');
+        }
+        bodyChanged = true;
       }
       if (updates.length === 0) return res.status(400).json({ error: 'No valid fields' });
       updates.push('updated_at = GETDATE()');
       await reqB.query(`UPDATE project_sections SET ${updates.join(', ')} WHERE id = @sid`);
+      let invalidatedOpen = 0;
+      if (staleFeedbackEnabled() && bodyChanged) {
+        const revRow = await p
+          .request()
+          .input('sid', sql.Int, sectionId)
+          .input('pid', sql.Int, projectId)
+          .query(
+            `SELECT draft_revision FROM project_sections WHERE id = @sid AND project_id = @pid`
+          );
+        const newRev =
+          revRow.recordset[0] && revRow.recordset[0].draft_revision != null
+            ? Number(revRow.recordset[0].draft_revision)
+            : 0;
+        const del = await p
+          .request()
+          .input('sid', sql.Int, sectionId)
+          .input('pid', sql.Int, projectId)
+          .input('rev', sql.Int, newRev)
+          .query(
+            `DELETE FROM anvil_suggestions WHERE section_id = @sid AND project_id = @pid
+             AND suggestion_status = N'open' AND COALESCE(draft_revision_at_generation, -1) < @rev`
+          );
+        invalidatedOpen = del.rowsAffected && del.rowsAffected[0] ? del.rowsAffected[0] : 0;
+      }
       const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
       attachTemplateMeta(bundle);
-      res.json(bundle);
+      if (staleFeedbackEnabled() && bodyChanged) {
+        res.json({ bundle, anvilFeedbackInvalidated: { count: invalidatedOpen } });
+      } else {
+        res.json(bundle);
+      }
     } catch (e) {
       next(e);
     }
@@ -513,11 +549,39 @@ function createApiRouter(getPool) {
            WHERE ps.id = @sid AND ps.project_id = @pid AND pr.user_id = @uid`
         );
       if (!own.recordset[0]) return res.status(404).json({ error: 'Not found' });
-      await p
-        .request()
-        .input('body', sql.NVarChar(sql.MAX), fullBody)
-        .input('sid', sql.Int, refSection.id)
-        .query(`UPDATE project_sections SET body = @body, updated_at = GETDATE() WHERE id = @sid`);
+      if (staleFeedbackEnabled()) {
+        await p
+          .request()
+          .input('body', sql.NVarChar(sql.MAX), fullBody)
+          .input('sid', sql.Int, refSection.id)
+          .query(
+            `UPDATE project_sections SET body = @body, draft_revision = draft_revision + 1, updated_at = GETDATE() WHERE id = @sid`
+          );
+        const revRow = await p
+          .request()
+          .input('sid', sql.Int, refSection.id)
+          .input('pid', sql.Int, projectId)
+          .query(`SELECT draft_revision FROM project_sections WHERE id = @sid AND project_id = @pid`);
+        const newRev =
+          revRow.recordset[0] && revRow.recordset[0].draft_revision != null
+            ? Number(revRow.recordset[0].draft_revision)
+            : 0;
+        await p
+          .request()
+          .input('sid', sql.Int, refSection.id)
+          .input('pid', sql.Int, projectId)
+          .input('rev', sql.Int, newRev)
+          .query(
+            `DELETE FROM anvil_suggestions WHERE section_id = @sid AND project_id = @pid
+             AND suggestion_status = N'open' AND COALESCE(draft_revision_at_generation, -1) < @rev`
+          );
+      } else {
+        await p
+          .request()
+          .input('body', sql.NVarChar(sql.MAX), fullBody)
+          .input('sid', sql.Int, refSection.id)
+          .query(`UPDATE project_sections SET body = @body, updated_at = GETDATE() WHERE id = @sid`);
+      }
       const out = await getProjectBundle(getPool, projectId, req.session.userId);
       attachTemplateMeta(out);
       res.json({
@@ -668,10 +732,13 @@ function createApiRouter(getPool) {
         .input('section_id', sql.Int, sectionId)
         .input('project_id', sql.Int, projectId)
         .query(
-          `SELECT id, project_id, section_id, category, body, suggestion_status, anchor_json, created_at, updated_at
-           FROM anvil_suggestions
-           WHERE section_id = @section_id AND project_id = @project_id
-           ORDER BY created_at DESC`
+          `SELECT s.id, s.project_id, s.section_id, s.category, s.body, s.suggestion_status, s.anchor_json,
+                  s.draft_revision_at_generation, ps.draft_revision AS section_draft_revision,
+                  s.created_at, s.updated_at
+           FROM anvil_suggestions s
+           INNER JOIN project_sections ps ON ps.id = s.section_id AND ps.project_id = s.project_id
+           WHERE s.section_id = @section_id AND s.project_id = @project_id
+           ORDER BY s.created_at DESC`
         );
       const suggestions = rows.recordset.map(mapSuggestionRow).filter(Boolean);
       res.json({ suggestions });
@@ -728,30 +795,7 @@ function createApiRouter(getPool) {
 
       if (items.length === 0) return res.status(400).json({ error: 'No suggestions to save' });
 
-      const created = [];
-      for (const it of items) {
-        const ins = await p
-          .request()
-          .input('project_id', sql.Int, projectId)
-          .input('section_id', sql.Int, sectionId)
-          .input('category', sql.NVarChar(20), it.category)
-          .input('body', sql.NVarChar(sql.MAX), it.body)
-          .input('anchor_json', sql.NVarChar(500), it.anchorJson)
-          .query(`
-            INSERT INTO anvil_suggestions (project_id, section_id, category, body, anchor_json, updated_at)
-            OUTPUT INSERTED.id
-            VALUES (@project_id, @section_id, @category, @body, @anchor_json, GETDATE())
-          `);
-        const newId = ins.recordset[0].id;
-        const row = await p
-          .request()
-          .input('id', sql.Int, newId)
-          .query(
-            `SELECT id, project_id, section_id, category, body, suggestion_status, anchor_json, created_at, updated_at
-             FROM anvil_suggestions WHERE id = @id`
-          );
-        created.push(mapSuggestionRow(row.recordset[0]));
-      }
+      const created = await insertAnvilSuggestions(getPool, projectId, sectionId, items);
 
       res.status(201).json({ suggestions: created });
     } catch (e) {
@@ -792,7 +836,7 @@ function createApiRouter(getPool) {
         .request()
         .input('id', sql.Int, suggestionId)
         .query(
-          `SELECT id, project_id, section_id, category, body, suggestion_status, anchor_json, created_at, updated_at
+          `SELECT id, project_id, section_id, category, body, suggestion_status, anchor_json, draft_revision_at_generation, created_at, updated_at
            FROM anvil_suggestions WHERE id = @id`
         );
       res.json({ suggestion: mapSuggestionRow(row.recordset[0]) });
