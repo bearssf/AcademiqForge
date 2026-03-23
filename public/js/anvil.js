@@ -1,6 +1,6 @@
 /**
- * The Anvil — rich text (Quill) with autosave; body stored as HTML in project_sections.body.
- * Export: section .txt (client), section .docx (POST), whole project .txt/.docx (GET saved snapshot).
+ * The Anvil — rich text (Quill) with autosave; body stored as Quill Delta JSON (or legacy HTML).
+ * Delta avoids HTML↔clipboard round-trip loss (fonts, sizes, bold, etc.). Export still uses HTML.
  */
 (function () {
   const root = document.getElementById('anvil-root');
@@ -23,6 +23,7 @@
   let anvilSources = [];
   let anvilSourcesError = null;
   let quillEditor = null;
+  var exportQuillInstance = null;
   var anvilQuillFormatsRegistered = false;
 
   const PAPER_PREF_KEY = 'af.anvil.paper';
@@ -57,6 +58,116 @@
       /* ignore */
     }
     anvilQuillFormatsRegistered = true;
+  }
+
+  function sectionBodyProp(sec) {
+    if (!sec) return '';
+    if (sec.body != null) return String(sec.body);
+    if (sec.Body != null) return String(sec.Body);
+    return '';
+  }
+
+  function isQuillDeltaJson(s) {
+    var t = String(s || '').trim();
+    return t.length > 0 && t.charAt(0) === '{' && /"ops"\s*:\s*\[/.test(t);
+  }
+
+  function storageIsEffectivelyEmpty(s) {
+    if (s == null || !String(s).trim()) return true;
+    var t = String(s).trim();
+    if (isQuillDeltaJson(t)) {
+      try {
+        var o = JSON.parse(t);
+        if (!o.ops || !o.ops.length) return true;
+        if (
+          o.ops.length === 1 &&
+          typeof o.ops[0].insert === 'string' &&
+          o.ops[0].insert === '\n' &&
+          !o.ops[0].attributes
+        ) {
+          return true;
+        }
+        return false;
+      } catch (e) {
+        return true;
+      }
+    }
+    return htmlIsEffectivelyEmpty(t);
+  }
+
+  function normalizeStorageCompare(s) {
+    if (storageIsEffectivelyEmpty(s)) return '';
+    return String(s).trim();
+  }
+
+  function getExportQuill() {
+    if (exportQuillInstance) return exportQuillInstance;
+    if (typeof Quill === 'undefined') return null;
+    registerAnvilQuillFormatsOnce();
+    var host = document.createElement('div');
+    host.id = 'anvil-export-quill-host';
+    host.setAttribute('aria-hidden', 'true');
+    host.style.cssText =
+      'position:fixed;left:-99999px;top:0;width:720px;height:400px;overflow:hidden;opacity:0;pointer-events:none;z-index:-1';
+    host.innerHTML = '<div class="anvil-quill-wrap"><div id="anvil-export-quill-inner"></div></div>';
+    document.body.appendChild(host);
+    exportQuillInstance = new Quill('#anvil-export-quill-inner', {
+      theme: 'snow',
+      modules: { toolbar: false },
+    });
+    return exportQuillInstance;
+  }
+
+  function deltaJsonToHtml(jsonStr) {
+    var Delta = Quill.import('delta');
+    var q = getExportQuill();
+    if (!q) return '';
+    q.setContents(new Delta(JSON.parse(jsonStr)), 'silent');
+    return q.root.innerHTML;
+  }
+
+  /** HTML for export / plain-text extraction (handles Delta JSON or legacy HTML). */
+  function sectionBodyToHtml(raw) {
+    if (raw == null || !String(raw).trim()) return '';
+    var s = String(raw).trim();
+    if (isQuillDeltaJson(s)) {
+      try {
+        return deltaJsonToHtml(s);
+      } catch (e) {
+        return '';
+      }
+    }
+    return bodyToHtml(s);
+  }
+
+  function getEditorBodyForSave() {
+    if (quillEditor) {
+      return JSON.stringify(quillEditor.getContents());
+    }
+    var ta = document.getElementById('anvil-body');
+    if (ta && ta.tagName === 'TEXTAREA') {
+      return bodyToHtml(ta.value);
+    }
+    return '';
+  }
+
+  function applyInitialEditorContent(raw) {
+    if (!quillEditor) return;
+    var s = raw != null ? String(raw).trim() : '';
+    if (!s) {
+      setQuillHtml('');
+      return;
+    }
+    if (isQuillDeltaJson(s)) {
+      try {
+        var Delta = Quill.import('delta');
+        quillEditor.setContents(new Delta(JSON.parse(s)), 'silent');
+        return;
+      } catch (e) {
+        /* fall through to HTML */
+      }
+    }
+    setQuillHtml(bodyToHtml(s));
   }
 
   function buildAnvilImageUploadHandler() {
@@ -471,13 +582,13 @@
     });
   }
 
-  function mountEditor(initialHtml) {
+  function mountEditor(rawDraft) {
     quillEditor = null;
     const wrap = document.getElementById('anvil-quill-wrap');
     const host = document.getElementById('anvil-editor');
     if (!wrap || !host) return;
 
-    const htmlLoad = initialHtml && String(initialHtml).trim() ? initialHtml : '';
+    const draftStr = rawDraft != null && String(rawDraft).trim() ? String(rawDraft) : '';
 
     if (typeof Quill !== 'undefined') {
       registerAnvilQuillFormatsOnce();
@@ -568,7 +679,7 @@
         placeholder: 'Write your draft here…',
       });
       installQuillPasteColorNormalization(quillEditor);
-      setQuillHtml(htmlLoad);
+      applyInitialEditorContent(draftStr);
       quillEditor.on('text-change', function () {
         scheduleSave();
         scheduleAiReview();
@@ -581,7 +692,7 @@
       '<textarea id="anvil-body" class="anvil-textarea" rows="18" spellcheck="true" placeholder="Write your draft here. Autosaves after you pause typing."></textarea>';
     const ta = document.getElementById('anvil-body');
     if (ta) {
-      ta.value = plainTextFromBody(htmlLoad);
+      ta.value = plainTextFromBody(draftStr ? sectionBodyToHtml(draftStr) : '');
       ta.addEventListener('input', function () {
         scheduleSave();
         scheduleAiReview();
@@ -1177,9 +1288,11 @@
   function sectionsForProjectExport() {
     if (!bundle || !bundle.sections) return [];
     return bundle.sections.map(function (s) {
-      var body = s.body != null ? String(s.body) : '';
+      var body;
       if (selectedId != null && Number(s.id) === Number(selectedId)) {
         body = getEditorHtml();
+      } else {
+        body = sectionBodyToHtml(sectionBodyProp(s));
       }
       return { title: s.title, body: body };
     });
@@ -1529,11 +1642,11 @@
   async function saveDraft(reason, opts) {
     opts = opts || {};
     if (selectedId == null || bundle == null) return;
-    let text = getEditorHtml();
-    if (htmlIsEffectivelyEmpty(text)) text = '';
+    let text = getEditorBodyForSave();
+    if (storageIsEffectivelyEmpty(text)) text = '';
     const sec = sectionById(selectedId);
-    const prev = sec && sec.body != null ? String(sec.body) : '';
-    if (normalizeForCompare(prev) === normalizeForCompare(text)) {
+    const prev = sectionBodyProp(sec);
+    if (normalizeStorageCompare(prev) === normalizeStorageCompare(text)) {
       if (!opts.keepalive) {
         setStatus('<span class="anvil-status-ok">Saved</span>');
       }
@@ -1652,8 +1765,7 @@
       selectedId = Number(sections[0].id);
       current = sectionById(selectedId);
     }
-    const draft = current && current.body != null ? String(current.body) : '';
-    const initialHtml = bodyToHtml(draft);
+    const draft = sectionBodyProp(current);
 
     const editor =
       '<div class="anvil-editor">' +
@@ -1711,7 +1823,7 @@
       editor +
       '</div></div>';
 
-    mountEditor(initialHtml);
+    mountEditor(draft);
     bindPaperToggle();
     updateProgressBar();
 
