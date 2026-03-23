@@ -46,9 +46,15 @@
     try {
       var Font = Quill.import('formats/font');
       Font.whitelist = ANVIL_QUILL_FONTS;
+      try {
+        var FontClassPath = Quill.import('attributors/class/font');
+        if (FontClassPath && FontClassPath !== Font) {
+          FontClassPath.whitelist = ANVIL_QUILL_FONTS;
+        }
+      } catch (e2) {
+        /* ignore */
+      }
       Quill.register(Font, true);
-      /* Same Attributor must be registered under both keys or clipboard/Delta paths keep default serif/monospace-only whitelist. */
-      Quill.register('attributors/class/font', Font, true);
     } catch (e) {
       /* ignore */
     }
@@ -115,7 +121,6 @@
     document.body.appendChild(host);
     exportQuillInstance = new Quill('#anvil-export-quill-inner', {
       theme: 'snow',
-      strict: false,
       modules: { toolbar: false },
     });
     return exportQuillInstance;
@@ -678,7 +683,6 @@
       }
       quillEditor = new Quill('#anvil-editor', {
         theme: 'snow',
-        strict: false,
         modules: quillModules,
         placeholder: 'Write your draft here…',
       });
