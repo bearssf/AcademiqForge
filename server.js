@@ -126,6 +126,9 @@ function trimAdminTemplateToken(v) {
   return s;
 }
 
+/** Minimum length for ADMIN_TEMPLATE_EDITOR_TOKEN (after trim). Shorter values were rejected before URL token was compared — use 8+ and match Render exactly. */
+const ADMIN_TEMPLATE_TOKEN_MIN_LEN = 8;
+
 function adminTemplateTokenFromReq(req) {
   const q = req.query && req.query.token;
   if (q != null) {
@@ -136,14 +139,33 @@ function adminTemplateTokenFromReq(req) {
   return '';
 }
 
+function sendAdminGateNotFound(res) {
+  res
+    .status(404)
+    .type('html')
+    .send(
+      '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+        '<title>Not found</title>' +
+        '<style>body{margin:0;font-family:system-ui,sans-serif;background:#eceff1;color:#263238;padding:1.5rem;line-height:1.5}' +
+        'code{font-size:.9em;background:#cfd8dc;padding:.1rem .25rem;border-radius:4px}</style></head><body>' +
+        '<p><strong>Not found</strong></p>' +
+        '<p style="font-size:.9rem;max-width:36rem">If you are opening the project-templates admin URL, set ' +
+        '<code>ADMIN_TEMPLATE_EDITOR_TOKEN</code> on the server (at least ' +
+        ADMIN_TEMPLATE_TOKEN_MIN_LEN +
+        ' characters), redeploy, and use the exact value in the path or as ' +
+        '<code>?token=…</code>. The value in Render must match the URL character-for-character.</p>' +
+        '</body></html>'
+    );
+}
+
 function requireAdminTemplateEditorToken(req, res, next) {
   const secret = trimAdminTemplateToken(process.env.ADMIN_TEMPLATE_EDITOR_TOKEN);
-  if (!secret || secret.length < 16) {
-    return res.status(404).type('text/plain').send('Not found');
+  if (!secret || secret.length < ADMIN_TEMPLATE_TOKEN_MIN_LEN) {
+    return sendAdminGateNotFound(res);
   }
   const token = trimAdminTemplateToken(adminTemplateTokenFromReq(req));
   if (token !== secret) {
-    return res.status(404).type('text/plain').send('Not found');
+    return sendAdminGateNotFound(res);
   }
   next();
 }

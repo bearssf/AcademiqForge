@@ -135,7 +135,7 @@ The shipped Anvil is a **section draft editor with autosave**. The full **writin
 
 ## Admin: project templates (optional)
 
-Set a long random **`ADMIN_TEMPLATE_EDITOR_TOKEN`** in `.env` (minimum 16 characters; never commit it). The app does **not** link to this page. On Render, paste the value **without** extra quotes in the dashboard (or use quotes consistently— the server strips matching `'` / `"` around the value).
+Set a random **`ADMIN_TEMPLATE_EDITOR_TOKEN`** in `.env` (minimum **8** characters; prefer 24+; never commit it). The app does **not** link to this page. On Render, paste the value **without** extra quotes unless you mean to—the server strips one pair of matching `'` / `"` around the whole value. The env value must match your URL **exactly** (character for character).
 
 **URL (recommended):** `https://YOUR_HOST/admin/project-templates?token=YOUR_SECRET`
 
