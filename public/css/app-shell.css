@@ -464,20 +464,7 @@
   padding: 0 0.55rem 0.4rem;
   font-size: 0.92rem;
   line-height: 1.35;
-  color: rgba(255, 255, 255, 0.55);
-}
-.app-sidebar-project-link {
-  display: block;
-  padding: 0.45rem 0.55rem;
-  border-radius: 8px;
-  color: rgba(255, 255, 255, 0.55);
-  text-decoration: none;
-  font-size: 0.92rem;
-  line-height: 1.35;
-}
-.app-sidebar-project-link:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  color: #1eb8c6;
 }
 .app-sidebar-footer {
   margin-top: auto;
@@ -502,16 +489,8 @@
 .app-body--anvil .app-sidebar-project-name {
   color: #1eb8c6;
 }
-.app-body--anvil .app-project-picker a.active {
-  color: #1eb8c6;
-}
 .app-body--anvil .app-canvas .sub.app-anvil-intro {
   color: #1eb8c6;
-}
-.app-project-picker a {
-  font-size: 0.82rem;
-  padding: 0.35rem 0.55rem;
-  line-height: 1.3;
 }
 
 .app-dashboard-list {
@@ -2359,42 +2338,26 @@
   margin-top: 0.25rem;
 }
 
-/* Image resize handles in Quill editor */
-.anvil-img-wrap {
-  display: inline-block;
-  position: relative;
-  max-width: 100%;
-  line-height: 0;
-}
-.anvil-img-wrap img {
-  display: block;
-  max-width: 100%;
-  height: auto;
+/* Image resize overlay for Quill editor */
+.anvil-img-overlay {
+  display: none;
+  position: absolute;
+  border: 2px solid var(--blue);
+  pointer-events: none;
+  z-index: 10;
+  box-sizing: border-box;
 }
 .anvil-img-resize-handle {
   position: absolute;
-  right: -4px;
-  bottom: -4px;
-  width: 12px;
-  height: 12px;
+  right: -5px;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
   background: var(--blue);
   border: 2px solid #fff;
   border-radius: 2px;
   cursor: nwse-resize;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-.anvil-img-wrap:hover .anvil-img-resize-handle {
-  opacity: 1;
+  pointer-events: auto;
+  z-index: 11;
 }
 
-/* Anvil sidebar: project link colors match home link in anvil context */
-.app-body--anvil .app-sidebar-project-link {
-  color: rgba(255, 255, 255, 0.55);
-}
-.app-body--anvil .app-sidebar-project-link:hover {
-  color: #fff;
-}
-.app-body--anvil .app-sidebar-project-link.active {
-  color: #1eb8c6;
-}

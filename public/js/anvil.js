@@ -61,36 +61,40 @@
   ];
   Quill.register(Size, true);
 
-  /* ── Image resize handles ── */
-  function addResizeHandles(img) {
-    if (img.parentNode && img.parentNode.classList.contains('anvil-img-wrap')) return;
-    var wrap = document.createElement('span');
-    wrap.className = 'anvil-img-wrap';
-    wrap.contentEditable = 'false';
-    img.parentNode.insertBefore(wrap, img);
-    wrap.appendChild(img);
+  /* ── Image resize overlay (does not modify Quill DOM) ── */
+  var resizeOverlay = null;
+  var resizeHandle = null;
+  var resizeTarget = null;
 
-    var handle = document.createElement('span');
-    handle.className = 'anvil-img-resize-handle';
-    wrap.appendChild(handle);
+  function createResizeOverlay() {
+    if (resizeOverlay) return;
+    resizeOverlay = document.createElement('div');
+    resizeOverlay.className = 'anvil-img-overlay';
+    resizeHandle = document.createElement('div');
+    resizeHandle.className = 'anvil-img-resize-handle';
+    resizeOverlay.appendChild(resizeHandle);
 
     var startX, startW;
     function onDown(e) {
+      if (!resizeTarget) return;
       e.preventDefault();
       e.stopPropagation();
       startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
-      startW = img.offsetWidth;
+      startW = resizeTarget.offsetWidth;
       document.addEventListener('mousemove', onMove);
       document.addEventListener('mouseup', onUp);
       document.addEventListener('touchmove', onMove, { passive: false });
       document.addEventListener('touchend', onUp);
     }
     function onMove(e) {
+      if (!resizeTarget) return;
       e.preventDefault();
       var cx = e.clientX || (e.touches && e.touches[0].clientX) || 0;
       var newW = Math.max(40, startW + (cx - startX));
-      img.style.width = newW + 'px';
-      img.style.height = 'auto';
+      resizeTarget.setAttribute('width', newW);
+      resizeTarget.style.width = newW + 'px';
+      resizeTarget.style.height = 'auto';
+      positionOverlay();
     }
     function onUp() {
       document.removeEventListener('mousemove', onMove);
@@ -99,14 +103,48 @@
       document.removeEventListener('touchend', onUp);
       scheduleSave();
     }
-    handle.addEventListener('mousedown', onDown);
-    handle.addEventListener('touchstart', onDown, { passive: false });
+    resizeHandle.addEventListener('mousedown', onDown);
+    resizeHandle.addEventListener('touchstart', onDown, { passive: false });
+  }
+
+  function positionOverlay() {
+    if (!resizeOverlay || !resizeTarget || !quill) return;
+    var editorEl = quill.root;
+    var parent = editorEl.closest('.anvil-quill-wrap') || editorEl.parentNode;
+    if (resizeOverlay.parentNode !== parent) parent.appendChild(resizeOverlay);
+    var parentRect = parent.getBoundingClientRect();
+    var imgRect = resizeTarget.getBoundingClientRect();
+    resizeOverlay.style.display = 'block';
+    resizeOverlay.style.left = (imgRect.left - parentRect.left) + 'px';
+    resizeOverlay.style.top = (imgRect.top - parentRect.top) + 'px';
+    resizeOverlay.style.width = imgRect.width + 'px';
+    resizeOverlay.style.height = imgRect.height + 'px';
+  }
+
+  function hideOverlay() {
+    if (resizeOverlay) resizeOverlay.style.display = 'none';
+    resizeTarget = null;
+  }
+
+  function onEditorImgClick(e) {
+    if (e.target.tagName === 'IMG') {
+      createResizeOverlay();
+      resizeTarget = e.target;
+      positionOverlay();
+    } else {
+      hideOverlay();
+    }
   }
 
   function attachImageResizeHandlers() {
     if (!quill) return;
-    var imgs = quill.root.querySelectorAll('img');
-    for (var i = 0; i < imgs.length; i++) addResizeHandles(imgs[i]);
+    quill.root.addEventListener('click', onEditorImgClick);
+    document.addEventListener('click', function (e) {
+      if (!quill) return;
+      if (!quill.root.contains(e.target) && resizeOverlay && !resizeOverlay.contains(e.target)) {
+        hideOverlay();
+      }
+    });
   }
 
   function escapeHtml(s) {
@@ -538,7 +576,6 @@
             var range = quill.getSelection(true);
             quill.insertEmbed(range.index, 'image', data.url, 'user');
             quill.setSelection(range.index + 1);
-            setTimeout(attachImageResizeHandlers, 100);
           }
         })
         .catch(function () {
@@ -625,7 +662,6 @@
         return;
       }
       onEditorUserChange(delta);
-      setTimeout(attachImageResizeHandlers, 50);
     });
 
     if (paperMode) {
@@ -845,11 +881,11 @@
       '<span class="anvil-export-label">Actions</span>' +
       '<button type="button" class="anvil-export-btn" id="anvil-apply-style">Apply ' + escapeHtml(citStyle) + ' style</button>' +
       '<span class="anvil-export-sep">|</span>' +
-      '<button type="button" class="anvil-export-btn" id="anvil-export-section-rtf">Section .rtf</button>' +
-      '<button type="button" class="anvil-export-btn" id="anvil-export-section-docx">Section .docx</button>' +
+      '<button type="button" class="anvil-export-btn" id="anvil-export-section-rtf">Export Section (RTF)</button>' +
+      '<button type="button" class="anvil-export-btn" id="anvil-export-section-docx">Export Section (Word)</button>' +
       '<span class="anvil-export-sep">|</span>' +
-      '<button type="button" class="anvil-export-btn" id="anvil-export-all-rtf">All sections .rtf</button>' +
-      '<button type="button" class="anvil-export-btn" id="anvil-export-all-docx">All sections .docx</button>' +
+      '<button type="button" class="anvil-export-btn" id="anvil-export-all-rtf">Export Document (RTF)</button>' +
+      '<button type="button" class="anvil-export-btn" id="anvil-export-all-docx">Export Document (Word)</button>' +
       '</div>' +
       '</div>' +
       '</div>' +
