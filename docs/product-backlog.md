@@ -1,6 +1,6 @@
 # Product backlog (post–core solid)
 
-Reference list for deferred and in-flight work. **Do not put API keys in this file** — use environment variables (e.g. `SEMANTIC_SCHOLAR_API_KEY`).
+Reference list for deferred and in-flight work. **Do not put API keys in this file** — use environment variables (e.g. in `.env` / host secrets only).
 
 ## Phases (vision alignment)
 
@@ -26,9 +26,4 @@ Reference list for deferred and in-flight work. **Do not put API keys in this fi
 10. **Anvil paste** — Normalize pasted text color to white and font to style; keep other formatting.
 11. **Anvil rail spacing** — Extra gap between feedback pane and citations (~1/8″).
 12. **Sources: DOI** — Optional field on `sources`; Anvil citations rail may link when present. *(The Crucible UI for bulk source management was removed.)*
-13. **Related articles** — *(Removed with The Crucible workspace.)* Was: Semantic Scholar + optional Bedrock fallback via `GET /api/projects/:id/related-reading`. Client helper `lib/relatedArticles.js` deleted; `lib/semanticScholar.js` remains for `npm run test:s2` — see [semantic-scholar.md](./semantic-scholar.md).
-
-## Semantic Scholar integration notes
-
-- Rate limit: **one successful request per second** cumulative across endpoints; implement a client-side limit **below** 1/s if possible.
-- Configure **`SEMANTIC_SCHOLAR_API_KEY`** in `.env` / host secrets only.
+13. **Related articles** — *(Removed with The Crucible workspace.)* Was: Semantic Scholar + optional Bedrock fallback via `GET /api/projects/:id/related-reading`. Client helpers `lib/relatedArticles.js` and `lib/semanticScholar.js` are removed.
