@@ -291,6 +291,53 @@
   margin: 0;
   line-height: 1.5;
 }
+
+/* ── The Crucible: right rail = source suggestions top 50% + research plan bottom 50% ── */
+.app-body--workspace-shell .app-insight.app-crucible-rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.app-crucible-rail__inner {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.app-crucible-rail__top {
+  flex: 1 1 50%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.app-crucible-rail__bottom {
+  flex: 1 1 50%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+}
+.app-insight.app-crucible-rail .insight-h {
+  color: var(--blue);
+}
+.app-crucible-rail__scroll {
+  flex: 1;
+  min-height: 4rem;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Crucible center canvas intro styling */
+.app-crucible-intro {
+  color: var(--blue);
+}
+
 .anvil2-panel {
   width: 100%;
   max-width: 52rem;
