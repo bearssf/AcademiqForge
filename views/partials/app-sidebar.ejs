@@ -18,8 +18,13 @@
   <div class="app-nav-section">
     <div class="app-nav-label">Workspace</div>
     <nav class="app-nav">
-      <a href="/app/dashboard" class="<%= na === 'dashboard' ? 'active' : '' %>">Portfolio dashboard</a>
       <a href="/app/account" class="<%= na === 'account' ? 'active' : '' %>">Account</a>
+      <a href="/app/dashboard" class="<%= na === 'dashboard' ? 'active' : '' %>">Portfolio dashboard</a>
+      <% if (access.foundryUnlocked) { %>
+        <a href="<%= effectivePid ? '/app/project/' + effectivePid + '/foundry' : '#' %>" class="<%= slug === 'foundry' ? 'active' : '' %>">The Foundry</a>
+      <% } else { %>
+        <a href="<%= effectivePid ? '/app/project/' + effectivePid + '/foundry' : '#' %>" class="<%= slug === 'foundry' ? 'active' : '' %> locked">The Foundry <span class="badge-pay">Paid</span></a>
+      <% } %>
     </nav>
   </div>
 
@@ -31,28 +36,25 @@
       <% if (projects.length > 1) { %>
         <nav class="app-nav app-project-picker" aria-label="Switch project">
           <% projects.forEach(function(p) { %>
-            <a href="/app/project/<%= p.id %>/anvil" class="<%= (cur == p.id && na === 'workspace') ? 'active' : '' %>"><%= p.name %></a>
+            <a href="/app/project/<%= p.id %>/anvil" class="app-sidebar-project-link<%= (cur == p.id && na === 'workspace') ? ' active' : '' %>"><%= truncateProjectTitle(p.name) %></a>
           <% }); %>
         </nav>
       <% } else { %>
-        <span class="app-sidebar-project-name" title="<%= projects[0].name %>"><%= truncateProjectTitle(projects[0].name) %></span>
+        <a href="/app/project/<%= projects[0].id %>/anvil" class="app-sidebar-project-link" title="<%= projects[0].name %>"><%= truncateProjectTitle(projects[0].name) %></a>
       <% } %>
       <% if (effectivePid) { %>
         <nav class="app-nav">
           <a href="/app/project/<%= effectivePid %>/settings" class="<%= typeof workspaceSlug !== 'undefined' && workspaceSlug === 'settings' ? 'active' : '' %>">Project settings</a>
-          <a href="/app/project/<%= effectivePid %>/anvil<%= (typeof anvilSections !== 'undefined' && anvilSections.length) ? ('?section=' + anvilSections[0].id) : '' %>" class="<%= slug === 'anvil' ? 'active' : '' %>">The Anvil</a>
+          <% var hasActiveSection = typeof anvilSectionId !== 'undefined' && anvilSectionId != null; %>
+          <a href="/app/project/<%= effectivePid %>/anvil<%= (typeof anvilSections !== 'undefined' && anvilSections.length) ? ('?section=' + anvilSections[0].id) : '' %>" class="<%= slug === 'anvil' && !hasActiveSection ? 'active' : '' %>">The Anvil</a>
           <% if (typeof anvilSections !== 'undefined' && anvilSections.length && slug === 'anvil') { %>
           <nav class="app-nav app-nav--anvil-sections" aria-label="Section drafts">
             <% anvilSections.forEach(function (sec) { %>
-              <a href="/app/project/<%= effectivePid %>/<%= slug %>?section=<%= sec.id %>" class="<%= typeof anvilSectionId !== 'undefined' && anvilSectionId != null && Number(anvilSectionId) === Number(sec.id) ? 'active' : '' %>"><%= sec.title %></a>
+              <a href="/app/project/<%= effectivePid %>/<%= slug %>?section=<%= sec.id %>" class="<%= hasActiveSection && Number(anvilSectionId) === Number(sec.id) ? 'active' : '' %>"><%= sec.title %></a>
             <% }); %>
           </nav>
           <% } %>
-          <% if (access.foundryUnlocked) { %>
-            <a href="/app/project/<%= effectivePid %>/foundry" class="<%= slug === 'foundry' ? 'active' : '' %>">The Foundry</a>
-          <% } else { %>
-            <a href="/app/project/<%= effectivePid %>/foundry" class="<%= slug === 'foundry' ? 'active' : '' %> locked">The Foundry <span class="badge-pay">Paid</span></a>
-          <% } %>
+          <a href="/app/project/<%= effectivePid %>/crucible" class="<%= slug === 'crucible' ? 'active' : '' %>">The Crucible</a>
           <a href="/app/project/<%= effectivePid %>/framework" class="<%= slug === 'framework' ? 'active' : '' %>">Framework</a>
         </nav>
       <% } %>

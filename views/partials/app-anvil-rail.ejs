@@ -1,12 +1,17 @@
 <%#
-  The Anvil: structured AI feedback (client-side + /review-structured).
+  The Anvil: structured AI feedback + citations placeholder.
 %>
-<aside class="app-insight app-anvil-rail" aria-label="AI feedback">
+<aside class="app-insight app-anvil-rail" aria-label="Feedback and suggestions">
   <div class="app-anvil-rail__inner">
-    <div class="insight-h">AI feedback</div>
-    <p class="app-anvil-rail__hint">Anchored suggestions from the model. Apply updates the draft; items that no longer match the text are removed. New analysis adds suggestions above older ones.</p>
-    <div id="anvil-feedback-mount" class="app-anvil-rail__scroll" aria-live="polite">
-      <p class="anvil2-feedback-placeholder">Load a section to see feedback after you pause typing.</p>
+    <div class="app-anvil-rail__top">
+      <div class="insight-h">Feedback &amp; Suggestions</div>
+      <div id="anvil-feedback-mount" class="app-anvil-rail__scroll" aria-live="polite">
+        <p class="anvil2-feedback-placeholder">Feedback and suggestions will appear here as you make progress with your writing.</p>
+      </div>
+    </div>
+    <div class="app-anvil-rail__bottom">
+      <div class="insight-h insight-h--citations">Citations</div>
+      <p class="app-anvil-rail__citations-placeholder">Citations and references will be available here in a future update.</p>
     </div>
   </div>
 </aside>

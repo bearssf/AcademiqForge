@@ -336,6 +336,10 @@ const WORKSPACE_PHASES = {
     title: 'The Anvil',
     insight: 'Anchor-based AI writing feedback for your section drafts.',
   },
+  crucible: {
+    title: 'The Crucible',
+    insight: 'Source management and research tools will appear here.',
+  },
   foundry: { title: 'The Foundry', insight: 'Generated research topics and gaps will appear here for paid members.' },
   framework: { title: 'Framework', insight: 'Argument outline and evidence mapping will appear here.' },
 };
@@ -764,7 +768,7 @@ app.get(
   asyncHandler(async (req, res) => {
     const projectId = parseInt(req.params.projectId, 10);
     const { slug } = req.params;
-    if (slug === 'anvil2' || slug === 'crucible') {
+    if (slug === 'anvil2') {
       const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
       return res.redirect(301, `/app/project/${projectId}/anvil${qs}`);
     }

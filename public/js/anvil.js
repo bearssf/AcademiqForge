@@ -21,11 +21,12 @@
   var lastReviewAt = 0;
   var lastPlainSent = '';
   var MIN_REVIEW_INTERVAL_MS = 22000;
-  /** Matches lib/bedrockReview MIN_DRAFT_PLAIN_CHARS */
   var MIN_PLAIN_CHARS = 15;
 
   var hasCompletedInitialReview = false;
   var charsSinceFingerprint = 0;
+
+  var paperMode = false;
 
   function recordTextFingerprint() {
     var fp = getDraftPlain();
@@ -34,8 +35,79 @@
   var reviewInFlight = false;
   var taLastLen = 0;
 
-  /** @type {{ item: object, status: string, matchPosition: {start:number,end:number}|null }[]} */
   var feedbackRows = [];
+
+  /* ── Custom Quill font whitelist ── */
+  var Font = Quill.imports['formats/font'];
+  Font.whitelist = [
+    false,
+    'times-new-roman',
+    'arial',
+    'georgia',
+    'courier-new',
+    'verdana',
+    'garamond',
+    'calibri',
+    'cambria',
+    'helvetica',
+  ];
+  Quill.register(Font, true);
+
+  /* ── Custom Quill size whitelist ── */
+  var Size = Quill.imports['formats/size'];
+  Size.whitelist = [
+    false,
+    '8pt', '9pt', '10pt', '11pt', '12pt', '14pt', '16pt', '18pt', '20pt', '24pt',
+  ];
+  Quill.register(Size, true);
+
+  /* ── Image resize handles ── */
+  function addResizeHandles(img) {
+    if (img.parentNode && img.parentNode.classList.contains('anvil-img-wrap')) return;
+    var wrap = document.createElement('span');
+    wrap.className = 'anvil-img-wrap';
+    wrap.contentEditable = 'false';
+    img.parentNode.insertBefore(wrap, img);
+    wrap.appendChild(img);
+
+    var handle = document.createElement('span');
+    handle.className = 'anvil-img-resize-handle';
+    wrap.appendChild(handle);
+
+    var startX, startW;
+    function onDown(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      startX = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+      startW = img.offsetWidth;
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener('touchend', onUp);
+    }
+    function onMove(e) {
+      e.preventDefault();
+      var cx = e.clientX || (e.touches && e.touches[0].clientX) || 0;
+      var newW = Math.max(40, startW + (cx - startX));
+      img.style.width = newW + 'px';
+      img.style.height = 'auto';
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onUp);
+      scheduleSave();
+    }
+    handle.addEventListener('mousedown', onDown);
+    handle.addEventListener('touchstart', onDown, { passive: false });
+  }
+
+  function attachImageResizeHandlers() {
+    if (!quill) return;
+    var imgs = quill.root.querySelectorAll('img');
+    for (var i = 0; i < imgs.length; i++) addResizeHandles(imgs[i]);
+  }
 
   function escapeHtml(s) {
     var d = document.createElement('div');
@@ -139,7 +211,6 @@
     return null;
   }
 
-  /** Drop rows that no longer anchor; conflicted items are removed from the list. */
   function rebaseFeedback(documentText) {
     feedbackRows = feedbackRows.flatMap(function (row) {
       if (row.status === 'applied' || row.status === 'dismissed') return [row];
@@ -258,7 +329,7 @@
     if (!mount) return;
     if (!feedbackRows.length) {
       mount.innerHTML =
-        '<p class="anvil2-feedback-placeholder">Pause typing to request AI feedback. Suggestions appear here.</p>';
+        '<p class="anvil2-feedback-placeholder">Feedback and suggestions will appear here as you make progress with your writing.</p>';
       return;
     }
     var html = '<ul class="anvil2-feedback-list">';
@@ -422,9 +493,63 @@
     }
   }
 
+  /* ── Paste text color normalization (item p) ── */
+  function normalizePastedColors(delta) {
+    if (!delta || !delta.ops) return delta;
+    for (var i = 0; i < delta.ops.length; i++) {
+      var op = delta.ops[i];
+      if (op.attributes && op.attributes.color) {
+        var c = String(op.attributes.color).toLowerCase().replace(/\s/g, '');
+        var isWhitish =
+          c === '#ffffff' || c === '#fff' || c === 'white' ||
+          c === 'rgb(255,255,255)' || c === 'rgba(255,255,255,1)';
+        var isBlackish =
+          c === '#000000' || c === '#000' || c === 'black' ||
+          c === 'rgb(0,0,0)' || c === 'rgba(0,0,0,1)';
+        if (paperMode) {
+          if (isWhitish) op.attributes.color = '#000000';
+        } else {
+          if (isBlackish) op.attributes.color = '#ffffff';
+        }
+      }
+    }
+    return delta;
+  }
+
+  /* ── Image upload handler ── */
+  function imageHandler() {
+    var input = document.createElement('input');
+    input.setAttribute('type', 'file');
+    input.setAttribute('accept', 'image/*');
+    input.click();
+    input.onchange = function () {
+      var file = input.files && input.files[0];
+      if (!file) return;
+      var fd = new FormData();
+      fd.append('image', file);
+      fetch('/api/projects/' + projectId + '/anvil/upload', {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: fd,
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data && data.url && quill) {
+            var range = quill.getSelection(true);
+            quill.insertEmbed(range.index, 'image', data.url, 'user');
+            quill.setSelection(range.index + 1);
+            setTimeout(attachImageResizeHandlers, 100);
+          }
+        })
+        .catch(function () {
+          /* silently fail */
+        });
+    };
+  }
+
   function mountEditor(rawDraft) {
-    var wrap = document.getElementById('anvil2-quill-wrap');
-    var host = document.getElementById('anvil2-editor');
+    var wrap = document.getElementById('anvil-quill-wrap');
+    var host = document.getElementById('anvil-editor');
     if (!wrap || !host) return;
     quill = null;
     var draftStr = rawDraft != null && String(rawDraft).trim() ? String(rawDraft) : '';
@@ -454,19 +579,38 @@
       }
       return;
     }
-    quill = new Quill('#anvil2-editor', {
+    quill = new Quill('#anvil-editor', {
       theme: 'snow',
       modules: {
-        toolbar: [
-          [{ header: [1, 2, 3, false] }],
-          ['bold', 'italic', 'underline'],
-          [{ list: 'ordered' }, { list: 'bullet' }],
-          ['link'],
-          ['clean'],
-        ],
+        toolbar: {
+          container: [
+            [{ font: Font.whitelist }],
+            [{ size: Size.whitelist }],
+            [{ header: [1, 2, 3, false] }],
+            ['bold', 'italic', 'underline', 'strike'],
+            [{ color: [] }, { background: [] }],
+            [{ list: 'ordered' }, { list: 'bullet' }],
+            [{ indent: '-1' }, { indent: '+1' }],
+            [{ align: [] }],
+            ['blockquote'],
+            ['link', 'image'],
+            ['clean'],
+          ],
+          handlers: {
+            image: imageHandler,
+          },
+        },
+        clipboard: {
+          matchers: [],
+        },
       },
       placeholder: 'Write here — feedback loads after you pause typing.',
     });
+
+    quill.clipboard.addMatcher(Node.ELEMENT_NODE, function (node, delta) {
+      return normalizePastedColors(delta);
+    });
+
     if (draftStr) {
       try {
         var delta = quill.clipboard.convert({ html: draftStr });
@@ -481,7 +625,177 @@
         return;
       }
       onEditorUserChange(delta);
+      setTimeout(attachImageResizeHandlers, 50);
     });
+
+    if (paperMode) {
+      wrap.classList.add('anvil-quill-wrap--paper');
+    }
+
+    setTimeout(attachImageResizeHandlers, 200);
+  }
+
+  /* ── Paper (light) / Dark mode toggle ── */
+  function togglePaperMode() {
+    paperMode = !paperMode;
+    var wrap = document.getElementById('anvil-quill-wrap');
+    var btn = document.getElementById('anvil-paper-toggle');
+    if (wrap) {
+      if (paperMode) {
+        wrap.classList.add('anvil-quill-wrap--paper');
+      } else {
+        wrap.classList.remove('anvil-quill-wrap--paper');
+      }
+    }
+    if (btn) {
+      btn.setAttribute('aria-checked', paperMode ? 'true' : 'false');
+      var hint = document.getElementById('anvil-paper-hint');
+      if (hint) hint.textContent = paperMode ? 'LIGHT MODE' : 'DARK MODE';
+    }
+    try {
+      localStorage.setItem('anvil-paper-mode', paperMode ? '1' : '0');
+    } catch (e) { /* ignore */ }
+  }
+
+  function loadPaperPref() {
+    try {
+      var v = localStorage.getItem('anvil-paper-mode');
+      if (v === '1') paperMode = true;
+    } catch (e) { /* ignore */ }
+  }
+
+  /* ── Writing style profiles (citation style → formatting) ── */
+  var STYLE_PROFILES = {
+    APA: { font: 'times-new-roman', size: '12pt', lineHeight: '2', indent: '0.5in' },
+    MLA: { font: 'times-new-roman', size: '12pt', lineHeight: '2', indent: '0.5in' },
+    Chicago: { font: 'times-new-roman', size: '12pt', lineHeight: '2', indent: '0.5in' },
+    Turabian: { font: 'times-new-roman', size: '12pt', lineHeight: '2', indent: '0.5in' },
+    IEEE: { font: 'times-new-roman', size: '10pt', lineHeight: '1.15', indent: '0' },
+  };
+
+  function getProjectCitationStyle() {
+    if (!bundle || !bundle.project) return 'APA';
+    return bundle.project.citation_style || bundle.project.citationStyle || 'APA';
+  }
+
+  function applyWritingStyle() {
+    if (!quill) return;
+    var style = getProjectCitationStyle();
+    var prof = STYLE_PROFILES[style] || STYLE_PROFILES.APA;
+    var wrap = document.getElementById('anvil-quill-wrap');
+    if (wrap) {
+      wrap.classList.add('anvil-quill-manuscript');
+      if (style === 'IEEE') {
+        wrap.setAttribute('data-ms-profile', 'ieee');
+      } else {
+        wrap.removeAttribute('data-ms-profile');
+      }
+    }
+    var len = quill.getLength();
+    if (len > 1) {
+      quill.formatText(0, len, 'font', prof.font, 'silent');
+      quill.formatText(0, len, 'size', prof.size, 'silent');
+    }
+    scheduleSave();
+  }
+
+  /* ── Export helpers ── */
+  function downloadBlob(blob, filename) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function () {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 100);
+  }
+
+  function htmlToRtf(html) {
+    var container = document.createElement('div');
+    container.innerHTML = html;
+    var text = container.innerText || container.textContent || '';
+    var rtf = '{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Times New Roman;}}' +
+      '\\f0\\fs24 ';
+    var lines = text.split('\n');
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i]
+        .replace(/\\/g, '\\\\')
+        .replace(/\{/g, '\\{')
+        .replace(/\}/g, '\\}');
+      rtf += line;
+      if (i < lines.length - 1) rtf += '\\par\n';
+    }
+    rtf += '}';
+    return rtf;
+  }
+
+  function exportSectionRtf() {
+    if (selectedId == null) return;
+    var sec = sectionById(selectedId);
+    var html = getDraftHtml();
+    var rtf = htmlToRtf(html);
+    var blob = new Blob([rtf], { type: 'application/rtf' });
+    var name = (sec ? sec.title : 'Section') + '.rtf';
+    downloadBlob(blob, name);
+  }
+
+  function exportSectionDocx() {
+    if (selectedId == null) return;
+    var sec = sectionById(selectedId);
+    var html = getDraftHtml();
+    var title = sec ? sec.title : 'Section';
+    fetch('/api/projects/' + projectId + '/sections/' + selectedId + '/export-docx', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ html: html, title: title }),
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('Export failed');
+        return r.blob();
+      })
+      .then(function (blob) {
+        downloadBlob(blob, title + '.docx');
+      })
+      .catch(function () { /* silently fail */ });
+  }
+
+  function exportAllRtf() {
+    if (!bundle || !bundle.sections) return;
+    var combined = '';
+    bundle.sections.forEach(function (sec) {
+      combined += '<h2>' + escapeHtml(sec.title) + '</h2>';
+      combined += (sec.body || '') + '\n';
+    });
+    var rtf = htmlToRtf(combined);
+    var blob = new Blob([rtf], { type: 'application/rtf' });
+    var name = (bundle.project ? bundle.project.name : 'Project') + '.rtf';
+    downloadBlob(blob, name);
+  }
+
+  function exportAllDocx() {
+    if (!bundle || !bundle.sections) return;
+    var sections = bundle.sections.map(function (s) {
+      return { title: s.title, body: s.body || '' };
+    });
+    fetch('/api/projects/' + projectId + '/export-project-docx', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sections: sections }),
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error('Export failed');
+        return r.blob();
+      })
+      .then(function (blob) {
+        var name = (bundle.project ? bundle.project.name : 'Project') + '.docx';
+        downloadBlob(blob, name);
+      })
+      .catch(function () { /* silently fail */ });
   }
 
   function render() {
@@ -494,7 +808,7 @@
     var sections = bundle.sections || [];
     if (!sections.length) {
       root.innerHTML =
-        '<div class="anvil2-panel"><p class="anvil-muted">No sections in this project.</p></div>';
+        '<div class="anvil-panel--writing"><p class="anvil-muted">No sections in this project.</p></div>';
       return;
     }
     if (selectedId == null) selectedId = Number(sections[0].id);
@@ -505,28 +819,40 @@
     }
     var draft = sectionBodyProp(current);
 
-    var opts = '';
-    sections.forEach(function (s) {
-      opts +=
-        '<option value="' +
-        Number(s.id) +
-        '"' +
-        (Number(s.id) === Number(selectedId) ? ' selected' : '') +
-        '>' +
-        escapeHtml(s.title || 'Section') +
-        '</option>';
-    });
+    var citStyle = getProjectCitationStyle();
 
     root.innerHTML =
-      '<div class="anvil2-panel">' +
+      '<div class="anvil-panel--writing">' +
+      '<div class="anvil-layout--single">' +
       '<div id="anvil-analyze-banner" class="anvil-analyze-banner" hidden aria-live="polite"></div>' +
-      '<div class="anvil2-toolbar">' +
-      '<label class="anvil2-section-label">Section' +
-      '<select id="anvil2-section-select" class="anvil2-section-select">' +
-      opts +
-      '</select></label>' +
+      '<div class="anvil-editor">' +
+      '<div id="anvil-quill-wrap" class="anvil-quill-wrap"><div id="anvil-editor" class="anvil-quill"></div></div>' +
+      '<div class="anvil-editor-footer">' +
+      '<div class="anvil-editor-footer__left"></div>' +
+      '<div class="anvil-editor-footer__mid">' +
+      '<div class="anvil-paper-toggle-wrap">' +
+      '<button type="button" id="anvil-paper-toggle" class="anvil-paper-toggle" role="switch" aria-checked="' + (paperMode ? 'true' : 'false') + '" title="Toggle light/dark writing mode">' +
+      '<span class="anvil-paper-toggle__track"><span class="anvil-paper-toggle__thumb"></span></span>' +
+      '</button>' +
+      '<span id="anvil-paper-hint" class="anvil-paper-toggle__hint">' + (paperMode ? 'LIGHT MODE' : 'DARK MODE') + '</span>' +
       '</div>' +
-      '<div id="anvil2-quill-wrap" class="anvil2-quill-wrap"><div id="anvil2-editor" class="anvil2-quill"></div></div>' +
+      '</div>' +
+      '<div class="anvil-editor-footer__right"></div>' +
+      '</div>' +
+      '</div>' +
+      '<div class="anvil-export-bar">' +
+      '<div class="anvil-export-bar__row">' +
+      '<span class="anvil-export-label">Actions</span>' +
+      '<button type="button" class="anvil-export-btn" id="anvil-apply-style">Apply ' + escapeHtml(citStyle) + ' style</button>' +
+      '<span class="anvil-export-sep">|</span>' +
+      '<button type="button" class="anvil-export-btn" id="anvil-export-section-rtf">Section .rtf</button>' +
+      '<button type="button" class="anvil-export-btn" id="anvil-export-section-docx">Section .docx</button>' +
+      '<span class="anvil-export-sep">|</span>' +
+      '<button type="button" class="anvil-export-btn" id="anvil-export-all-rtf">All sections .rtf</button>' +
+      '<button type="button" class="anvil-export-btn" id="anvil-export-all-docx">All sections .docx</button>' +
+      '</div>' +
+      '</div>' +
+      '</div>' +
       '</div>';
 
     mountEditor(draft);
@@ -535,11 +861,47 @@
     hasCompletedInitialReview = false;
     charsSinceFingerprint = 0;
     renderFeedbackRail();
-    document.getElementById('anvil2-section-select').addEventListener('change', function (e) {
-      selectedId = parseInt(e.target.value, 10);
-      render();
+
+    document.getElementById('anvil-paper-toggle').addEventListener('click', togglePaperMode);
+    document.getElementById('anvil-apply-style').addEventListener('click', applyWritingStyle);
+    document.getElementById('anvil-export-section-rtf').addEventListener('click', exportSectionRtf);
+    document.getElementById('anvil-export-section-docx').addEventListener('click', exportSectionDocx);
+    document.getElementById('anvil-export-all-rtf').addEventListener('click', exportAllRtf);
+    document.getElementById('anvil-export-all-docx').addEventListener('click', exportAllDocx);
+
+    /* Highlight the active section in sidebar */
+    var sidebarSectionLinks = document.querySelectorAll('.app-nav--anvil-sections a');
+    sidebarSectionLinks.forEach(function (link) {
+      var href = link.getAttribute('href') || '';
+      var match = href.match(/[?&]section=(\d+)/);
+      if (match) {
+        var linkSid = parseInt(match[1], 10);
+        if (linkSid === selectedId) {
+          link.classList.add('active');
+        } else {
+          link.classList.remove('active');
+        }
+      }
     });
   }
+
+  /* Listen for sidebar section clicks to navigate without full page reload */
+  document.addEventListener('click', function (e) {
+    var sectionLink = e.target.closest('.app-nav--anvil-sections a');
+    if (sectionLink && bundle) {
+      var href = sectionLink.getAttribute('href') || '';
+      var match = href.match(/[?&]section=(\d+)/);
+      if (match) {
+        e.preventDefault();
+        var sid = parseInt(match[1], 10);
+        if (!Number.isNaN(sid) && bundle.sections && bundle.sections.some(function (s) { return Number(s.id) === sid; })) {
+          selectedId = sid;
+          history.replaceState(null, '', href);
+          render();
+        }
+      }
+    }
+  });
 
   document.addEventListener('click', function (e) {
     if (!document.getElementById('anvil-root')) return;
@@ -561,6 +923,7 @@
   });
 
   async function load() {
+    loadPaperPref();
     root.innerHTML = '<p class="anvil-loading">Loading…</p>';
     try {
       bundle = await api('/projects/' + projectId, 'GET');
