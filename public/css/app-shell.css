@@ -878,9 +878,10 @@
 }
 .anvil-quill-wrap .ql-editor img {
   max-width: 100%;
-  height: auto;
+  height: auto !important;
   vertical-align: middle;
   border-radius: 4px;
+  box-sizing: border-box;
 }
 .anvil-quill-wrap .ql-snow .ql-picker.ql-font {
   width: 9.5rem;

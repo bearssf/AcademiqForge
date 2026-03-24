@@ -61,11 +61,32 @@
   ];
   Quill.register(Size, true);
 
-  /* ── Image resize overlay (viewport-fixed, does not modify Quill DOM) ── */
+  /* ── Image resize overlay (clipped to editor bounds) ── */
   var resizeOverlay = null;
   var resizeHandle = null;
   var resizeTarget = null;
   var isDragging = false;
+
+  function editorVisibleRect() {
+    if (!quill) return null;
+    return quill.root.getBoundingClientRect();
+  }
+
+  function editorMaxImgWidth() {
+    if (!quill) return 600;
+    var pad = parseFloat(getComputedStyle(quill.root).paddingLeft) || 0;
+    var padR = parseFloat(getComputedStyle(quill.root).paddingRight) || 0;
+    return quill.root.clientWidth - pad - padR;
+  }
+
+  function constrainImageOnLoad(img) {
+    var maxW = editorMaxImgWidth();
+    if (img.naturalWidth > maxW || img.offsetWidth > maxW) {
+      img.style.width = maxW + 'px';
+      img.style.height = 'auto';
+      img.setAttribute('width', maxW);
+    }
+  }
 
   function createResizeOverlay() {
     if (resizeOverlay) return;
@@ -93,7 +114,8 @@
       if (!resizeTarget) return;
       e.preventDefault();
       var cx = e.clientX || (e.touches && e.touches[0].clientX) || 0;
-      var newW = Math.max(40, startW + (cx - startX));
+      var maxW = editorMaxImgWidth();
+      var newW = Math.max(40, Math.min(maxW, startW + (cx - startX)));
       resizeTarget.setAttribute('width', newW);
       resizeTarget.style.width = newW + 'px';
       resizeTarget.style.height = 'auto';
@@ -113,12 +135,28 @@
 
   function positionOverlay() {
     if (!resizeOverlay || !resizeTarget) return;
-    var r = resizeTarget.getBoundingClientRect();
+    var imgR = resizeTarget.getBoundingClientRect();
+    var edR = editorVisibleRect();
+    if (!edR) { resizeOverlay.style.display = 'none'; return; }
+
+    var left = Math.max(imgR.left, edR.left);
+    var top = Math.max(imgR.top, edR.top);
+    var right = Math.min(imgR.right, edR.right);
+    var bottom = Math.min(imgR.bottom, edR.bottom);
+
+    if (right <= left || bottom <= top) {
+      resizeOverlay.style.display = 'none';
+      return;
+    }
+
     resizeOverlay.style.display = 'block';
-    resizeOverlay.style.left = r.left + 'px';
-    resizeOverlay.style.top = r.top + 'px';
-    resizeOverlay.style.width = r.width + 'px';
-    resizeOverlay.style.height = r.height + 'px';
+    resizeOverlay.style.left = left + 'px';
+    resizeOverlay.style.top = top + 'px';
+    resizeOverlay.style.width = (right - left) + 'px';
+    resizeOverlay.style.height = (bottom - top) + 'px';
+
+    var handleVisible = imgR.right <= edR.right + 6 && imgR.bottom <= edR.bottom + 6;
+    resizeHandle.style.display = handleVisible ? '' : 'none';
   }
 
   function hideOverlay() {
@@ -146,8 +184,7 @@
     if (!quill) return;
     quill.root.addEventListener('click', onEditorImgClick);
 
-    var editorScroller = quill.root;
-    editorScroller.addEventListener('scroll', function () {
+    quill.root.addEventListener('scroll', function () {
       if (resizeTarget && !isDragging) {
         if (isImgStillVisible()) positionOverlay();
         else hideOverlay();
@@ -161,6 +198,33 @@
         hideOverlay();
       }
     });
+
+    var observer = new MutationObserver(function () {
+      if (!quill) return;
+      var imgs = quill.root.querySelectorAll('img');
+      for (var i = 0; i < imgs.length; i++) {
+        var img = imgs[i];
+        if (!img.dataset.anvilConstrained) {
+          img.dataset.anvilConstrained = '1';
+          if (img.complete) {
+            constrainImageOnLoad(img);
+          } else {
+            img.addEventListener('load', function () { constrainImageOnLoad(this); });
+          }
+        }
+      }
+    });
+    observer.observe(quill.root, { childList: true, subtree: true });
+
+    var existingImgs = quill.root.querySelectorAll('img');
+    for (var i = 0; i < existingImgs.length; i++) {
+      existingImgs[i].dataset.anvilConstrained = '1';
+      if (existingImgs[i].complete) {
+        constrainImageOnLoad(existingImgs[i]);
+      } else {
+        existingImgs[i].addEventListener('load', function () { constrainImageOnLoad(this); });
+      }
+    }
   }
 
   function escapeHtml(s) {
