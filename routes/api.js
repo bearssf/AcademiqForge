@@ -33,6 +33,7 @@ const {
 const { insertAnvilSuggestions } = require('../lib/anvilSuggestionStore');
 const { staleFeedbackEnabled } = require('../lib/anvilStaleFeedback');
 const { isBedrockConfigured, runSectionReview } = require('../lib/bedrockReview');
+const { runStructuredSectionReview } = require('../lib/bedrockStructuredReview');
 const { applySuggestionToDraftHtml } = require('../lib/bedrockApplySuggestion');
 const { normalizeDoi } = require('../lib/doi');
 const { getRelatedReadingSuggestions } = require('../lib/relatedArticles');
@@ -1107,6 +1108,66 @@ function createApiRouter(getPool) {
         suggestions: created,
         inserted: created.length,
         skipped: false,
+        bedrockConfigured: true,
+      });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  /** Anvil2 (beta): structured anchor-based feedback — does not persist to anvil_suggestions. */
+  router.post('/projects/:projectId/sections/:sectionId/review-structured', async (req, res, next) => {
+    try {
+      if (!isBedrockConfigured()) {
+        return res.status(503).json({
+          error: 'Bedrock is not configured',
+          bedrockConfigured: false,
+        });
+      }
+
+      const projectId = parseInt(req.params.projectId, 10);
+      const sectionId = parseInt(req.params.sectionId, 10);
+      if (Number.isNaN(projectId) || Number.isNaN(sectionId)) {
+        return res.status(400).json({ error: 'invalid id' });
+      }
+
+      const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
+      if (!bundle) return res.status(404).json({ error: 'Not found' });
+      const sec = bundle.sections.find(function (s) {
+        return Number(s.id) === sectionId;
+      });
+      if (!sec) return res.status(404).json({ error: 'Section not found' });
+
+      const body = req.body || {};
+      let html = body.html != null ? String(body.html) : null;
+      if (html == null) {
+        html = sec.body != null ? String(sec.body) : '';
+      }
+      const plainText = body.plainText != null ? String(body.plainText) : null;
+
+      let reviewResult;
+      try {
+        reviewResult = await runStructuredSectionReview({
+          html,
+          plainText,
+          sectionTitle: sec.title,
+        });
+      } catch (err) {
+        let msg = err && err.message ? String(err.message) : 'Bedrock request failed';
+        if (err && err.name === 'AccessDeniedException') {
+          msg = 'Bedrock access denied — check IAM permissions and model access in this region.';
+        } else if (/inference profile/i.test(msg) && /on-demand|throughput/i.test(msg)) {
+          msg +=
+            ' Set BEDROCK_INFERENCE_PROFILE_ARN (recommended) or put the inference profile id/ARN in BEDROCK_MODEL_ID — see docs/aws-bedrock.md.';
+        }
+        return res.status(502).json({ error: msg, bedrockConfigured: true });
+      }
+
+      const items = reviewResult.items || [];
+      res.json({
+        items,
+        skipped: Boolean(reviewResult.skipped),
+        shortDraft: Boolean(reviewResult.shortDraft),
         bedrockConfigured: true,
       });
     } catch (e) {

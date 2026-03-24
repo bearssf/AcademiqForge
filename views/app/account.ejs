@@ -29,8 +29,6 @@
       <div class="app-placeholder account-block">
         <div class="account-layout">
           <div class="account-layout__profile">
-            <p class="account-signed-in"><strong>Signed in as</strong> <%= user.email %></p>
-
             <h2 class="account-h2">Profile</h2>
             <p class="account-meta account-meta--profile">Update your details below. Email is your sign-in identity and can’t be changed here.</p>
             <form id="account-profile-form" class="app-form-stack account-form" autocomplete="off">
@@ -78,9 +76,9 @@
                   <% }); %>
                 </select>
               </label>
-              <div id="account-profile-msg" class="account-form-msg" hidden></div>
-              <div class="app-form-actions">
-                <button type="submit" class="app-btn-primary">Save profile</button>
+              <div id="account-profile-msg" class="account-form-msg" role="status" aria-live="polite" hidden></div>
+              <div class="app-form-actions app-form-actions--account-save">
+                <button type="submit" class="app-btn-primary" id="account-profile-submit">Save profile</button>
               </div>
             </form>
           </div>
@@ -110,9 +108,9 @@
                     <button type="button" class="account-password-toggle" data-password-toggle data-password-label="confirm password" aria-label="Show confirm password" aria-pressed="false">Show</button>
                   </span>
                 </label>
-                <div id="account-password-msg" class="account-form-msg" hidden></div>
-                <div class="app-form-actions">
-                  <button type="submit" class="app-btn-primary">Update password</button>
+                <div id="account-password-msg" class="account-form-msg" role="status" aria-live="polite" hidden></div>
+                <div class="app-form-actions app-form-actions--account-save">
+                  <button type="submit" class="app-btn-primary" id="account-password-submit">Update password</button>
                 </div>
               </form>
             </section>

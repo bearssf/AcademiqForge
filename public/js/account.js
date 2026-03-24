@@ -74,17 +74,27 @@
       el.hidden = true;
       el.textContent = '';
       el.className = 'account-form-msg';
+      el.removeAttribute('aria-busy');
       return;
     }
     el.hidden = false;
     el.textContent = text;
     el.className = 'account-form-msg account-form-msg--' + (kind || 'ok');
+    if (kind === 'pending') {
+      el.setAttribute('aria-busy', 'true');
+    } else {
+      el.removeAttribute('aria-busy');
+    }
   }
+
+  const profileSubmit = document.getElementById('account-profile-submit');
+  const passwordSubmit = document.getElementById('account-password-submit');
 
   if (profileForm) {
     profileForm.addEventListener('submit', async function (e) {
       e.preventDefault();
-      showMsg(profileMsg, '');
+      showMsg(profileMsg, 'Saving…', 'pending');
+      if (profileSubmit) profileSubmit.disabled = true;
       const fd = new FormData(profileForm);
       const body = {
         title: fd.get('title'),
@@ -106,11 +116,14 @@
         });
         if (!res.ok) {
           showMsg(profileMsg, data.error || 'Could not save profile.', 'error');
+          if (profileSubmit) profileSubmit.disabled = false;
           return;
         }
-        window.location.reload();
+        showMsg(profileMsg, 'Profile saved.', 'ok');
+        if (profileSubmit) profileSubmit.disabled = false;
       } catch (err) {
         showMsg(profileMsg, 'Network error. Try again.', 'error');
+        if (profileSubmit) profileSubmit.disabled = false;
       }
     });
   }
@@ -118,7 +131,8 @@
   if (passwordForm) {
     passwordForm.addEventListener('submit', async function (e) {
       e.preventDefault();
-      showMsg(passwordMsg, '');
+      showMsg(passwordMsg, 'Saving…', 'pending');
+      if (passwordSubmit) passwordSubmit.disabled = true;
       const fd = new FormData(passwordForm);
       const body = {
         currentPassword: fd.get('currentPassword') || '',
@@ -137,12 +151,15 @@
         });
         if (!res.ok) {
           showMsg(passwordMsg, data.error || 'Could not update password.', 'error');
+          if (passwordSubmit) passwordSubmit.disabled = false;
           return;
         }
         passwordForm.reset();
-        showMsg(passwordMsg, 'Password updated.', 'ok');
+        showMsg(passwordMsg, 'Password saved.', 'ok');
+        if (passwordSubmit) passwordSubmit.disabled = false;
       } catch (err) {
         showMsg(passwordMsg, 'Network error. Try again.', 'error');
+        if (passwordSubmit) passwordSubmit.disabled = false;
       }
     });
   }

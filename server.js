@@ -317,6 +317,10 @@ app.get('/product', (req, res) => {
 
 const WORKSPACE_PHASES = {
   anvil: { title: 'The Anvil', insight: 'Paragraph feedback, scoring, and citations will appear here.' },
+  anvil2: {
+    title: 'The Anvil (beta)',
+    insight: 'Experimental anchor-based AI feedback. Compare with the classic Anvil; same project drafts.',
+  },
   crucible: { title: 'The Crucible', insight: 'Source lists, notes, and Semantic Scholar suggestions will appear here.' },
   foundry: { title: 'The Foundry', insight: 'Generated research topics and gaps will appear here for paid members.' },
   framework: { title: 'Framework', insight: 'Argument outline and evidence mapping will appear here.' },
@@ -751,7 +755,7 @@ app.get(
     const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
     if (!bundle) return res.status(404).send('Not found');
     if (
-      slug === 'anvil' &&
+      (slug === 'anvil' || slug === 'anvil2') &&
       bundle.sections &&
       bundle.sections.length > 0
     ) {
@@ -765,7 +769,7 @@ app.get(
       if (!valid) {
         return res.redirect(
           302,
-          `/app/project/${projectId}/anvil?section=${bundle.sections[0].id}`
+          `/app/project/${projectId}/${slug}?section=${bundle.sections[0].id}`
         );
       }
     }
@@ -773,7 +777,7 @@ app.get(
     const foundryLocked = slug === 'foundry' && !res.locals.appAccess.foundryUnlocked;
     let anvilSections = [];
     let anvilSectionId = null;
-    if (slug === 'anvil' && bundle.sections && bundle.sections.length) {
+    if ((slug === 'anvil' || slug === 'anvil2') && bundle.sections && bundle.sections.length) {
       anvilSections = bundle.sections.map(function (s) {
         return { id: s.id, title: s.title };
       });
