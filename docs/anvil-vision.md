@@ -53,18 +53,18 @@ Suggested banding (from product notes):
 ### AI review (AWS Bedrock)
 
 - After **each paragraph** is written, run a review using **AWS Bedrock**, model **Claude Sonnet 4** (per product spec; exact model id may track AWS naming).
-- Review surfaces in the **suggestion/feedback** area (top of right canvas): sound logic, evidence where needed (using the user’s **Crucible** notes/sources), clarity, fit with the developing narrative.
+- Review surfaces in the **suggestion/feedback** area (top of right canvas): sound logic, evidence where needed (using the user’s **saved sources**), clarity, fit with the developing narrative.
 - User **resolves** feedback by: applying a suggestion, using an **ignore** control, or equivalent — counted as **resolved**.
 
 ### Section completion
 
-- Before moving to a **new section**, scan the current section for **proper citation** (cross-check user notes/sources from Crucible); surface misses in the right canvas.
+- Before moving to a **new section**, scan the current section for **proper citation** (cross-check user notes/sources); surface misses in the right canvas.
 
 ---
 
 ## Right canvas: citations (bottom)
 
-- List sources **attributed to the current section** (attribution originates from the **Crucible**).
+- List sources **attributed to the current section** (from project bibliography linkage).
 - Display as **reference-formatted** entries in scrollable boxes.
 - While writing, user can **select a source** to insert an **in-text citation** in the project’s chosen style (**APA, MLA, Chicago, Turabian, IEEE** — aligned with project setup).
 
@@ -79,7 +79,7 @@ Suggested banding (from product notes):
 
 ## Implementation notes (for engineering)
 
-- **Crucible ↔ Anvil:** shared project citation style, section-linked sources, and `source_sections` (or successor) are prerequisites for attribution and insert-citation flows.
+- **Bibliography ↔ Anvil:** shared project citation style, section-linked sources, and `source_sections` (or successor) are prerequisites for attribution and insert-citation flows.
 - **Bedrock:** requires AWS account, IAM, model access, and secure server-side calls (no long-lived keys in the browser).
 - **Rich editor:** **Shipped:** HTML in `body` via Quill; plain-text legacy content is converted to `<p>` blocks on load.
 - **Right column:** may start as an Anvil-specific layout vs the generic `app-insight-panel` partial.
@@ -98,9 +98,9 @@ Work in this order so each phase **unlocks the next** without painting yourself 
 | **4** | **Rich editor + storage** | *(Shipped.)* **Quill** 1.3 (Snow) from CDN; **`project_sections.body`** stores **HTML**. Legacy **plain-text** bodies are wrapped into `<p>` paragraphs on load. Toolbar: headings, bold/italic/underline/strike, lists, indent, link, clear. Fallback **textarea** if Quill fails to load. | `workspace.ejs`, `anvil.js`, `app-shell.css` |
 | **5** | **Export** | *(Shipped.)* **This section:** `.txt` (client, current editor HTML → plain) and `.docx` (POST HTML to server, `docx` npm). **Whole project:** GET `?format=txt|docx` — **saved** section bodies from DB, plain lines / Word. Export bar on Anvil; hint for whole-project vs unsaved edits. | `lib/documentExport.js`, `routes/api.js`, `anvil.js` |
 | **6** | **Feedback persistence** | *(Shipped.)* Table **`anvil_suggestions`** (`suggestion_status` in SQL, **`status`** in JSON). API: `GET/POST /api/projects/:id/sections/:sectionId/suggestions`, `PATCH /api/projects/:id/suggestions/:suggestionId` (`status`: `applied` \| `ignored`). Rail lists suggestions; **Apply** / **Ignore** for `open` rows. **Draft vs feedback:** Each section has **`draft_revision`**; new suggestions store **`draft_revision_at_generation`**. Saving the section body bumps the revision and **removes open** rows tied to an older revision; **applied/ignored** stay, with an **Earlier draft** hint when the draft has moved on. **On by default;** set `ANVIL_DRAFT_STALE_FEEDBACK=0` to disable (rollback). | `lib/schema.js`, `lib/anvilFeedback.js`, `lib/anvilStaleFeedback.js`, `routes/api.js`, `anvil.js`, `app-anvil-rail.ejs` |
-| **7** | **AWS Bedrock** | *(Shipped.)* `POST /api/projects/:id/sections/:sectionId/review` — current section **HTML** (or saved body) + **Crucible sources** linked to the section → **Claude on Bedrock** (`InvokeModel`, Anthropic Messages) → JSON suggestions → `anvil_suggestions`. Anvil **debounced** review after typing pauses (~4.5s) with a **minimum interval** between calls. Env: `AWS_REGION`, `BEDROCK_MODEL_ID`, IAM keys (or role). **Model:** Anthropic Claude via Bedrock (see [aws-bedrock.md](aws-bedrock.md)). | Phase 6 |
+| **7** | **AWS Bedrock** | *(Shipped.)* `POST /api/projects/:id/sections/:sectionId/review` — current section **HTML** (or saved body) + **sources** linked to the section → **Claude on Bedrock** (`InvokeModel`, Anthropic Messages) → JSON suggestions → `anvil_suggestions`. Anvil **debounced** review after typing pauses (~4.5s) with a **minimum interval** between calls. Env: `AWS_REGION`, `BEDROCK_MODEL_ID`, IAM keys (or role). **Model:** Anthropic Claude via Bedrock (see [aws-bedrock.md](aws-bedrock.md)). | Phase 6 |
 | **8** | **Score strip** | *(Shipped.)* **Above** the suggestion list: four **category pills** (Logic, Evidence, Citations, Format) with labels **Weak / Moderate / Improving / Strong** (or **—** if no rows in that category), derived from open vs applied/ignored counts and section `updated_at` (Improving when recent edit and >25% still open but not Weak). | `app-anvil-rail.ejs`, `anvil.js`, `app-shell.css` |
-| **9** | **Section switch guard** | *(Shipped.)* Before navigating to another section (sidebar): **save**, then **heuristic** check on draft plain text (min length): warn if **no Crucible sources** linked to the section, or if **no in-text–like** markers for the project style (parens+year for APA/MLA/Chicago/Turabian; `[n]` for IEEE). **Modal:** Stay here / Continue; **Stay** sets feedback hint. Not a full audit. | `anvil.js`, `app-shell.css` |
+| **9** | **Section switch guard** | *(Shipped.)* Before navigating to another section (sidebar): **save**, then **heuristic** check on draft plain text (min length): warn if **no sources** linked to the section, or if **no in-text–like** markers for the project style (parens+year for APA/MLA/Chicago/Turabian; `[n]` for IEEE). **Modal:** Stay here / Continue; **Stay** sets feedback hint. Not a full audit. | `anvil.js`, `app-shell.css` |
 | **10** | **Progress awareness (center)** | *(Shipped.)* **Bar** under the section title: **word count** (plain text from editor), **section** status + **progress %** from bundle. Updates on type/save/review. | `anvil.js`, `app-shell.css` |
 
 **Parallel tracks:** **Phase 5** (export) can start **early** with plain text. **Phase 10** can slip in after **Phase 1** if you want quicker “feel” wins.

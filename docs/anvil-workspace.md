@@ -3,7 +3,7 @@
 Route: **`/app/project/:projectId/anvil`** — **anchor-based structured AI feedback** (see [ai-feedback-system-spec.md](./ai-feedback-system-spec.md)).
 
 - **API:** `POST /api/projects/:projectId/sections/:sectionId/review-structured` — returns `{ items }` from Bedrock; **does not** write to `anvil_suggestions`.
-- **Data:** Uses the same `project_sections.body` as The Crucible (same drafts).
+- **Data:** Section HTML lives in `project_sections.body`.
 
 ## Behavior
 

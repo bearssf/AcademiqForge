@@ -102,14 +102,13 @@ On startup the app creates (if missing): **`subscriptions`** (Stripe IDs, `curre
 ## Features
 
 - **Billing:** **Account** → subscribe via **`/billing/subscribe`** or **`/billing/checkout`**; **update payment method** on **`/billing/payment-method`** (SetupIntent + Payment Element when **`STRIPE_PUBLISHABLE_KEY`** is set); **auto-renew**; **monthly/yearly plan change** with **proration estimate** (dual prices; yearly → monthly only near renewal); **`GET /billing/portal`** for Stripe portal (invoices, etc.). **`POST /webhooks/stripe`** updates `subscriptions` (see **Stripe** section above).
-- **The Crucible** (`/app/project/:id/crucible`): list, add, edit, and delete sources; link each source to outline sections via the REST API (`fetch` with `credentials: 'same-origin'`).
-- **The Anvil** (`/app/project/:id/anvil`): **Quill** rich-text section drafts (HTML in `project_sections.body`); autosave; **structured AI feedback** (Bedrock, anchored suggestions) — [docs/anvil-workspace.md](docs/anvil-workspace.md). **AWS Bedrock:** [docs/aws-bedrock.md](docs/aws-bedrock.md).
+- **The Anvil** (`/app/project/:id/anvil`): **Quill** rich-text section drafts (HTML in `project_sections.body`); autosave; **structured AI feedback** (Bedrock, anchored suggestions) — [docs/anvil-workspace.md](docs/anvil-workspace.md). **AWS Bedrock:** [docs/aws-bedrock.md](docs/aws-bedrock.md). Old **`/crucible`** URLs redirect to **`/anvil`** (301).
 - **Framework** (`/app/project/:id/framework`): placeholder (“coming soon”) until outline/evidence UX is defined.
 - **Home:** Marketing landing + sign-in; **Workspace** (`/app/dashboard`) when signed in.
 - **Header (signed out):** Email and password, Sign in, and **Create an account** below.
 - **Header (signed in):** **Welcome, [first name]** and Sign out (login UI hidden).
 - **Account** (`/app/account`): Edit profile (same fields as registration; email read-only) and change password (**Show/Hide** on each password field); subscription and billing (see **Billing**). After hosted Checkout success (`?subscription=success`), the URL is cleaned up, copy explains webhook delay, and the page **polls** `/api/me` until membership is active (with a **refresh status** control).
-- **Workspace shell** (`body.app-body--workspace-shell` on dashboard, project workspace, and on-site billing pages with an insight column): the **left sidebar** and **right insight** column stay in view; **only the center canvas** scrolls when content is tall (e.g. Anvil, Crucible). The Account page uses a two-column grid and scrolls with the window.
+- **Workspace shell** (`body.app-body--workspace-shell` on dashboard, project workspace, and on-site billing pages with an insight column): the **left sidebar** and **right insight** column stay in view; **only the center canvas** scrolls when content is tall (e.g. Anvil). The Account page uses a two-column grid and scrolls with the window.
 - **Registration:** Title (Mr., Mrs., Ms., Miss, Mx., Dr.), first/last name, email, password + confirmation; optional university (datalist of US institutions + free text), research focus, preferred search engine (preset list including “Other/University Specific”).
 - Passwords hashed with **bcrypt**. On first connection, the app ensures a `users` table and profile columns exist in your database.
 

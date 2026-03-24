@@ -140,13 +140,9 @@ Add the same keys under **Environment** → **Environment Variables**. Prefer **
 - **Network tab:** `POST .../review` — **503** = env not set; **502** = Bedrock/AWS error (read JSON `error`).
 - **Apply (draft edit):** `POST .../sections/:sectionId/suggestions/:suggestionId/apply-draft` with `{ "html": "..." }` (current editor HTML). The model returns `{ "html": "..." }` for preview in the editor; **503** = Bedrock not configured; **502** = model/AWS error.
 
-## References section (Anvil)
-
-**Build References section** (citations rail) calls `POST /api/projects/:projectId/references/build-from-cited` and uses the same Bedrock client as section review (`lib/bedrockReferences.js`). It gathers Crucible sources that are linked to at least one section and detected as cited in non-References draft text, then asks the model to emit an HTML reference list for the project’s citation style. If Bedrock is not configured, the API returns **503**.
-
 ## Security
 
 - Do **not** expose AWS credentials to the browser.
-- Keep prompts and Crucible context **server-side**; return only normalized suggestion payloads to the client.
+- Keep prompts and bibliography context **server-side**; return only normalized suggestion payloads to the client.
 
 See also [anvil-vision.md](anvil-vision.md) Phase 7.

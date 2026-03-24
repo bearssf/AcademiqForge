@@ -48,7 +48,6 @@
             <% }); %>
           </nav>
           <% } %>
-          <a href="/app/project/<%= effectivePid %>/crucible" class="<%= slug === 'crucible' ? 'active' : '' %>">The Crucible</a>
           <% if (access.foundryUnlocked) { %>
             <a href="/app/project/<%= effectivePid %>/foundry" class="<%= slug === 'foundry' ? 'active' : '' %>">The Foundry</a>
           <% } else { %>

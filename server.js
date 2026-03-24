@@ -334,9 +334,8 @@ app.get('/product', (req, res) => {
 const WORKSPACE_PHASES = {
   anvil: {
     title: 'The Anvil',
-    insight: 'Anchor-based AI writing feedback. Same project drafts as The Crucible.',
+    insight: 'Anchor-based AI writing feedback for your section drafts.',
   },
-  crucible: { title: 'The Crucible', insight: 'Source lists, notes, and Semantic Scholar suggestions will appear here.' },
   foundry: { title: 'The Foundry', insight: 'Generated research topics and gaps will appear here for paid members.' },
   framework: { title: 'Framework', insight: 'Argument outline and evidence mapping will appear here.' },
 };
@@ -765,7 +764,7 @@ app.get(
   asyncHandler(async (req, res) => {
     const projectId = parseInt(req.params.projectId, 10);
     const { slug } = req.params;
-    if (slug === 'anvil2') {
+    if (slug === 'anvil2' || slug === 'crucible') {
       const qs = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
       return res.redirect(301, `/app/project/${projectId}/anvil${qs}`);
     }
