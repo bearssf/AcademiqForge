@@ -825,6 +825,8 @@
   }
 
   /* ── source suggestions (Semantic Scholar) ────────────────────── */
+  var customSearchTerms = null;
+
   function extractKeywords() {
     var kws = [];
     sources.forEach(function (s) {
@@ -833,16 +835,15 @@
     return kws;
   }
 
-  function fetchSuggestions() {
+  function runSuggestionSearch(keywords) {
     var panel = document.getElementById('crucible-suggestions');
     if (!panel) return;
-    var kws = extractKeywords();
-    if (!kws.length) {
+    if (!keywords.length) {
       panel.innerHTML = '<div class="crucible-sug-empty">Add sources to see related paper suggestions.</div>';
       return;
     }
     panel.innerHTML = '<div class="crucible-sug-loading">Searching for related papers…</div>';
-    var q = kws.join(',');
+    var q = keywords.join(',');
     fetch('/api/projects/' + projectId + '/sources/search-scholar?q=' + encodeURIComponent(q) + '&limit=20', {
       credentials: 'same-origin'
     })
@@ -882,12 +883,72 @@
       });
   }
 
+  function fetchSuggestions() {
+    var kws = customSearchTerms || extractKeywords();
+    runSuggestionSearch(kws);
+  }
+
+  function openCustomSearchModal() {
+    closeModal();
+    var overlay = document.createElement('div');
+    overlay.className = 'crucible-modal-overlay';
+    var modal = document.createElement('div');
+    modal.className = 'crucible-modal';
+
+    var existing = (customSearchTerms || []).join(', ');
+
+    var html = '<div class="crucible-modal__header"><h2>Custom Source Search</h2>' +
+      '<button type="button" class="crucible-modal__close" id="crucible-modal-close">&times;</button></div>';
+    html += '<div class="crucible-modal__body">';
+    html += '<p class="crucible-custom-search-hint">Enter search terms to find related papers. Separate multiple terms with commas.</p>';
+    html += '<div class="crucible-form-row">' +
+      '<label>Search Terms:<textarea id="crucible-custom-terms" class="crucible-custom-terms-input" rows="4" placeholder="e.g. machine learning, neural networks, deep learning">' + escHtml(existing) + '</textarea></label>' +
+    '</div>';
+    html += '</div>';
+    html += '<div class="crucible-modal__footer">' +
+      '<button type="button" class="crucible-btn crucible-btn--secondary" id="crucible-custom-reset">Reset to Sources</button>' +
+      '<button type="button" class="crucible-btn crucible-btn--secondary" id="crucible-modal-cancel">Cancel</button>' +
+      '<button type="button" class="crucible-btn crucible-btn--primary" id="crucible-custom-search">Search</button>' +
+    '</div>';
+
+    modal.innerHTML = html;
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+    document.getElementById('crucible-modal-close').addEventListener('click', closeModal);
+    document.getElementById('crucible-modal-cancel').addEventListener('click', closeModal);
+
+    document.getElementById('crucible-custom-search').addEventListener('click', function () {
+      var raw = document.getElementById('crucible-custom-terms').value || '';
+      var terms = raw.split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+      if (!terms.length) {
+        openAlertModal('Please enter at least one search term.');
+        return;
+      }
+      customSearchTerms = terms;
+      closeModal();
+      fetchSuggestions();
+    });
+
+    document.getElementById('crucible-custom-reset').addEventListener('click', function () {
+      customSearchTerms = null;
+      closeModal();
+      fetchSuggestions();
+    });
+  }
+
   /* ── init ────────────────────────────────────────────────────────── */
   api('GET', '/sources').then(function (d) {
     sources = d.sources || [];
     collectAllTags();
     render();
     fetchSuggestions();
+
+    var searchBtn = document.getElementById('crucible-custom-search-btn');
+    if (searchBtn) {
+      searchBtn.addEventListener('click', openCustomSearchModal);
+    }
   }).catch(function (e) {
     root.innerHTML = '<div class="crucible-empty">Failed to load sources: ' + escHtml(e.message) + '</div>';
   });

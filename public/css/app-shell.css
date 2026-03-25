@@ -376,6 +376,52 @@
   line-height: 1.4;
 }
 
+/* Source Suggestions header row */
+.crucible-sug-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.crucible-sug-search-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: var(--fg);
+  line-height: 1;
+  transition: background 0.15s, border-color 0.15s;
+}
+.crucible-sug-search-btn:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: var(--blue);
+}
+
+/* Custom search modal extras */
+.crucible-custom-search-hint {
+  font-size: 0.84rem;
+  color: var(--muted);
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+.crucible-custom-terms-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 0.5rem;
+  font-size: 0.88rem;
+  color: var(--fg);
+  font-family: inherit;
+  resize: vertical;
+}
+.crucible-custom-terms-input:focus {
+  outline: none;
+  border-color: var(--blue);
+}
+
 /* Crucible center canvas intro styling */
 .app-crucible-intro {
   color: #1cb9c5;
