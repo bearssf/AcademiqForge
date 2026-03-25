@@ -3315,6 +3315,8 @@
 /* ── Dashboard / Portfolio page ──────────────────────────────────── */
 .app-canvas--dashboard {
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 .dash-recent-bar {
   display: flex;
@@ -3446,6 +3448,7 @@
 }
 
 .dash-actions-placeholder {
+  flex: 1;
   padding: 1.25rem;
   border-radius: 12px;
   border: 1px dashed var(--line);
@@ -3500,9 +3503,13 @@
 }
 .dash-rail-project-tile {
   padding: 0.55rem 0.65rem;
+  min-height: 52px;
   border-radius: 8px;
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 .dash-rail-project-tile__name {
   display: block;
