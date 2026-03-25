@@ -866,9 +866,29 @@
     });
   }
 
+  function getTrackedTitles() {
+    var set = {};
+    sources.forEach(function (s) {
+      if (s.article_title) set[s.article_title.trim().toLowerCase()] = true;
+    });
+    return set;
+  }
+
+  function updateKeywordsLabel(keywords) {
+    var el = document.getElementById('crucible-search-keywords');
+    if (!el) return;
+    if (!keywords.length) {
+      el.innerHTML = '';
+      return;
+    }
+    el.innerHTML = '<span class="crucible-kw-label">Search keywords:</span> ' +
+      keywords.map(function (k) { return '<span class="crucible-kw-tag">' + escHtml(k) + '</span>'; }).join(' ');
+  }
+
   function runSuggestionSearch(keywords) {
     var panel = document.getElementById('crucible-suggestions');
     if (!panel) return;
+    updateKeywordsLabel(keywords);
     if (!keywords.length) {
       panel.innerHTML = '<div class="crucible-sug-empty">Add sources to see related paper suggestions.</div>';
       return;
@@ -889,11 +909,19 @@
           panel.innerHTML = '<div class="crucible-sug-empty">No related papers found.</div>';
           return;
         }
+        var tracked = getTrackedTitles();
+        var filtered = d.papers.filter(function (p) {
+          return !tracked[(p.title || '').trim().toLowerCase()];
+        });
+        if (!filtered.length) {
+          panel.innerHTML = '<div class="crucible-sug-empty">All suggestions are already tracked.</div>';
+          return;
+        }
         var html = '';
-        d.papers.forEach(function (p, idx) {
+        filtered.forEach(function (p, idx) {
           var authors = (p.authors || []).slice(0, 3).join(', ');
           if (p.authors && p.authors.length > 3) authors += ' et al.';
-          html += '<div class="crucible-sug-card">';
+          html += '<div class="crucible-sug-card" data-filt-idx="' + idx + '">';
           html += '<div class="crucible-sug-card__title">';
           if (p.url) html += '<a href="' + escHtml(p.url) + '" target="_blank" rel="noopener">' + escHtml(p.title) + '</a>';
           else html += escHtml(p.title);
@@ -904,14 +932,14 @@
           if (p.citationCount != null) meta.push(p.citationCount + ' citations');
           if (meta.length) html += '<div class="crucible-sug-card__meta">' + escHtml(meta.join(' · ')) + '</div>';
           if (p.abstract) html += '<div class="crucible-sug-card__abstract">' + escHtml(p.abstract) + '</div>';
-          html += '<button type="button" class="crucible-sug-track-btn" data-sug-idx="' + idx + '">+ Track Source</button>';
+          html += '<button type="button" class="crucible-sug-track-btn" data-filt-idx="' + idx + '">+ Track Source</button>';
           html += '</div>';
         });
         panel.innerHTML = html;
         panel.querySelectorAll('.crucible-sug-track-btn').forEach(function (btn) {
           btn.addEventListener('click', function () {
-            var i = parseInt(btn.getAttribute('data-sug-idx'), 10);
-            var paper = d.papers[i];
+            var i = parseInt(btn.getAttribute('data-filt-idx'), 10);
+            var paper = filtered[i];
             if (paper) trackSuggestedSource(paper, btn);
           });
         });
