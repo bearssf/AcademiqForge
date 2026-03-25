@@ -835,6 +835,33 @@
     return kws;
   }
 
+  function trackSuggestedSource(paper, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Adding…';
+    var allAuthors = (paper.authors || []).join('; ');
+    var payload = {
+      article_title: paper.title || '',
+      authors: allAuthors,
+      publication_date: paper.year ? String(paper.year) : '',
+      doi: '',
+      citation_text: paper.title || '',
+      tags: [],
+      section_ids: [],
+    };
+    if (paper.url) payload.url = paper.url;
+    api('POST', '/sources', payload).then(function (d) {
+      sources.push(d.source);
+      collectAllTags();
+      render();
+      btn.textContent = 'Tracked ✓';
+      btn.classList.add('crucible-sug-track-btn--done');
+    }).catch(function (e) {
+      btn.disabled = false;
+      btn.textContent = '+ Track Source';
+      openAlertModal('Could not add source: ' + (e.message || 'unknown error'));
+    });
+  }
+
   function runSuggestionSearch(keywords) {
     var panel = document.getElementById('crucible-suggestions');
     if (!panel) return;
@@ -859,7 +886,7 @@
           return;
         }
         var html = '';
-        d.papers.forEach(function (p) {
+        d.papers.forEach(function (p, idx) {
           var authors = (p.authors || []).slice(0, 3).join(', ');
           if (p.authors && p.authors.length > 3) authors += ' et al.';
           html += '<div class="crucible-sug-card">';
@@ -873,9 +900,17 @@
           if (p.citationCount != null) meta.push(p.citationCount + ' citations');
           if (meta.length) html += '<div class="crucible-sug-card__meta">' + escHtml(meta.join(' · ')) + '</div>';
           if (p.abstract) html += '<div class="crucible-sug-card__abstract">' + escHtml(p.abstract) + '</div>';
+          html += '<button type="button" class="crucible-sug-track-btn" data-sug-idx="' + idx + '">+ Track Source</button>';
           html += '</div>';
         });
         panel.innerHTML = html;
+        panel.querySelectorAll('.crucible-sug-track-btn').forEach(function (btn) {
+          btn.addEventListener('click', function () {
+            var i = parseInt(btn.getAttribute('data-sug-idx'), 10);
+            var paper = d.papers[i];
+            if (paper) trackSuggestedSource(paper, btn);
+          });
+        });
       })
       .catch(function (e) {
         var msg = (e && e.message) || 'Could not load suggestions.';

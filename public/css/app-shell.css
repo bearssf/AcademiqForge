@@ -375,6 +375,32 @@
   color: var(--fg);
   opacity: 0.7;
   line-height: 1.4;
+  margin-bottom: 0.35rem;
+}
+.crucible-sug-track-btn {
+  display: inline-block;
+  margin-top: 0.3rem;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-family: inherit;
+  color: #1cb9c5;
+  background: transparent;
+  border: 1px solid rgba(28,185,197,0.4);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.crucible-sug-track-btn:hover:not(:disabled) {
+  background: rgba(28,185,197,0.12);
+  border-color: #1cb9c5;
+}
+.crucible-sug-track-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.crucible-sug-track-btn--done {
+  color: rgba(255,255,255,0.5);
+  border-color: var(--line);
 }
 
 /* Source Suggestions header row */
