@@ -3318,6 +3318,9 @@
   display: flex;
   flex-direction: column;
 }
+.app-body--dashboard .app-canvas .sub {
+  color: #1cb9c5;
+}
 .dash-recent-bar {
   display: flex;
   align-items: center;
