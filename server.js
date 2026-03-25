@@ -66,6 +66,10 @@ const ANVIL_INCREMENTAL_CHARS = Math.max(
     10
   ) || 40
 );
+const AUTOSAVE_CHAR_THRESHOLD = Math.max(
+  1,
+  parseInt(process.env.AUTOSAVE_CHAR_THRESHOLD || '250', 10) || 250
+);
 
 const dbConfig = {
   server: process.env.DB_HOST,
@@ -826,6 +830,7 @@ app.get(
       crucibleCitationStyle: bundle.project.citation_style || 'APA',
       anvilInitialIdleMs: ANVIL_INITIAL_IDLE_MS,
       anvilIncrementalChars: ANVIL_INCREMENTAL_CHARS,
+      autosaveCharThreshold: AUTOSAVE_CHAR_THRESHOLD,
     });
   })
 );

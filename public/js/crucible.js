@@ -22,6 +22,7 @@
   var notesLightMode = localStorage.getItem('crucible-notes-light') === '1';
   var fullLibraryMode = false;
   var projectSources = [];
+  var citationUsageCounts = {};
 
   /* ── helpers ─────────────────────────────────────────────────────── */
   function escHtml(s) {
@@ -448,6 +449,7 @@
               ? '<div class="crucible-tile__open-access"><a href="' + escHtml(src.open_access_url) + '" target="_blank" rel="noopener">URL to Open Access</a></div>'
               : '') +
             (tagBadges ? '<div class="crucible-tile__tags">' + tagBadges + '</div>' : '') +
+            (citationUsageCounts[src.id] ? '<a href="#" class="crucible-tile__usage-count" data-source-id="' + src.id + '" title="View citation usages">' + citationUsageCounts[src.id] + '</a>' : '') +
           '</div>' +
           '<div class="crucible-note-tile' + (notesLightMode ? ' crucible-note-tile--light' : '') + '">' +
             '<div class="crucible-note-tile__editor"' + (isOtherProject ? '' : ' contenteditable="true"') + ' data-source-id="' + src.id + '">' + (src.crucible_notes || '') + '</div>' +
@@ -499,6 +501,14 @@
 
     var addBtn = document.getElementById('crucible-add-source-btn');
     if (addBtn) addBtn.addEventListener('click', function () { openSourceModal(null); });
+
+    root.querySelectorAll('.crucible-tile__usage-count').forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        var sid = parseInt(link.getAttribute('data-source-id'), 10);
+        if (sid) openCitationUsageModal(sid);
+      });
+    });
 
     root.querySelectorAll('.crucible-add-to-project-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -1155,6 +1165,65 @@
     });
   }
 
+  /* ── Citation usage counts ──────────────────────────────────────── */
+
+  function loadCitationUsageCounts() {
+    fetch('/api/projects/' + projectId + '/citation-usages', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        citationUsageCounts = {};
+        (d.usages || []).forEach(function (u) {
+          citationUsageCounts[u.source_id] = (citationUsageCounts[u.source_id] || 0) + 1;
+        });
+        render();
+      })
+      .catch(function () {});
+  }
+
+  function openCitationUsageModal(sourceId) {
+    closeModal();
+    fetch('/api/projects/' + projectId + '/citation-usages/' + sourceId, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var usages = d.usages || [];
+        var src = sources.find(function (s) { return s.id === sourceId; });
+        var title = src ? (src.article_title || src.citation_text || 'Source') : 'Source';
+
+        var overlay = document.createElement('div');
+        overlay.className = 'crucible-modal-overlay';
+        var modal = document.createElement('div');
+        modal.className = 'crucible-modal';
+
+        var html = '<div class="crucible-modal__header"><h2>Citation Usages: ' + escHtml(title) + '</h2>' +
+          '<button type="button" class="crucible-modal__close" id="crucible-modal-close">&times;</button></div>';
+        html += '<div class="crucible-modal__body">';
+        if (!usages.length) {
+          html += '<p>No recorded usages for this citation.</p>';
+        } else {
+          usages.forEach(function (u) {
+            html += '<div class="crucible-usage-item">';
+            html += '<strong>' + escHtml(u.section_title || 'Section') + ':</strong> ';
+            html += '"' + escHtml(u.context_excerpt || u.cite_marker || '') + '"';
+            html += '</div>';
+          });
+        }
+        html += '</div>';
+        html += '<div class="crucible-modal__footer">' +
+          '<button type="button" class="crucible-btn crucible-btn--primary" id="crucible-modal-cancel">Close</button>' +
+        '</div>';
+
+        modal.innerHTML = html;
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', function (e) { if (e.target === overlay) closeModal(); });
+        document.getElementById('crucible-modal-close').addEventListener('click', closeModal);
+        document.getElementById('crucible-modal-cancel').addEventListener('click', closeModal);
+      })
+      .catch(function (e) {
+        openAlertModal('Could not load usages: ' + (e.message || 'unknown error'));
+      });
+  }
+
   /* ── Add source from another project to current project ─────────── */
 
   function addOtherSourceToCurrentProject(src, btn) {
@@ -1347,6 +1416,7 @@
     }
 
     loadResearchPlan();
+    loadCitationUsageCounts();
   }).catch(function (e) {
     console.error('[Crucible] Failed to load sources:', e);
     root.innerHTML = '<div class="crucible-empty">Failed to load sources: ' + escHtml(e.message) + '</div>';

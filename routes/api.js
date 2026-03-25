@@ -1446,6 +1446,117 @@ function createApiRouter(getPool) {
     }
   });
 
+  /* ── Citation Usages ─────────────────────────────────────────────── */
+
+  router.get('/projects/:projectId/citation-usages', async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      const p = await getPool();
+      if (!(await ownsProject(p, projectId, req.session.userId)))
+        return res.status(404).json({ error: 'Not found' });
+
+      const rows = await p
+        .request()
+        .input('pid', sql.Int, projectId)
+        .query(
+          `SELECT cu.id, cu.source_id, cu.section_id, cu.project_id, cu.cite_marker,
+                  cu.context_excerpt, cu.created_at, ps.title AS section_title
+           FROM citation_usages cu
+           LEFT JOIN project_sections ps ON ps.id = cu.section_id
+           WHERE cu.project_id = @pid
+           ORDER BY cu.created_at`
+        );
+      res.json({ usages: rows.recordset });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  router.get('/projects/:projectId/citation-usages/:sourceId', async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      const sourceId = parseInt(req.params.sourceId, 10);
+      if (Number.isNaN(projectId) || Number.isNaN(sourceId))
+        return res.status(400).json({ error: 'invalid id' });
+      const p = await getPool();
+      if (!(await ownsProject(p, projectId, req.session.userId)))
+        return res.status(404).json({ error: 'Not found' });
+
+      const rows = await p
+        .request()
+        .input('pid', sql.Int, projectId)
+        .input('sid', sql.Int, sourceId)
+        .query(
+          `SELECT cu.id, cu.source_id, cu.section_id, cu.cite_marker,
+                  cu.context_excerpt, cu.created_at, ps.title AS section_title
+           FROM citation_usages cu
+           LEFT JOIN project_sections ps ON ps.id = cu.section_id
+           WHERE cu.project_id = @pid AND cu.source_id = @sid
+           ORDER BY cu.created_at`
+        );
+      res.json({ usages: rows.recordset });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  router.post('/projects/:projectId/citation-usages', async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      const p = await getPool();
+      if (!(await ownsProject(p, projectId, req.session.userId)))
+        return res.status(404).json({ error: 'Not found' });
+
+      const b = req.body || {};
+      const sourceId = parseInt(b.source_id, 10);
+      const sectionId = parseInt(b.section_id, 10);
+      if (Number.isNaN(sourceId) || Number.isNaN(sectionId))
+        return res.status(400).json({ error: 'source_id and section_id are required' });
+
+      const citeMarker = (b.cite_marker || '').trim() || null;
+      const contextExcerpt = (b.context_excerpt || '').trim() || null;
+
+      const ins = await p
+        .request()
+        .input('source_id', sql.Int, sourceId)
+        .input('section_id', sql.Int, sectionId)
+        .input('pid', sql.Int, projectId)
+        .input('cite_marker', sql.NVarChar(500), citeMarker)
+        .input('context_excerpt', sql.NVarChar(sql.MAX), contextExcerpt)
+        .query(
+          `INSERT INTO citation_usages (source_id, section_id, project_id, cite_marker, context_excerpt)
+           VALUES (@source_id, @section_id, @pid, @cite_marker, @context_excerpt);
+           SELECT SCOPE_IDENTITY() AS id;`
+        );
+      res.status(201).json({ id: ins.recordset[0].id });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  router.delete('/projects/:projectId/citation-usages/:usageId', async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      const usageId = parseInt(req.params.usageId, 10);
+      if (Number.isNaN(projectId) || Number.isNaN(usageId))
+        return res.status(400).json({ error: 'invalid id' });
+      const p = await getPool();
+      if (!(await ownsProject(p, projectId, req.session.userId)))
+        return res.status(404).json({ error: 'Not found' });
+
+      await p
+        .request()
+        .input('id', sql.Int, usageId)
+        .input('pid', sql.Int, projectId)
+        .query('DELETE FROM citation_usages WHERE id = @id AND project_id = @pid');
+      res.status(204).end();
+    } catch (e) {
+      next(e);
+    }
+  });
+
   return router;
 }
 

@@ -15,9 +15,9 @@
       <% } %>
       <h1><%= phaseTitle %></h1>
       <% if (phaseSlug === 'anvil') { %>
-        <p class="sub app-anvil-intro">Forge draft for <strong><%= projectTitle %></strong>.</p>
+        <p class="sub app-anvil-intro">Where ideas are shaped and formed into arguments and reasoning.</p>
       <% } else if (phaseSlug === 'crucible') { %>
-        <p class="sub app-crucible-intro">Where ideas stop drifting and start taking shape through the inclusion and management of your research sources.</p>
+        <p class="sub app-crucible-intro">Where ideas and arguments are strengthened by the work of others.</p>
       <% } else if (phaseSlug === 'framework') { %>
         <p class="sub">Argument outline and evidence mapping for <strong><%= projectTitle %></strong>.</p>
       <% } else { %>
@@ -36,6 +36,7 @@
           data-project-id="<%= projectId %>"
           data-initial-idle-ms="<%= typeof anvilInitialIdleMs !== 'undefined' ? anvilInitialIdleMs : 1800 %>"
           data-incremental-chars="<%= typeof anvilIncrementalChars !== 'undefined' ? anvilIncrementalChars : 40 %>"
+          data-autosave-chars="<%= typeof autosaveCharThreshold !== 'undefined' ? autosaveCharThreshold : 250 %>"
         ></div>
       <% } else if (phaseSlug === 'crucible') { %>
         <div id="crucible-root" class="crucible"
