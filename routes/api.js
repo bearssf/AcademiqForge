@@ -30,7 +30,7 @@ const {
 } = require('../lib/anvilFeedback');
 const { insertAnvilSuggestions } = require('../lib/anvilSuggestionStore');
 const { staleFeedbackEnabled } = require('../lib/anvilStaleFeedback');
-const { isBedrockConfigured } = require('../lib/bedrockReview');
+const { isBedrockConfigured, invokeClaudeMessages } = require('../lib/bedrockReview');
 const { runStructuredSectionReview } = require('../lib/bedrockStructuredReview');
 const { applySuggestionToDraftHtml } = require('../lib/bedrockApplySuggestion');
 const { searchPapers } = require('../lib/semanticScholar');
@@ -838,6 +838,74 @@ function createApiRouter(getPool) {
         bedrockConfigured: true,
       });
     } catch (e) {
+      next(e);
+    }
+  });
+
+  /* ── Bedrock keyword extraction for S2 search ─────────────────────── */
+
+  router.post('/projects/:projectId/sources/extract-keywords', async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      const p = await getPool();
+      const own = await p
+        .request()
+        .input('id', sql.Int, projectId)
+        .input('user_id', sql.Int, req.session.userId)
+        .query('SELECT id FROM projects WHERE id = @id AND user_id = @user_id');
+      if (!own.recordset[0]) return res.status(404).json({ error: 'Not found' });
+
+      if (!isBedrockConfigured()) {
+        return res.status(503).json({ error: 'AI keyword extraction is not configured (Bedrock).' });
+      }
+
+      const titles = Array.isArray(req.body.titles) ? req.body.titles.filter(Boolean) : [];
+      const tags = Array.isArray(req.body.tags) ? req.body.tags.filter(Boolean) : [];
+      if (!titles.length && !tags.length) {
+        return res.status(400).json({ error: 'At least one title or tag is required.' });
+      }
+
+      const prompt =
+        'You are an academic research assistant. Given the following article titles and user-assigned tags from a research project, ' +
+        'extract the best search keywords to find related academic papers on Semantic Scholar.\n\n' +
+        'Requirements:\n' +
+        '- Return 8 to 15 keywords or short phrases (2-3 words max each).\n' +
+        '- Focus on the core academic concepts, methodologies, and subject areas.\n' +
+        '- Include broader field terms and specific technical terms.\n' +
+        '- Do NOT include common stop words, author names, or generic terms like "study" or "analysis".\n' +
+        '- Return ONLY a JSON array of strings, no explanation or markdown.\n\n' +
+        'Article titles:\n' + titles.map(function (t) { return '- ' + t; }).join('\n') + '\n\n' +
+        'User tags:\n' + (tags.length ? tags.map(function (t) { return '- ' + t; }).join('\n') : '(none)') + '\n\n' +
+        'Return a JSON array of keyword strings:';
+
+      console.log('[Bedrock Keywords] Requesting keywords for', titles.length, 'titles,', tags.length, 'tags');
+      const raw = await invokeClaudeMessages(prompt, { maxTokens: 512, temperature: 0.3 });
+
+      let keywords;
+      try {
+        const match = raw.match(/\[[\s\S]*\]/);
+        keywords = match ? JSON.parse(match[0]) : [];
+      } catch (e) {
+        console.error('[Bedrock Keywords] Failed to parse response:', raw.slice(0, 300));
+        return res.status(502).json({ error: 'AI returned an invalid response.' });
+      }
+
+      keywords = keywords
+        .filter(function (k) { return typeof k === 'string' && k.trim(); })
+        .map(function (k) { return k.trim().toLowerCase(); });
+
+      const seen = {};
+      keywords = keywords.filter(function (k) {
+        if (seen[k]) return false;
+        seen[k] = true;
+        return true;
+      });
+
+      console.log('[Bedrock Keywords] Extracted:', keywords);
+      res.json({ keywords });
+    } catch (e) {
+      console.error('[Bedrock Keywords] Error:', e.message);
       next(e);
     }
   });

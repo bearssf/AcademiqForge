@@ -981,9 +981,40 @@
       });
   }
 
+  function collectTitlesAndTags() {
+    var titles = [];
+    var tags = [];
+    sources.forEach(function (s) {
+      if (s.article_title) titles.push(s.article_title);
+      (s.tags || []).forEach(function (t) {
+        if (t.trim()) tags.push(t.trim());
+      });
+    });
+    return { titles: titles, tags: tags };
+  }
+
   function fetchSuggestions() {
-    var kws = customSearchTerms || extractKeywords();
-    runSuggestionSearch(kws);
+    if (customSearchTerms) {
+      runSuggestionSearch(customSearchTerms);
+      return;
+    }
+    var data = collectTitlesAndTags();
+    if (!data.titles.length && !data.tags.length) {
+      runSuggestionSearch([]);
+      return;
+    }
+    var panel = document.getElementById('crucible-suggestions');
+    if (panel) panel.innerHTML = '<div class="crucible-sug-loading">Analyzing sources for keywords…</div>';
+
+    api('POST', '/sources/extract-keywords', { titles: data.titles, tags: data.tags })
+      .then(function (d) {
+        var kws = (d.keywords && d.keywords.length) ? d.keywords : extractKeywords();
+        runSuggestionSearch(kws);
+      })
+      .catch(function () {
+        var kws = extractKeywords();
+        runSuggestionSearch(kws);
+      });
   }
 
   function openCustomSearchModal() {
