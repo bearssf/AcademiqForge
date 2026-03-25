@@ -423,6 +423,7 @@
             '<div class="crucible-tile__header">' +
               '<span class="crucible-tile__title">' + escHtml(src.article_title || src.citation_text || '(Untitled)') + '</span>' +
               '<span class="crucible-tile__actions">' +
+                '<button type="button" class="crucible-tile-btn crucible-tile-btn--search" data-source-id="' + src.id + '" title="Find related sources">&#128269;</button>' +
                 '<button type="button" class="crucible-tile-btn crucible-tile-btn--edit" data-source-id="' + src.id + '" title="Edit source">&#9998;</button>' +
                 '<button type="button" class="crucible-tile-btn crucible-tile-btn--delete" data-source-id="' + src.id + '" title="Delete source">&times;</button>' +
               '</span>' +
@@ -479,6 +480,14 @@
 
     var addBtn = document.getElementById('crucible-add-source-btn');
     if (addBtn) addBtn.addEventListener('click', function () { openSourceModal(null); });
+
+    root.querySelectorAll('.crucible-tile-btn--search').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var sid = parseInt(btn.getAttribute('data-source-id'), 10);
+        var src = sources.find(function (s) { return s.id === sid; });
+        if (src) searchFromSource(src);
+      });
+    });
 
     root.querySelectorAll('.crucible-tile-btn--edit').forEach(function (btn) {
       btn.addEventListener('click', function () {
@@ -985,6 +994,26 @@
       .catch(function (e) {
         var msg = (e && e.message) || 'Could not load suggestions.';
         panel.innerHTML = '<div class="crucible-sug-empty">' + escHtml(msg) + '</div>';
+      });
+  }
+
+  function searchFromSource(src) {
+    var titles = src.article_title ? [src.article_title] : [];
+    var tags = (src.tags || []).filter(function (t) { return t.trim(); });
+
+    if (!titles.length && !tags.length) return;
+
+    var panel = document.getElementById('crucible-suggestions');
+    if (panel) panel.innerHTML = '<div class="crucible-sug-loading">Analyzing source for keywords…</div>';
+
+    api('POST', '/sources/extract-keywords', { titles: titles, tags: tags })
+      .then(function (d) {
+        var kws = (d.keywords && d.keywords.length) ? d.keywords : titles.concat(tags);
+        runSuggestionSearch(kws);
+      })
+      .catch(function () {
+        var kws = titles.concat(tags);
+        runSuggestionSearch(kws);
       });
   }
 
