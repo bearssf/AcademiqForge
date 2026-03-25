@@ -1196,6 +1196,24 @@
 
   /* ── Full Source Library mode ────────────────────────────────────── */
 
+  function deduplicateSources(allSources) {
+    var seen = {};
+    var result = [];
+    allSources.forEach(function (src) {
+      var key = (src.article_title || src.citation_text || '').trim().toLowerCase();
+      if (!key) { result.push(src); return; }
+      if (!seen[key]) {
+        seen[key] = src;
+        result.push(src);
+      } else if (String(src.project_id) === String(projectId)) {
+        var idx = result.indexOf(seen[key]);
+        if (idx !== -1) result[idx] = src;
+        seen[key] = src;
+      }
+    });
+    return result;
+  }
+
   function toggleFullLibraryMode(enabled) {
     fullLibraryMode = enabled;
     if (enabled) {
@@ -1210,7 +1228,7 @@
         .then(function (r) { return r.json(); })
         .then(function (d) {
           if (!d.sources) throw new Error('Failed to load');
-          sources = d.sources;
+          sources = deduplicateSources(d.sources);
           collectAllTags();
           render();
         }).catch(function (e) {
