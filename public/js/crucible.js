@@ -427,7 +427,7 @@
         if (fullLibraryMode && src.project_name) {
           projectLabel = '<div class="crucible-tile__project-row">' +
             '<span class="crucible-tile__project-label">' + escHtml(src.project_name) + '</span>' +
-            (isOtherProject ? '<button type="button" class="crucible-tile-btn crucible-add-to-project-btn" data-source-id="' + src.id + '">+ Add to Current Project</button>' : '') +
+            (isOtherProject ? '<button type="button" class="crucible-add-to-project-btn" data-source-id="' + src.id + '">+ Add to Current Project</button>' : '') +
           '</div>';
         }
         var actionBtns = isOtherProject ? '' :
