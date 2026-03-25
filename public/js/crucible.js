@@ -29,8 +29,11 @@
   }
 
   function api(method, path, body) {
-    var opts = { method: method, headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin' };
-    if (body) opts.body = JSON.stringify(body);
+    var opts = { method: method, headers: {}, credentials: 'same-origin' };
+    if (body) {
+      opts.headers['Content-Type'] = 'application/json';
+      opts.body = JSON.stringify(body);
+    }
     return fetch('/api/projects/' + projectId + path, opts).then(function (r) {
       if (r.status === 204) return null;
       return r.json().then(function (d) {
@@ -855,6 +858,7 @@
       render();
       btn.textContent = 'Tracked ✓';
       btn.classList.add('crucible-sug-track-btn--done');
+      fetchSuggestions();
     }).catch(function (e) {
       btn.disabled = false;
       btn.textContent = '+ Track Source';
@@ -977,7 +981,13 @@
   api('GET', '/sources').then(function (d) {
     sources = d.sources || [];
     collectAllTags();
-    render();
+    try {
+      render();
+    } catch (renderErr) {
+      console.error('[Crucible] render() error:', renderErr);
+      root.innerHTML = '<div class="crucible-empty">Failed to render sources: ' + escHtml(renderErr.message) + '</div>';
+      return;
+    }
     fetchSuggestions();
 
     var searchBtn = document.getElementById('crucible-custom-search-btn');
@@ -985,6 +995,7 @@
       searchBtn.addEventListener('click', openCustomSearchModal);
     }
   }).catch(function (e) {
+    console.error('[Crucible] Failed to load sources:', e);
     root.innerHTML = '<div class="crucible-empty">Failed to load sources: ' + escHtml(e.message) + '</div>';
   });
 })();
