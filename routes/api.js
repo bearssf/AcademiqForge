@@ -1270,6 +1270,125 @@ function createApiRouter(getPool) {
     }
   });
 
+  /* ── Research Plan Items ──────────────────────────────────────────── */
+
+  router.get('/projects/:projectId/research-plan', async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      const p = await getPool();
+      if (!(await ownsProject(p, projectId, req.session.userId)))
+        return res.status(404).json({ error: 'Not found' });
+
+      const rows = await p
+        .request()
+        .input('pid', sql.Int, projectId)
+        .query(
+          `SELECT id, project_id, suggestion_id, section_id, section_title,
+                  suggestion_body, passage_excerpt, keywords, research_needed,
+                  ISNULL(status, 'unresolved') AS status,
+                  created_at, updated_at
+           FROM research_plan_items
+           WHERE project_id = @pid
+           ORDER BY created_at DESC`
+        );
+      res.json({ items: rows.recordset });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  router.post('/projects/:projectId/research-plan', async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      const p = await getPool();
+      if (!(await ownsProject(p, projectId, req.session.userId)))
+        return res.status(404).json({ error: 'Not found' });
+
+      const b = req.body || {};
+      function trimOrNull(v) { return (v || '').trim() || null; }
+      const sectionId      = parseInt(b.section_id, 10) || 0;
+      const sectionTitle    = trimOrNull(b.section_title);
+      const suggestionBody  = trimOrNull(b.context) || trimOrNull(b.suggestion_body) || '';
+      const keywords        = trimOrNull(b.keywords);
+      const researchNeeded  = trimOrNull(b.research_needed);
+      const status          = trimOrNull(b.status) || 'unresolved';
+
+      const ins = await p
+        .request()
+        .input('pid', sql.Int, projectId)
+        .input('section_id', sql.Int, sectionId || 0)
+        .input('section_title', sql.NVarChar(255), sectionTitle)
+        .input('suggestion_body', sql.NVarChar(sql.MAX), suggestionBody)
+        .input('keywords', sql.NVarChar(500), keywords)
+        .input('research_needed', sql.NVarChar(500), researchNeeded)
+        .input('status', sql.NVarChar(40), status)
+        .query(
+          `INSERT INTO research_plan_items (project_id, section_id, section_title, suggestion_body, keywords, research_needed, status)
+           VALUES (@pid, @section_id, @section_title, @suggestion_body, @keywords, @research_needed, @status);
+           SELECT SCOPE_IDENTITY() AS id;`
+        );
+
+      const newId = ins.recordset[0].id;
+      const row = await p
+        .request()
+        .input('id', sql.Int, newId)
+        .query(
+          `SELECT id, project_id, suggestion_id, section_id, section_title,
+                  suggestion_body, passage_excerpt, keywords, research_needed,
+                  ISNULL(status, 'unresolved') AS status,
+                  created_at, updated_at
+           FROM research_plan_items WHERE id = @id`
+        );
+      res.status(201).json({ item: row.recordset[0] });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  router.patch('/projects/:projectId/research-plan/:itemId', async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      const itemId = parseInt(req.params.itemId, 10);
+      if (Number.isNaN(projectId) || Number.isNaN(itemId))
+        return res.status(400).json({ error: 'invalid id' });
+      const p = await getPool();
+      if (!(await ownsProject(p, projectId, req.session.userId)))
+        return res.status(404).json({ error: 'Not found' });
+
+      const newStatus = (req.body.status || '').trim();
+      if (!['unresolved', 'resolved', 'dismissed'].includes(newStatus))
+        return res.status(400).json({ error: 'Invalid status. Must be unresolved, resolved, or dismissed.' });
+
+      const upd = await p
+        .request()
+        .input('id', sql.Int, itemId)
+        .input('pid', sql.Int, projectId)
+        .input('status', sql.NVarChar(40), newStatus)
+        .query(
+          `UPDATE research_plan_items
+           SET status = @status, updated_at = GETDATE()
+           WHERE id = @id AND project_id = @pid`
+        );
+      if (!upd.rowsAffected[0]) return res.status(404).json({ error: 'Item not found' });
+
+      const row = await p
+        .request()
+        .input('id', sql.Int, itemId)
+        .query(
+          `SELECT id, project_id, suggestion_id, section_id, section_title,
+                  suggestion_body, passage_excerpt, keywords, research_needed,
+                  ISNULL(status, 'unresolved') AS status,
+                  created_at, updated_at
+           FROM research_plan_items WHERE id = @id`
+        );
+      res.json({ item: row.recordset[0] });
+    } catch (e) {
+      next(e);
+    }
+  });
+
   return router;
 }
 

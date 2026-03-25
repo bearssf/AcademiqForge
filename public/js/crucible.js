@@ -1126,6 +1126,112 @@
     });
   }
 
+  /* ── Research Plan ──────────────────────────────────────────────── */
+
+  var researchPlanItems = [];
+
+  var testResearchPlanSeeds = [
+    {
+      section_title: 'Introduction',
+      context: 'The claim that critical thinking is impactful to intercultural relationships needs evidence to support',
+      keywords: 'Intercultural relationships, Critical Thinking',
+      research_needed: 'Evidence/Citation',
+      status: 'unresolved',
+    },
+    {
+      section_title: 'Introduction',
+      context: 'The claim that critical thinking is impactful to intercultural relationships needs evidence to support',
+      keywords: 'Intercultural relationships, Critical Thinking',
+      research_needed: 'Evidence/Citation',
+      status: 'unresolved',
+    },
+  ];
+
+  function renderResearchPlan() {
+    var panel = document.getElementById('crucible-research-plan');
+    if (!panel) return;
+    var visible = researchPlanItems.filter(function (it) {
+      return it.status !== 'dismissed';
+    });
+    if (!visible.length) {
+      panel.innerHTML = '<div class="crucible-rp-empty">No research plan items.</div>';
+      return;
+    }
+    var html = '';
+    visible.forEach(function (it) {
+      var statusClass = it.status === 'resolved' ? 'crucible-rp-tile--resolved' : '';
+      html += '<div class="crucible-rp-tile ' + statusClass + '" data-rp-id="' + it.id + '">';
+      html += '<div class="crucible-rp-tile__field"><span class="crucible-rp-label">Section:</span> ' + escHtml(it.section_title || '—') + '</div>';
+      html += '<div class="crucible-rp-tile__field"><span class="crucible-rp-label">Context:</span> ' + escHtml(it.suggestion_body || '—') + '</div>';
+      html += '<div class="crucible-rp-tile__field"><span class="crucible-rp-label">Key Words:</span> ' + escHtml(it.keywords || '—') + '</div>';
+      html += '<div class="crucible-rp-tile__field"><span class="crucible-rp-label">Research Needed:</span> ' + escHtml(it.research_needed || '—') + '</div>';
+      html += '<div class="crucible-rp-tile__field"><span class="crucible-rp-label">Status:</span> <span class="crucible-rp-status crucible-rp-status--' + escHtml(it.status) + '">' + escHtml(it.status.charAt(0).toUpperCase() + it.status.slice(1)) + '</span></div>';
+      html += '<div class="crucible-rp-tile__actions">';
+      if (it.status !== 'resolved') {
+        html += '<button type="button" class="crucible-rp-btn crucible-rp-btn--resolve" data-rp-id="' + it.id + '">Resolve</button>';
+      }
+      if (it.status !== 'dismissed') {
+        html += '<button type="button" class="crucible-rp-btn crucible-rp-btn--dismiss" data-rp-id="' + it.id + '">Dismiss</button>';
+      }
+      html += '</div>';
+      html += '</div>';
+    });
+    panel.innerHTML = html;
+
+    panel.querySelectorAll('.crucible-rp-btn--resolve').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        updateResearchPlanStatus(parseInt(btn.getAttribute('data-rp-id'), 10), 'resolved');
+      });
+    });
+    panel.querySelectorAll('.crucible-rp-btn--dismiss').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        updateResearchPlanStatus(parseInt(btn.getAttribute('data-rp-id'), 10), 'dismissed');
+      });
+    });
+  }
+
+  function updateResearchPlanStatus(itemId, newStatus) {
+    api('PATCH', '/research-plan/' + itemId, { status: newStatus }).then(function (d) {
+      for (var i = 0; i < researchPlanItems.length; i++) {
+        if (researchPlanItems[i].id === itemId) {
+          researchPlanItems[i] = d.item;
+          break;
+        }
+      }
+      renderResearchPlan();
+    }).catch(function (e) {
+      openAlertModal('Could not update status: ' + (e.message || 'unknown error'));
+    });
+  }
+
+  function loadResearchPlan() {
+    api('GET', '/research-plan').then(function (d) {
+      researchPlanItems = d.items || [];
+      if (researchPlanItems.length === 0) {
+        seedTestItems();
+      } else {
+        renderResearchPlan();
+      }
+    }).catch(function (e) {
+      console.error('[Crucible] Failed to load research plan:', e);
+    });
+  }
+
+  function seedTestItems() {
+    var remaining = testResearchPlanSeeds.length;
+    testResearchPlanSeeds.forEach(function (seed) {
+      api('POST', '/research-plan', seed).then(function (d) {
+        researchPlanItems.push(d.item);
+        remaining--;
+        if (remaining === 0) renderResearchPlan();
+      }).catch(function (e) {
+        console.error('[Crucible] Failed to seed research plan item:', e);
+        remaining--;
+        if (remaining === 0) renderResearchPlan();
+      });
+    });
+  }
+
   /* ── init ────────────────────────────────────────────────────────── */
   api('GET', '/sources').then(function (d) {
     sources = d.sources || [];
@@ -1149,6 +1255,8 @@
     if (searchBtn) {
       searchBtn.addEventListener('click', openCustomSearchModal);
     }
+
+    loadResearchPlan();
   }).catch(function (e) {
     console.error('[Crucible] Failed to load sources:', e);
     root.innerHTML = '<div class="crucible-empty">Failed to load sources: ' + escHtml(e.message) + '</div>';

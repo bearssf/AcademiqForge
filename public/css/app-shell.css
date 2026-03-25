@@ -420,6 +420,74 @@
   line-height: 1;
   transition: background 0.15s, border-color 0.15s;
 }
+/* Research Plan tiles */
+.crucible-rp-empty {
+  font-size: 0.82rem;
+  color: var(--muted);
+  padding: 0.75rem 0.6rem;
+}
+.crucible-rp-tile {
+  padding: 0.6rem 0.65rem;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 6px;
+  margin-bottom: 0.4rem;
+}
+.crucible-rp-tile--resolved {
+  opacity: 0.6;
+}
+.crucible-rp-tile__field {
+  font-size: 0.78rem;
+  color: var(--fg);
+  margin-bottom: 0.25rem;
+  line-height: 1.35;
+}
+.crucible-rp-label {
+  font-weight: 600;
+  color: #1cb9c5;
+}
+.crucible-rp-status--unresolved {
+  color: #f5a623;
+}
+.crucible-rp-status--resolved {
+  color: #4caf50;
+}
+.crucible-rp-status--dismissed {
+  color: var(--muted);
+}
+.crucible-rp-tile__actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+.crucible-rp-btn {
+  font-size: 0.72rem;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  background: transparent;
+  color: var(--fg);
+  transition: background 0.15s, border-color 0.15s;
+}
+.crucible-rp-btn:hover {
+  background: rgba(255,255,255,0.08);
+}
+.crucible-rp-btn--resolve {
+  border-color: #4caf50;
+  color: #4caf50;
+}
+.crucible-rp-btn--resolve:hover {
+  background: rgba(76,175,80,0.15);
+}
+.crucible-rp-btn--dismiss {
+  border-color: var(--muted);
+  color: var(--muted);
+}
+.crucible-rp-btn--dismiss:hover {
+  background: rgba(255,255,255,0.06);
+}
+
 .crucible-sug-search-btn:hover {
   background: rgba(255,255,255,0.08);
   border-color: var(--blue);
