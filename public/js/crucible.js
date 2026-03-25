@@ -566,6 +566,7 @@
         collectAllTags();
         closeModal();
         render();
+        fetchSuggestions();
       }).catch(function (e) { closeModal(); openAlertModal(e.message); });
     });
   }
@@ -813,6 +814,7 @@
       collectAllTags();
       closeModal();
       render();
+      fetchSuggestions();
     }).catch(function (e) { openAlertModal(e.message); });
   }
 
@@ -822,11 +824,64 @@
     if (overlay) overlay.remove();
   }
 
+  /* ── source suggestions (Semantic Scholar) ────────────────────── */
+  function extractKeywords() {
+    var kws = [];
+    sources.forEach(function (s) {
+      if (s.article_title) kws.push(s.article_title);
+    });
+    return kws;
+  }
+
+  function fetchSuggestions() {
+    var panel = document.getElementById('crucible-suggestions');
+    if (!panel) return;
+    var kws = extractKeywords();
+    if (!kws.length) {
+      panel.innerHTML = '<div class="crucible-sug-empty">Add sources to see related paper suggestions.</div>';
+      return;
+    }
+    panel.innerHTML = '<div class="crucible-sug-loading">Searching for related papers…</div>';
+    var q = kws.join(',');
+    fetch('/api/projects/' + projectId + '/sources/search-scholar?q=' + encodeURIComponent(q) + '&limit=20', {
+      credentials: 'same-origin'
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d.papers || !d.papers.length) {
+          panel.innerHTML = '<div class="crucible-sug-empty">No related papers found.</div>';
+          return;
+        }
+        var html = '';
+        d.papers.forEach(function (p) {
+          var authors = (p.authors || []).slice(0, 3).join(', ');
+          if (p.authors && p.authors.length > 3) authors += ' et al.';
+          html += '<div class="crucible-sug-card">';
+          html += '<div class="crucible-sug-card__title">';
+          if (p.url) html += '<a href="' + escHtml(p.url) + '" target="_blank" rel="noopener">' + escHtml(p.title) + '</a>';
+          else html += escHtml(p.title);
+          html += '</div>';
+          if (authors) html += '<div class="crucible-sug-card__authors">' + escHtml(authors) + '</div>';
+          var meta = [];
+          if (p.year) meta.push(String(p.year));
+          if (p.citationCount != null) meta.push(p.citationCount + ' citations');
+          if (meta.length) html += '<div class="crucible-sug-card__meta">' + escHtml(meta.join(' · ')) + '</div>';
+          if (p.abstract) html += '<div class="crucible-sug-card__abstract">' + escHtml(p.abstract) + '</div>';
+          html += '</div>';
+        });
+        panel.innerHTML = html;
+      })
+      .catch(function (e) {
+        panel.innerHTML = '<div class="crucible-sug-empty">Could not load suggestions.</div>';
+      });
+  }
+
   /* ── init ────────────────────────────────────────────────────────── */
   api('GET', '/sources').then(function (d) {
     sources = d.sources || [];
     collectAllTags();
     render();
+    fetchSuggestions();
   }).catch(function (e) {
     root.innerHTML = '<div class="crucible-empty">Failed to load sources: ' + escHtml(e.message) + '</div>';
   });

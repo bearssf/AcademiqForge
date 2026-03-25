@@ -333,9 +333,55 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* Source suggestion cards */
+.crucible-sug-empty,
+.crucible-sug-loading {
+  font-size: 0.82rem;
+  color: var(--muted);
+  padding: 0.65rem 0.5rem;
+  line-height: 1.5;
+}
+.crucible-sug-card {
+  padding: 0.55rem 0.6rem;
+  border-bottom: 1px solid var(--line);
+}
+.crucible-sug-card:last-child { border-bottom: none; }
+.crucible-sug-card__title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1.35;
+  margin-bottom: 0.2rem;
+}
+.crucible-sug-card__title a {
+  color: var(--blue);
+  text-decoration: none;
+}
+.crucible-sug-card__title a:hover {
+  text-decoration: underline;
+}
+.crucible-sug-card__authors {
+  font-size: 0.76rem;
+  color: var(--muted);
+  margin-bottom: 0.15rem;
+}
+.crucible-sug-card__meta {
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.4);
+  margin-bottom: 0.2rem;
+}
+.crucible-sug-card__abstract {
+  font-size: 0.74rem;
+  color: var(--fg);
+  opacity: 0.7;
+  line-height: 1.4;
+}
+
 /* Crucible center canvas intro styling */
 .app-crucible-intro {
-  color: var(--blue);
+  color: #1cb9c5;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* ── The Crucible: source management components ────────────────────── */
@@ -760,14 +806,16 @@
 }
 .crucible-field-label {
   font-size: 0.84rem;
-  color: var(--muted);
+  color: #1cb9c5;
   display: block;
+  margin-top: 20px;
   margin-bottom: 0.3rem;
 }
 .crucible-section-checks {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1rem;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.35rem;
 }
 .crucible-section-check {
   font-size: 0.84rem;
@@ -778,10 +826,9 @@
   cursor: pointer;
 }
 .crucible-section-check--all {
-  flex-basis: 100%;
-  padding-bottom: 0.25rem;
+  padding-bottom: 0.3rem;
   border-bottom: 1px solid var(--line);
-  margin-bottom: 0.15rem;
+  margin-bottom: 0.1rem;
 }
 
 /* Tag filter modal list */
