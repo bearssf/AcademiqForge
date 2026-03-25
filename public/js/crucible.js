@@ -569,7 +569,6 @@
         collectAllTags();
         closeModal();
         render();
-        fetchSuggestions();
       }).catch(function (e) { closeModal(); openAlertModal(e.message); });
     });
   }
@@ -889,7 +888,6 @@
       render();
       btn.textContent = 'Tracked ✓';
       btn.classList.add('crucible-sug-track-btn--done');
-      fetchSuggestions();
     }).catch(function (e) {
       btn.disabled = false;
       btn.textContent = '+ Track Source';
@@ -905,21 +903,9 @@
     return set;
   }
 
-  function updateKeywordsLabel(keywords) {
-    var el = document.getElementById('crucible-search-keywords');
-    if (!el) return;
-    if (!keywords.length) {
-      el.innerHTML = '';
-      return;
-    }
-    el.innerHTML = '<span class="crucible-kw-label">Search keywords:</span> ' +
-      keywords.map(function (k) { return '<span class="crucible-kw-tag">' + escHtml(k) + '</span>'; }).join(' ');
-  }
-
   function runSuggestionSearch(keywords) {
     var panel = document.getElementById('crucible-suggestions');
     if (!panel) return;
-    updateKeywordsLabel(keywords);
     if (!keywords.length) {
       panel.innerHTML = '<div class="crucible-sug-empty">Add sources to see related paper suggestions.</div>';
       return;
