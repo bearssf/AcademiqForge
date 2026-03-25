@@ -52,14 +52,14 @@
     const t = state[key];
     if (!t || !t.sections) return 0;
     return t.sections.reduce(function (a, s) {
-      const p = parseInt(s && s.percent, 10);
+      const p = parseFloat(s && s.percent);
       return a + (Number.isNaN(p) ? 0 : p);
     }, 0);
   }
 
   function projectedWordsForSection(total, percent) {
-    const t = parseInt(total, 10);
-    const p = parseInt(percent, 10);
+    const t = parseFloat(total);
+    const p = parseFloat(percent);
     if (Number.isNaN(t) || t <= 0 || Number.isNaN(p)) return '—';
     return Math.round((t * p) / 100).toLocaleString();
   }
@@ -157,10 +157,11 @@
         inPct.className = 'pct';
         inPct.min = '0';
         inPct.max = '100';
+        inPct.step = '0.01';
         inPct.value = s.percent != null ? String(s.percent) : '';
         inPct.addEventListener('change', function () {
-          const v = parseInt(inPct.value, 10);
-          s.percent = Number.isNaN(v) ? null : v;
+          const v = parseFloat(inPct.value);
+          s.percent = Number.isNaN(v) ? null : Math.round(v * 100) / 100;
           render();
         });
         tdPct.appendChild(inPct);
@@ -176,13 +177,15 @@
       });
 
       const sum = sectionSum(key);
+      const sumRounded = Math.round(sum * 100) / 100;
+      const sumOk = Math.abs(sumRounded - 100) < 0.001;
       const sumTr = document.createElement('tr');
-      sumTr.className = 'sum-row' + (sum !== 100 ? ' bad' : '');
+      sumTr.className = 'sum-row' + (sumOk ? '' : ' bad');
       sumTr.innerHTML =
         '<td colspan="2">Total</td><td>' +
-        sum +
+        sumRounded +
         '%</td><td>' +
-        (sum === 100 ? 'OK' : 'Must equal 100%') +
+        (sumOk ? 'OK' : 'Must equal 100%') +
         '</td>';
       tbody.appendChild(sumTr);
 
