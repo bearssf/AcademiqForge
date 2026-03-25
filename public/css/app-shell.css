@@ -3311,3 +3311,220 @@
   z-index: 10000;
 }
 
+/* ── Dashboard / Portfolio page ──────────────────────────────────── */
+.app-canvas--dashboard {
+  overflow-y: auto;
+}
+.dash-recent-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1.25rem;
+  border-radius: 10px;
+  background: rgba(47, 128, 237, 0.08);
+  border: 1px solid rgba(47, 128, 237, 0.18);
+}
+.dash-recent-bar__label {
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.dash-recent-bar__link {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #2f80ec;
+  text-decoration: none;
+}
+.dash-recent-bar__link:hover { text-decoration: underline; }
+
+.dash-visuals {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+  min-height: 200px;
+  max-height: 300px;
+}
+.dash-visual-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+}
+.dash-visual-card__title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1cb9c5;
+  margin-bottom: 0.5rem;
+  text-align: center;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dash-ring-wrap {
+  width: 120px;
+  height: 120px;
+}
+.dash-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.dash-ring__bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.08);
+  stroke-width: 10;
+}
+.dash-ring__fill {
+  fill: none;
+  stroke: #2f80ec;
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.6s ease;
+}
+.dash-ring__text {
+  fill: rgba(255, 255, 255, 0.85);
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  transform: rotate(90deg);
+  transform-origin: 60px 60px;
+}
+.dash-visual-card__sub {
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-top: 0.4rem;
+}
+
+.dash-actions-placeholder {
+  padding: 1.25rem;
+  border-radius: 12px;
+  border: 1px dashed var(--line);
+  background: rgba(255, 255, 255, 0.02);
+}
+.dash-actions-placeholder__label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #2f80ec;
+  margin-bottom: 0.35rem;
+}
+.dash-actions-placeholder__hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+/* Dashboard right rail */
+.app-insight--dashboard {
+  display: flex;
+  flex-direction: column;
+}
+.dash-rail-top {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.dash-rail-top .insight-h {
+  flex-shrink: 0;
+}
+.dash-rail-add {
+  flex-shrink: 0;
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #2f80ec;
+  text-decoration: none;
+  margin-bottom: 0.75rem;
+}
+.dash-rail-add:hover { text-decoration: underline; }
+.dash-rail-projects {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-right: 0.25rem;
+}
+.dash-rail-project-tile {
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.03);
+}
+.dash-rail-project-tile__name {
+  display: block;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #1cb9c5;
+  text-decoration: none;
+  margin-bottom: 0.15rem;
+}
+.dash-rail-project-tile__name:hover { text-decoration: underline; }
+.dash-rail-project-tile__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+.dash-rail-project-tile__meta {
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+.dash-rail-project-tile__actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+.dash-rail-tile-action {
+  font-size: 0.62rem;
+  color: var(--muted);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+.dash-rail-tile-action:hover { color: #2f80ec; }
+.dash-rail-tile-action--del:hover { color: #e55; }
+.dash-rail-empty {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.dash-rail-bottom {
+  flex-shrink: 0;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--line);
+  margin-top: 0.75rem;
+}
+.dash-rail-renewal {
+  display: flex;
+  gap: 0.4rem;
+  align-items: baseline;
+  margin-bottom: 0.35rem;
+}
+.dash-rail-renewal__label {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.dash-rail-renewal__date {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.85);
+}
+.dash-rail-renewal__link {
+  font-size: 0.72rem;
+  color: #2f80ec;
+  text-decoration: none;
+}
+.dash-rail-renewal__link:hover { text-decoration: underline; }
+

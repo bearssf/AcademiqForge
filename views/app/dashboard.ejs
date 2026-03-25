@@ -3,42 +3,110 @@
 <head>
   <%- include('../partials/app-head', { title: 'Portfolio dashboard' }) %>
 </head>
-<body class="app-body app-body--workspace-shell">
+<body class="app-body app-body--workspace-shell app-body--dashboard">
   <div class="app-grid">
     <%- include('../partials/app-sidebar', { user: user, navActive: 'dashboard', projects: projects, currentProjectId: currentProjectId, workspaceSlug: '', appAccess: appAccess }) %>
-    <main class="app-canvas">
+    <main class="app-canvas app-canvas--dashboard">
       <% if (appAccess.trialing && !appAccess.paid && appAccess.trialEndsLabel) { %>
         <div class="app-trial-bar">Free trial active — ends <%= appAccess.trialEndsLabel %>. Upgrade to unlock <strong>The Foundry</strong> and full membership.</div>
       <% } %>
       <h1>Forge portfolio</h1>
       <p class="sub">Your projects and quick entry into each workspace.</p>
 
-      <% if (projects && projects.length) { %>
-        <ul class="app-dashboard-list">
-          <% projects.forEach(function(p) { %>
-            <li class="app-dashboard-item">
-              <div class="app-dashboard-card">
-                <a href="/app/project/<%= p.id %>/anvil" class="app-dashboard-card-main">
-                  <strong><%= p.name %></strong>
-                  <span class="muted"><%= p.purpose %> · <%= p.citation_style %></span>
-                </a>
-                <div class="app-dashboard-card-footer">
-                  <a href="/app/project/<%= p.id %>/settings" class="app-dashboard-edit">Edit</a>
-                  <button type="button" class="app-dashboard-delete" data-project-id="<%= p.id %>" data-project-name="<%= encodeURIComponent(p.name) %>" title="Delete project">Delete</button>
+      <% var recentProject = projects && projects.length ? projects[0] : null; %>
+      <% var progressData = typeof projectProgress !== 'undefined' ? projectProgress : []; %>
+
+      <% if (recentProject) { %>
+      <div class="dash-recent-bar">
+        <span class="dash-recent-bar__label">Most recent project:</span>
+        <a href="/app/project/<%= recentProject.id %>/anvil" class="dash-recent-bar__link"><%= recentProject.name %></a>
+      </div>
+      <% } %>
+
+      <div class="dash-visuals">
+        <% if (recentProject && progressData.length) { %>
+        <% var recentProg = progressData.find(function(pp) { return pp.id === recentProject.id; }); %>
+        <div class="dash-visual-card">
+          <div class="dash-visual-card__title"><%= recentProject.name %></div>
+          <div class="dash-ring-wrap">
+            <svg class="dash-ring" viewBox="0 0 120 120">
+              <circle class="dash-ring__bg" cx="60" cy="60" r="52" />
+              <circle class="dash-ring__fill" cx="60" cy="60" r="52" stroke-dasharray="<%= Math.round(326.7 * (recentProg ? recentProg.pct : 0) / 100) %> 327" />
+              <text class="dash-ring__text" x="60" y="66"><%= recentProg ? recentProg.pct : 0 %>%</text>
+            </svg>
+          </div>
+          <div class="dash-visual-card__sub">Project completion</div>
+        </div>
+        <% } %>
+
+        <%
+          var portfolioWords = 0, portfolioTarget = 0;
+          progressData.forEach(function(pp) {
+            portfolioWords += pp.totalWords;
+            portfolioTarget += pp.target;
+          });
+          var portfolioPct = portfolioTarget > 0 ? Math.min(100, Math.round((portfolioWords / portfolioTarget) * 100)) : 0;
+        %>
+        <% if (progressData.length) { %>
+        <div class="dash-visual-card">
+          <div class="dash-visual-card__title">All Projects</div>
+          <div class="dash-ring-wrap">
+            <svg class="dash-ring" viewBox="0 0 120 120">
+              <circle class="dash-ring__bg" cx="60" cy="60" r="52" />
+              <circle class="dash-ring__fill" cx="60" cy="60" r="52" stroke-dasharray="<%= Math.round(326.7 * portfolioPct / 100) %> 327" />
+              <text class="dash-ring__text" x="60" y="66"><%= portfolioPct %>%</text>
+            </svg>
+          </div>
+          <div class="dash-visual-card__sub">Portfolio completion</div>
+        </div>
+        <% } %>
+      </div>
+
+      <div class="dash-actions-placeholder">
+        <div class="dash-actions-placeholder__label">Actions / Follow Ups</div>
+        <p class="dash-actions-placeholder__hint">Upcoming actions and follow-ups will appear here.</p>
+      </div>
+    </main>
+
+    <aside class="app-insight app-insight--dashboard">
+      <div class="dash-rail-top">
+        <div class="insight-h">Projects in Portfolio</div>
+        <a href="/app/projects/new" class="dash-rail-add">+ Add New Project</a>
+        <div class="dash-rail-projects">
+          <% if (projects && projects.length) { %>
+            <% projects.forEach(function(p) { %>
+              <div class="dash-rail-project-tile">
+                <a href="/app/project/<%= p.id %>/anvil" class="dash-rail-project-tile__name"><%= p.name %></a>
+                <div class="dash-rail-project-tile__row">
+                  <span class="dash-rail-project-tile__meta"><%= p.purpose %> · <%= p.citation_style %></span>
+                  <span class="dash-rail-project-tile__actions">
+                    <a href="/app/project/<%= p.id %>/settings" class="dash-rail-tile-action">Edit</a>
+                    <button type="button" class="dash-rail-tile-action dash-rail-tile-action--del app-dashboard-delete" data-project-id="<%= p.id %>" data-project-name="<%= encodeURIComponent(p.name) %>">Delete</button>
+                  </span>
                 </div>
               </div>
-            </li>
-          <% }); %>
-        </ul>
-        <p class="app-dashboard-actions"><a href="/app/projects/new" class="app-link-cta">+ Forge a new project</a></p>
-      <% } else { %>
-        <div class="app-placeholder">
-          <p style="margin:0 0 .75rem">No projects yet. Forge one to start with The Anvil and Framework.</p>
-          <p style="margin:0"><a href="/app/projects/new" class="app-btn-primary">Forge a new project</a></p>
+            <% }); %>
+          <% } else { %>
+            <p class="dash-rail-empty">No projects yet.</p>
+          <% } %>
         </div>
-      <% } %>
-    </main>
-    <%- include('../partials/app-insight-panel', { insightHint: 'Portfolio-level insights and reminders will appear here.' }) %>
+      </div>
+      <div class="dash-rail-bottom">
+        <% var renewal = typeof renewalDate !== 'undefined' ? renewalDate : null; %>
+        <% if (renewal) { %>
+          <div class="dash-rail-renewal">
+            <span class="dash-rail-renewal__label">Next renewal:</span>
+            <span class="dash-rail-renewal__date"><%= renewal %></span>
+          </div>
+          <a href="/app/account" class="dash-rail-renewal__link">Renew or update subscription</a>
+        <% } else { %>
+          <div class="dash-rail-renewal">
+            <span class="dash-rail-renewal__label">No active subscription</span>
+          </div>
+          <a href="/app/account" class="dash-rail-renewal__link">Subscribe or manage billing</a>
+        <% } %>
+      </div>
+    </aside>
   </div>
   <script src="/js/dashboard.js"></script>
 </body>

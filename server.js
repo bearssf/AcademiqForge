@@ -359,11 +359,40 @@ app.get(
   asyncHandler(async (req, res) => {
     const projects = await listProjects(getPool, req.session.userId);
     const currentProjectId = null;
+    const tpl = loadTemplates();
+    const p = await getPool();
+
+    const projectProgress = [];
+    for (const proj of projects) {
+      const secs = await p
+        .request()
+        .input('pid', sql.Int, proj.id)
+        .query('SELECT body FROM project_sections WHERE project_id = @pid');
+      let totalWords = 0;
+      for (const row of secs.recordset) {
+        if (row.body) {
+          const text = String(row.body).replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+          if (text) totalWords += text.split(/\s+/).length;
+        }
+      }
+      const def = proj.template_key && tpl[proj.template_key] ? tpl[proj.template_key] : null;
+      const target = def && def.projectedTotalWords ? Math.max(1, Math.round(Number(def.projectedTotalWords))) : 0;
+      const pct = target > 0 ? Math.min(100, Math.round((totalWords / target) * 100)) : 0;
+      projectProgress.push({ id: proj.id, name: proj.name, totalWords, target, pct });
+    }
+
+    const subscriptionRow = await getSubscriptionRow(getPool, req.session.userId);
+    const renewalDate = subscriptionRow?.current_period_end
+      ? formatLongDate(subscriptionRow.current_period_end)
+      : null;
+
     res.render('app/dashboard', {
       user: req.session.user,
       appAccess: res.locals.appAccess,
       projects,
       currentProjectId,
+      projectProgress,
+      renewalDate,
     });
   })
 );
