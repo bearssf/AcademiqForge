@@ -3402,7 +3402,7 @@
 }
 .dash-section-bars {
   width: 100%;
-  margin-top: 0.6rem;
+  margin-top: 20px;
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
