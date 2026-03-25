@@ -1184,23 +1184,6 @@
 
   var researchPlanItems = [];
 
-  var testResearchPlanSeeds = [
-    {
-      section_title: 'Introduction',
-      context: 'The claim that critical thinking is impactful to intercultural relationships needs evidence to support',
-      keywords: 'Intercultural relationships, Critical Thinking',
-      research_needed: 'Evidence/Citation',
-      status: 'unresolved',
-    },
-    {
-      section_title: 'Introduction',
-      context: 'The claim that critical thinking is impactful to intercultural relationships needs evidence to support',
-      keywords: 'Intercultural relationships, Critical Thinking',
-      research_needed: 'Evidence/Citation',
-      status: 'unresolved',
-    },
-  ];
-
   function renderResearchPlan() {
     var panel = document.getElementById('crucible-research-plan');
     if (!panel) return;
@@ -1261,28 +1244,9 @@
   function loadResearchPlan() {
     api('GET', '/research-plan').then(function (d) {
       researchPlanItems = d.items || [];
-      if (researchPlanItems.length === 0) {
-        seedTestItems();
-      } else {
-        renderResearchPlan();
-      }
+      renderResearchPlan();
     }).catch(function (e) {
       console.error('[Crucible] Failed to load research plan:', e);
-    });
-  }
-
-  function seedTestItems() {
-    var remaining = testResearchPlanSeeds.length;
-    testResearchPlanSeeds.forEach(function (seed) {
-      api('POST', '/research-plan', seed).then(function (d) {
-        researchPlanItems.push(d.item);
-        remaining--;
-        if (remaining === 0) renderResearchPlan();
-      }).catch(function (e) {
-        console.error('[Crucible] Failed to seed research plan item:', e);
-        remaining--;
-        if (remaining === 0) renderResearchPlan();
-      });
     });
   }
 
