@@ -16,6 +16,7 @@
   var autosaveChars = parseInt(root.dataset.autosaveChars || '250', 10);
   if (Number.isNaN(autosaveChars) || autosaveChars < 1) autosaveChars = 250;
   var charsSinceLastSave = 0;
+  var editorDirty = false;
   var saveStatusRevertTimer = null;
   var lastSavedLabel = null;
 
@@ -407,6 +408,7 @@
     }
     quill.deleteText(m.start, len, 'silent');
     quill.insertText(m.start, sug, 'silent');
+    editorDirty = true;
     row.status = 'applied';
     row.matchPosition = null;
     rebaseFeedback(getDraftPlain());
@@ -473,6 +475,7 @@
       var sec = sectionById(savingId);
       if (sec) sec.body = html;
       charsSinceLastSave = 0;
+      editorDirty = false;
       updateSaveStatus('saved', 'Saved ' + formatSaveTime());
       updateProgressDisplay();
     } catch (e) {
@@ -636,6 +639,7 @@
   }
 
   function onEditorUserChange(delta) {
+    editorDirty = true;
     var changeSize = deltaChangeSize(delta);
     charsSinceLastSave += changeSize;
     if (charsSinceLastSave >= autosaveChars) {
@@ -773,10 +777,10 @@
 
     if (draftStr) {
       try {
-        var delta = quill.clipboard.convert({ html: draftStr });
+        var delta = quill.clipboard.convert(draftStr);
         quill.setContents(delta, 'silent');
       } catch (e) {
-        quill.setText(draftStr);
+        quill.root.innerHTML = draftStr;
       }
     }
     quill.on('text-change', function (delta, oldDelta, source) {
@@ -1251,6 +1255,7 @@
     hasCompletedInitialReview = false;
     charsSinceFingerprint = 0;
     charsSinceLastSave = 0;
+    editorDirty = false;
     ieeeCounter = 0;
     ieeeMap = {};
     renderFeedbackRail();
@@ -1320,7 +1325,9 @@
   });
 
   function flushPendingSave() {
+    var hadTimer = !!saveTimer;
     if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    if (!editorDirty && !hadTimer) return;
     if (selectedId == null || !bundle || !quill) return;
     var html = getDraftHtml();
     var sec = sectionById(selectedId);
@@ -1330,6 +1337,7 @@
     xhr.setRequestHeader('Content-Type', 'application/json');
     try { xhr.send(JSON.stringify({ body: html })); } catch (e) { /* best effort */ }
     charsSinceLastSave = 0;
+    editorDirty = false;
   }
 
   window.addEventListener('beforeunload', flushPendingSave);
