@@ -73,6 +73,30 @@ const AUTOSAVE_CHAR_THRESHOLD = Math.max(
 const SCORE_STRONG_THRESHOLD = parseFloat(process.env.SCORE_STRONG_THRESHOLD || '0.05') || 0.05;
 const SCORE_MODERATE_THRESHOLD = parseFloat(process.env.SCORE_MODERATE_THRESHOLD || '0.15') || 0.15;
 
+/** MySQL TLS for Cloud SQL and other hosts that require SSL (mysql2 pool). */
+function buildMysqlSslFromEnv() {
+  const flag = String(process.env.DB_SSL || '').trim().toLowerCase();
+  const enabled = flag === '1' || flag === 'true' || flag === 'yes' || flag === 'on';
+  if (!enabled) return undefined;
+
+  const caPath = process.env.DB_SSL_CA_PATH;
+  if (caPath && String(caPath).trim()) {
+    const resolved = path.isAbsolute(caPath) ? caPath : path.join(process.cwd(), String(caPath).trim());
+    const ca = fs.readFileSync(resolved, 'utf8');
+    return { ca, rejectUnauthorized: true };
+  }
+  const caPem = process.env.DB_SSL_CA_PEM;
+  if (caPem && String(caPem).trim()) {
+    const ca = String(caPem).replace(/\\n/g, '\n');
+    return { ca, rejectUnauthorized: true };
+  }
+  const strict = String(process.env.DB_SSL_REJECT_UNAUTHORIZED || '')
+    .trim()
+    .toLowerCase();
+  const rejectUnauthorized = strict === '1' || strict === 'true' || strict === 'yes';
+  return { rejectUnauthorized };
+}
+
 const dbConfig = {
   host: process.env.DB_HOST,
   port: parseInt(process.env.DB_PORT || '3306', 10),
@@ -80,6 +104,7 @@ const dbConfig = {
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   connectionLimit: 10,
+  ssl: buildMysqlSslFromEnv(),
 };
 
 app.set('trust proxy', 1);
@@ -1066,7 +1091,7 @@ async function start() {
     console.error(err);
     if (/ETIMEOUT|ECONNREFUSED|ETIME|ETIMEDOUT|ECONNRESET|Access denied|access denied/i.test(String(err.message))) {
       console.error(
-        'Hint: confirm DB_HOST, DB_PORT (default 3306 for MySQL), DB_NAME, DB_USER, DB_PASSWORD, and that your host allows connections from this server (e.g. Cloud SQL authorized networks / private IP).'
+        'Hint: confirm DB_HOST, DB_PORT (default 3306 for MySQL), DB_NAME, DB_USER, DB_PASSWORD, Cloud SQL authorized networks / static outbound IP on Render, and DB_SSL=true (plus DB_SSL_CA_PEM or DB_SSL_CA_PATH) if the instance requires TLS.'
       );
     }
     process.exit(1);
