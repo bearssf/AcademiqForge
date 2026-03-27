@@ -310,7 +310,11 @@ async function ensureUserExtraColumns() {
     try {
       await queryRaw(getPool, 'ALTER TABLE users ADD COLUMN `' + name + '` ' + def);
     } catch (e) {
-      if (e.code !== 'ER_DUP_FIELD_NAME') throw e;
+      const dup =
+        e.errno === 1060 ||
+        e.code === 'ER_DUP_FIELDNAME' ||
+        e.code === 'ER_DUP_FIELD_NAME';
+      if (!dup) throw e;
     }
   }
 }
