@@ -33,6 +33,9 @@
   var charsSinceFingerprint = 0;
 
   var paperMode = false;
+  var anvilUserProfile = null;
+  var citationUsagesList = [];
+  var anvilResearchPlanItems = [];
 
   function recordTextFingerprint() {
     var fp = getDraftPlain();
@@ -247,6 +250,440 @@
     var d = document.createElement('div');
     d.textContent = s == null ? '' : String(s);
     return d.innerHTML;
+  }
+
+  function sectionSlugKey(sec) {
+    if (!sec) return '';
+    return String(sec.slug != null ? sec.slug : '')
+      .trim()
+      .toLowerCase();
+  }
+
+  function isTitleSection(sec) {
+    return sectionSlugKey(sec) === 'title';
+  }
+
+  function isReferenceSection(sec) {
+    return sectionSlugKey(sec) === 'reference';
+  }
+
+  function skipStructuredFeedback(sec) {
+    return isTitleSection(sec) || isReferenceSection(sec);
+  }
+
+  function isHtmlBodyEmpty(html) {
+    if (html == null || !String(html).trim()) return true;
+    var d = document.createElement('div');
+    d.innerHTML = html;
+    var t = (d.textContent || '').replace(/\u00a0/g, ' ').trim();
+    return !t;
+  }
+
+  function displayAuthorFromProfile(u) {
+    if (!u) return '[Your name — add in Account]';
+    var name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();
+    var bits = [];
+    if (u.title) bits.push(String(u.title).trim());
+    if (name) bits.push(name);
+    var s = bits.join(' ').trim();
+    return s || '[Your name — add in Account]';
+  }
+
+  function universityFromProfile(u) {
+    if (!u || !String(u.university || '').trim()) return '[University — add in Account]';
+    return String(u.university).trim();
+  }
+
+  function projectDisplayTitle(proj) {
+    if (!proj) return 'Project title';
+    return String(proj.name || proj.title || 'Project title').trim() || 'Project title';
+  }
+
+  function buildTitlePageHtml(styleKey, user, project) {
+    var sk = (styleKey || 'APA').trim().toUpperCase();
+    var author = displayAuthorFromProfile(user);
+    var uni = universityFromProfile(user);
+    var ptitle = escapeHtml(projectDisplayTitle(project));
+    var authorH = escapeHtml(author);
+    var uniH = escapeHtml(uni);
+    var courseH = escapeHtml('[Course — add here; not stored in Account]');
+    var instrH = escapeHtml('[Instructor — add here]');
+    var dateH = escapeHtml('[Due date — add here]');
+
+    if (sk === 'MLA') {
+      return (
+        '<p>' + authorH + '</p>' +
+        '<p>' + instrH + '</p>' +
+        '<p>' + courseH + '</p>' +
+        '<p>' + dateH + '</p>' +
+        '<p><br></p>' +
+        '<p class="ql-align-center"><strong>' + ptitle + '</strong></p>'
+      );
+    }
+
+    if (sk === 'IEEE') {
+      return (
+        '<p class="ql-align-center"><strong>' + ptitle + '</strong></p>' +
+        '<p class="ql-align-center">' + authorH + '</p>' +
+        '<p class="ql-align-center">' + uniH + '</p>' +
+        '<p class="ql-align-center">' + courseH + '</p>'
+      );
+    }
+
+    if (sk === 'CHICAGO' || sk === 'TURABIAN') {
+      return (
+        '<p class="ql-align-center"><strong>' + ptitle + '</strong></p>' +
+        '<p class="ql-align-center">' + authorH + '</p>' +
+        '<p class="ql-align-center">' + uniH + '</p>' +
+        '<p class="ql-align-center">' + courseH + '</p>' +
+        '<p class="ql-align-center">' + instrH + '</p>' +
+        '<p class="ql-align-center">' + dateH + '</p>'
+      );
+    }
+
+    /* APA, Harvard, AMA, Vancouver, default */
+    return (
+      '<p class="ql-align-center"><strong>' + ptitle + '</strong></p>' +
+      '<p class="ql-align-center">' + authorH + '</p>' +
+      '<p class="ql-align-center">' + uniH + '</p>' +
+      '<p class="ql-align-center">' + courseH + '</p>' +
+      '<p class="ql-align-center">' + instrH + '</p>' +
+      '<p class="ql-align-center">' + dateH + '</p>'
+    );
+  }
+
+  function titleProfileModalKey(sec) {
+    return 'anvil-title-first-visit:' + projectId + ':' + (sec && sec.id != null ? sec.id : '0');
+  }
+
+  function maybeShowTitleAccountModal(sec) {
+    if (!isTitleSection(sec)) return;
+    var modal = document.getElementById('anvil-title-profile-modal');
+    var bodyEl = document.getElementById('anvil-title-profile-modal-text');
+    if (!modal || !bodyEl) return;
+    try {
+      if (localStorage.getItem(titleProfileModalKey(sec))) return;
+      localStorage.setItem(titleProfileModalKey(sec), '1');
+    } catch (e) {
+      /* still show once per load if storage fails */
+    }
+    var missingUni =
+      !anvilUserProfile || !String(anvilUserProfile.university || '').trim();
+    var parts = [
+      'We prefilled this page using your project title and your Account name and university when available.',
+      'Course, instructor, and due date are not stored in your profile—replace the bracketed placeholders in the document.',
+    ];
+    if (missingUni) {
+      parts.push('Your university is missing from Account; add it under Account for a stronger default title page.');
+    }
+    parts.push('You can open Account anytime to update your name or university.');
+    bodyEl.textContent = parts.join(' ');
+    modal.hidden = false;
+  }
+
+  function closeTitleProfileModal() {
+    var modal = document.getElementById('anvil-title-profile-modal');
+    if (modal) modal.hidden = true;
+  }
+
+  function bibliographyHeading(styleKey) {
+    var sk = (styleKey || 'APA').trim().toUpperCase();
+    if (sk === 'MLA') return 'Works Cited';
+    if (sk === 'CHICAGO' || sk === 'TURABIAN') return 'Bibliography';
+    if (sk === 'IEEE' || sk === 'AMA' || sk === 'VANCOUVER') return 'References';
+    if (sk === 'HARVARD') return 'Reference List';
+    return 'References';
+  }
+
+  function refYear(src) {
+    var y = (src.publication_date || '').trim().slice(0, 4);
+    return y || 'n.d.';
+  }
+
+  function bibParaOpen() {
+    return '<p style="padding-left:2em;text-indent:-2em;margin:0 0 0.5em">';
+  }
+
+  function formatBibliographyEntry(src, styleKey, ieeeNumber, citeCount) {
+    var sk = (styleKey || 'APA').trim().toUpperCase();
+    var authors = (src.authors || '').trim() || 'Author, A. A.';
+    var title =
+      (src.article_title || src.chapter_name || src.book_title || '').trim() ||
+      (src.citation_text || '').trim().split('\n')[0] ||
+      'Untitled';
+    var journal = (src.journal_title || '').trim();
+    var vol = (src.volume_number || '').trim();
+    var issue = (src.issue_number || '').trim();
+    var pages = (src.page_numbers || '').trim();
+    var bookTitle = (src.book_title || '').trim();
+    var pub = (src.publisher || '').trim();
+    var loc = (src.publisher_location || '').trim();
+    var url = (src.url || src.open_access_url || '').trim();
+    var doi = (src.doi || '').trim();
+    var y = refYear(src);
+    var countNote = '';
+    if (citeCount > 1) countNote = ' <em>(Cited ' + citeCount + '×)</em>';
+    else if (citeCount === 1) countNote = '';
+
+    var fallback = escapeHtml((src.citation_text || title).trim()) + countNote;
+
+    if (sk === 'IEEE') {
+      var num = ieeeNumber != null ? ieeeNumber : 1;
+      var ie = '[' + num + '] ' + escapeHtml(authors) + ', "' + escapeHtml(title) + '," ';
+      if (journal) {
+        ie += escapeHtml(journal);
+        if (vol) ie += ', vol. ' + escapeHtml(vol);
+        if (issue) ie += ', no. ' + escapeHtml(issue);
+        if (pages) ie += ', pp. ' + escapeHtml(pages);
+        ie += ', ' + escapeHtml(y) + '.';
+      } else {
+        ie += escapeHtml(y) + '.';
+      }
+      return bibParaOpen() + ie + countNote + '</p>';
+    }
+
+    if (sk === 'MLA') {
+      var ml = bibParaOpen() + escapeHtml(authors) + '. "' + escapeHtml(title) + '."';
+      if (journal) {
+        ml += ' <em>' + escapeHtml(journal) + '</em>';
+        if (vol) ml += ', vol. ' + escapeHtml(vol);
+        if (issue) ml += ', no. ' + escapeHtml(issue);
+        ml += ', ' + escapeHtml(y);
+        if (pages) ml += ', pp. ' + escapeHtml(pages);
+        ml += '.';
+      } else if (bookTitle) {
+        ml += ' <em>' + escapeHtml(bookTitle) + '</em>, ' + escapeHtml(pub || y) + '.';
+      } else {
+        ml += ' ' + escapeHtml(y) + '.';
+      }
+      if (url) ml += ' ' + escapeHtml(url) + '.';
+      return ml + countNote + '</p>';
+    }
+
+    if (sk === 'CHICAGO' || sk === 'TURABIAN') {
+      var ch = bibParaOpen() + escapeHtml(authors) + '. "' + escapeHtml(title) + '."';
+      if (journal) {
+        ch += ' <em>' + escapeHtml(journal) + '</em> ';
+        if (vol) ch += escapeHtml(vol);
+        if (issue) ch += ', no. ' + escapeHtml(issue);
+        ch += ' (' + escapeHtml(y) + ')';
+        if (pages) ch += ': ' + escapeHtml(pages);
+        ch += '.';
+      } else if (bookTitle) {
+        ch += ' <em>' + escapeHtml(bookTitle) + '</em> (' + escapeHtml(loc || pub || y) + ').';
+      } else {
+        ch += ' ' + escapeHtml(y) + '.';
+      }
+      if (doi) ch += ' https://doi.org/' + escapeHtml(doi) + '.';
+      else if (url) ch += ' ' + escapeHtml(url) + '.';
+      return ch + countNote + '</p>';
+    }
+
+    /* APA, Harvard, AMA, Vancouver — APA-style reference line */
+    var ap = bibParaOpen() + escapeHtml(authors) + ' (' + escapeHtml(y) + '). ' + escapeHtml(title) + '.';
+    if (journal) {
+      ap += ' <em>' + escapeHtml(journal) + '</em>';
+      if (vol) ap += ', <em>' + escapeHtml(vol) + '</em>';
+      if (issue) ap += '(' + escapeHtml(issue) + ')';
+      if (pages) ap += ', ' + escapeHtml(pages);
+      ap += '.';
+    } else if (bookTitle) {
+      ap += ' <em>' + escapeHtml(bookTitle) + '</em>.';
+      if (pub) ap += ' ' + escapeHtml(pub) + '.';
+    }
+    if (doi) ap += ' https://doi.org/' + escapeHtml(doi);
+    else if (url) ap += ' ' + escapeHtml(url);
+    ap += '</p>';
+    if (ap.length < 48) return fallback;
+    return ap.replace('</p>', countNote + '</p>');
+  }
+
+  function ieeeFirstUseOrder(usages, sourceIds) {
+    var order = [];
+    var seen = {};
+    (usages || []).forEach(function (u) {
+      var sid = u.source_id;
+      if (sid == null || seen[sid]) return;
+      if (sourceIds.indexOf(sid) === -1) return;
+      seen[sid] = true;
+      order.push(sid);
+    });
+    sourceIds.forEach(function (sid) {
+      if (!seen[sid]) order.push(sid);
+    });
+    return order;
+  }
+
+  function sortSourcesAlphabetical(srcList) {
+    return srcList.slice().sort(function (a, b) {
+      var la = parseAuthorLastNames(a.authors)[0] || (a.article_title || '').toLowerCase();
+      var lb = parseAuthorLastNames(b.authors)[0] || (b.article_title || '').toLowerCase();
+      la = String(la).toLowerCase();
+      lb = String(lb).toLowerCase();
+      return la < lb ? -1 : la > lb ? 1 : 0;
+    });
+  }
+
+  function buildReferencePageHtml(styleKey, allSources, usages, countsBySource) {
+    var sk = (styleKey || 'APA').trim().toUpperCase();
+    var heading = escapeHtml(bibliographyHeading(sk));
+    var usedIds = Object.keys(countsBySource || {})
+      .map(function (k) {
+        return parseInt(k, 10);
+      })
+      .filter(function (id) {
+        return !Number.isNaN(id) && (countsBySource[id] || 0) > 0;
+      });
+    if (!usedIds.length) {
+      return (
+        '<h2 class="ql-align-center"><strong>' + heading + '</strong></h2>' +
+        '<p><em>No in-text citations have been recorded for this project yet. Insert citations from the Crucible or Anvil source cards.</em></p>'
+      );
+    }
+    var byId = {};
+    (allSources || []).forEach(function (s) {
+      byId[s.id] = s;
+    });
+    var list = usedIds.map(function (id) {
+      return byId[id];
+    }).filter(Boolean);
+    var ordered;
+    if (sk === 'IEEE' || sk === 'AMA' || sk === 'VANCOUVER') {
+      ordered = ieeeFirstUseOrder(usages, usedIds).map(function (id) {
+        return byId[id];
+      }).filter(Boolean);
+    } else {
+      ordered = sortSourcesAlphabetical(list);
+    }
+
+    var html = '<h2 class="ql-align-center"><strong>' + heading + '</strong></h2>';
+    ordered.forEach(function (src, idx) {
+      var n = sk === 'IEEE' || sk === 'AMA' || sk === 'VANCOUVER' ? idx + 1 : null;
+      var c = countsBySource[src.id] || 0;
+      html += formatBibliographyEntry(src, sk, n, c);
+    });
+    return html;
+  }
+
+  function getCitationsMountEl() {
+    var refRail = document.getElementById('anvil-rail-mode-reference');
+    if (refRail && !refRail.hidden) {
+      return document.getElementById('anvil-citations-mount-ref');
+    }
+    return document.getElementById('anvil-citations-mount');
+  }
+
+  function syncAnvilRightRail(current) {
+    var def = document.getElementById('anvil-rail-mode-default');
+    var ref = document.getElementById('anvil-rail-mode-reference');
+    if (!def || !ref) return;
+    var isRef = isReferenceSection(current);
+    def.hidden = isRef;
+    ref.hidden = !isRef;
+    if (isRef) {
+      loadAnvilResearchPlan();
+      renderCitationRail();
+    } else {
+      renderCitationRail();
+    }
+  }
+
+  function renderAnvilResearchPlan() {
+    var panel = document.getElementById('anvil-reference-research-plan');
+    if (!panel) return;
+    var visible = anvilResearchPlanItems.filter(function (it) {
+      return it.status !== 'dismissed';
+    });
+    if (!visible.length) {
+      panel.innerHTML = '<div class="crucible-rp-empty">No research plan items.</div>';
+      return;
+    }
+    var html = '';
+    visible.forEach(function (it) {
+      var statusClass = it.status === 'resolved' ? 'crucible-rp-tile--resolved' : '';
+      html += '<div class="crucible-rp-tile ' + statusClass + '" data-anvil-rp-id="' + it.id + '">';
+      html += '<div class="crucible-rp-tile__field"><span class="crucible-rp-label">Section:</span> ' + escapeHtml(it.section_title || '—') + '</div>';
+      html += '<div class="crucible-rp-tile__field"><span class="crucible-rp-label">Context:</span> ' + escapeHtml(it.suggestion_body || '—') + '</div>';
+      html += '<div class="crucible-rp-tile__field"><span class="crucible-rp-label">Key Words:</span> ' + escapeHtml(it.keywords || '—') + '</div>';
+      html += '<div class="crucible-rp-tile__field"><span class="crucible-rp-label">Research Needed:</span> ' + escapeHtml(it.research_needed || '—') + '</div>';
+      html += '<div class="crucible-rp-tile__field"><span class="crucible-rp-label">Status:</span> <span class="crucible-rp-status crucible-rp-status--' + escapeHtml(it.status) + '">' + escapeHtml(it.status.charAt(0).toUpperCase() + it.status.slice(1)) + '</span></div>';
+      html += '<div class="crucible-rp-tile__actions">';
+      if (it.status !== 'resolved') {
+        html += '<button type="button" class="crucible-rp-btn crucible-rp-btn--resolve anvil-rp-resolve" data-anvil-rp-id="' + it.id + '">Resolve</button>';
+      }
+      if (it.status !== 'dismissed') {
+        html += '<button type="button" class="crucible-rp-btn crucible-rp-btn--dismiss anvil-rp-dismiss" data-anvil-rp-id="' + it.id + '">Dismiss</button>';
+      }
+      html += '</div></div>';
+    });
+    panel.innerHTML = html;
+  }
+
+  function updateAnvilResearchPlanStatus(itemId, newStatus) {
+    api('/projects/' + projectId + '/research-plan/' + itemId, 'PATCH', { status: newStatus })
+      .then(function (d) {
+        for (var i = 0; i < anvilResearchPlanItems.length; i++) {
+          if (anvilResearchPlanItems[i].id === itemId) {
+            anvilResearchPlanItems[i] = d.item;
+            break;
+          }
+        }
+        renderAnvilResearchPlan();
+      })
+      .catch(function (e) {
+        window.alert('Could not update research plan: ' + (e.message || 'unknown error'));
+      });
+  }
+
+  function loadAnvilResearchPlan() {
+    if (!isReferenceSection(sectionById(selectedId))) return;
+    api('/projects/' + projectId + '/research-plan', 'GET')
+      .then(function (d) {
+        anvilResearchPlanItems = d.items || [];
+        renderAnvilResearchPlan();
+      })
+      .catch(function (e) {
+        console.error('[Anvil] research plan load failed', e);
+      });
+  }
+
+  function applyReferenceSectionBody(force) {
+    if (!isReferenceSection(sectionById(selectedId)) || !quill) return;
+    Promise.all([
+      fetch('/api/projects/' + projectId + '/sources', { credentials: 'same-origin' }).then(function (r) {
+        return r.json();
+      }),
+      fetch('/api/projects/' + projectId + '/citation-usages', { credentials: 'same-origin' }).then(function (r) {
+        return r.json();
+      }),
+    ])
+      .then(function (pair) {
+        var d0 = pair[0];
+        var d1 = pair[1];
+        var allSources = d0.sources || [];
+        var usages = d1.usages || [];
+        var counts = {};
+        usages.forEach(function (u) {
+          counts[u.source_id] = (counts[u.source_id] || 0) + 1;
+        });
+        if (!force && !isHtmlBodyEmpty(getDraftHtml())) return;
+        var html = buildReferencePageHtml(getProjectCitationStyle(), allSources, usages, counts);
+        try {
+          var delta = quill.clipboard.convert(html);
+          quill.setContents(delta, 'silent');
+        } catch (e) {
+          quill.root.innerHTML = html;
+        }
+        editorDirty = true;
+        applyWritingStyle();
+        scheduleSave();
+        charsSinceFingerprint = 0;
+        recordTextFingerprint();
+        loadCitationUsages();
+      })
+      .catch(function (e) {
+        console.error('[Anvil] reference rebuild failed', e);
+      });
   }
 
   async function api(path, method, body) {
@@ -713,7 +1150,8 @@
 
   function updateScoring() {
     var panel = document.getElementById('anvil-scoring-panel');
-    if (!panel) return;
+    if (!panel || panel.hidden) return;
+    if (skipStructuredFeedback(sectionById(selectedId))) return;
     var sectionScores = computeSectionScores();
     var current = sectionById(selectedId);
     var sectionWords = current ? countWords(current.body || getDraftHtml()) : 0;
@@ -759,6 +1197,7 @@
   }
 
   function scheduleInitialReview() {
+    if (skipStructuredFeedback(sectionById(selectedId))) return;
     if (hasCompletedInitialReview) return;
     if (initialTimer) clearTimeout(initialTimer);
     initialTimer = setTimeout(function () {
@@ -768,11 +1207,13 @@
   }
 
   function requestInitialReview() {
+    if (skipStructuredFeedback(sectionById(selectedId))) return;
     if (hasCompletedInitialReview) return;
     runStructuredReview(false);
   }
 
   function tryIncrementalReview() {
+    if (skipStructuredFeedback(sectionById(selectedId))) return false;
     if (!hasCompletedInitialReview || reviewInFlight) return false;
     var plain = getDraftPlain();
     if (plain.length < MIN_PLAIN_CHARS) return false;
@@ -782,6 +1223,7 @@
   }
 
   function runStructuredReview(isIncremental) {
+    if (skipStructuredFeedback(sectionById(selectedId))) return;
     if (selectedId == null || !bundle) return;
     if (!quill && !document.getElementById('anvil-fallback')) return;
     if (reviewInFlight) return;
@@ -854,6 +1296,7 @@
   }
 
   function manualRefreshFeedback() {
+    if (skipStructuredFeedback(sectionById(selectedId))) return;
     if (selectedId == null || !bundle) return;
     if (!quill && !document.getElementById('anvil-fallback')) return;
     if (reviewInFlight) return;
@@ -872,6 +1315,7 @@
       saveSectionDraft();
     }
     if (!hasPendingChange) scheduleSave();
+    if (skipStructuredFeedback(sectionById(selectedId))) return;
     if (!hasCompletedInitialReview) {
       scheduleInitialReview();
       return;
@@ -955,6 +1399,7 @@
           var cur = ta.value.length;
           var deltaLen = Math.abs(cur - taLastLen);
           taLastLen = cur;
+          if (skipStructuredFeedback(sectionById(selectedId))) return;
           if (!hasCompletedInitialReview) {
             scheduleInitialReview();
             return;
@@ -1273,8 +1718,9 @@
     fetch('/api/projects/' + projectId + '/citation-usages', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
+        citationUsagesList = d.usages || [];
         citationUsageCounts = {};
-        (d.usages || []).forEach(function (u) {
+        citationUsagesList.forEach(function (u) {
           citationUsageCounts[u.source_id] = (citationUsageCounts[u.source_id] || 0) + 1;
         });
         renderCitationRail();
@@ -1301,7 +1747,7 @@
   }
 
   function renderCitationRail() {
-    var mount = document.getElementById('anvil-citations-mount');
+    var mount = getCitationsMountEl();
     if (!mount) return;
     if (!sectionSources.length) {
       mount.innerHTML = '<p class="app-anvil-rail__citations-placeholder">No sources tagged to this section.</p>';
@@ -1424,6 +1870,7 @@
   }
 
   function loadFeedbackFromDb() {
+    if (skipStructuredFeedback(sectionById(selectedId))) return;
     if (selectedId == null) return;
     api('/projects/' + projectId + '/sections/' + selectedId + '/feedback', 'GET')
       .then(function (data) {
@@ -1465,8 +1912,12 @@
       current = sectionById(selectedId);
     }
     var draft = sectionBodyProp(current);
+    if (isTitleSection(current) && isHtmlBodyEmpty(draft)) {
+      draft = buildTitlePageHtml(getProjectCitationStyle(), anvilUserProfile, bundle.project);
+    }
 
     var citStyle = getProjectCitationStyle();
+    var hideScoring = skipStructuredFeedback(current);
 
     var progressHtml = buildProgressHtml(current);
 
@@ -1475,7 +1926,9 @@
       '<div class="anvil-layout--single">' +
       '<div class="anvil-top-metrics">' +
       '<div class="anvil-top-metrics__progress">' + progressHtml + '</div>' +
-      '<div class="anvil-top-metrics__scoring" id="anvil-scoring-panel"></div>' +
+      '<div class="anvil-top-metrics__scoring" id="anvil-scoring-panel"' +
+      (hideScoring ? ' hidden' : '') +
+      '></div>' +
       '</div>' +
       '<div id="anvil-analyze-banner" class="anvil-analyze-banner" hidden aria-live="polite"></div>' +
       '<div class="anvil-editor">' +
@@ -1537,12 +1990,16 @@
     document.getElementById('anvil-export-all-rtf').addEventListener('click', exportAllRtf);
     document.getElementById('anvil-export-all-docx').addEventListener('click', exportAllDocx);
 
-    var addSourceBtn = document.getElementById('anvil-add-source-btn');
-    if (addSourceBtn) {
-      addSourceBtn.addEventListener('click', function () {
-        flushPendingSave();
-        window.location.href = '/app/project/' + projectId + '/crucible';
-      });
+    syncAnvilRightRail(current);
+    if (isTitleSection(current)) {
+      setTimeout(function () {
+        maybeShowTitleAccountModal(current);
+      }, 120);
+    }
+    if (isReferenceSection(current)) {
+      setTimeout(function () {
+        applyReferenceSectionBody(false);
+      }, 0);
     }
 
     /* Highlight the active section in sidebar */
@@ -1645,6 +2102,12 @@
     root.innerHTML = '<p class="anvil-loading">Loading…</p>';
     try {
       bundle = await api('/projects/' + projectId, 'GET');
+      try {
+        var mePayload = await api('/me', 'GET');
+        anvilUserProfile = mePayload && mePayload.user ? mePayload.user : null;
+      } catch (meErr) {
+        anvilUserProfile = null;
+      }
       var u = new URL(window.location.href);
       var sq = u.searchParams.get('section');
       if (sq != null && bundle.sections) {
@@ -1670,6 +2133,42 @@
   if (refreshBtn) {
     refreshBtn.addEventListener('click', manualRefreshFeedback);
   }
+
+  var refreshReferencesBtn = document.getElementById('anvil-refresh-references-btn');
+  if (refreshReferencesBtn) {
+    refreshReferencesBtn.addEventListener('click', function () {
+      applyReferenceSectionBody(true);
+    });
+  }
+
+  var titleModalDismiss = document.getElementById('anvil-title-profile-modal-dismiss');
+  var titleModalBackdrop = document.getElementById('anvil-title-profile-modal-backdrop');
+  if (titleModalDismiss) titleModalDismiss.addEventListener('click', closeTitleProfileModal);
+  if (titleModalBackdrop) titleModalBackdrop.addEventListener('click', closeTitleProfileModal);
+
+  document.addEventListener('click', function (e) {
+    if (!document.getElementById('anvil-root')) return;
+    var addSrc = e.target.closest('#anvil-add-source-btn, #anvil-add-source-btn-ref');
+    if (addSrc) {
+      e.preventDefault();
+      flushPendingSave();
+      window.location.href = '/app/project/' + projectId + '/crucible';
+      return;
+    }
+    var rpRes = e.target.closest('.anvil-rp-resolve');
+    if (rpRes) {
+      e.preventDefault();
+      var rid = parseInt(rpRes.getAttribute('data-anvil-rp-id'), 10);
+      if (!Number.isNaN(rid)) updateAnvilResearchPlanStatus(rid, 'resolved');
+      return;
+    }
+    var rpDis = e.target.closest('.anvil-rp-dismiss');
+    if (rpDis) {
+      e.preventDefault();
+      var rid2 = parseInt(rpDis.getAttribute('data-anvil-rp-id'), 10);
+      if (!Number.isNaN(rid2)) updateAnvilResearchPlanStatus(rid2, 'dismissed');
+    }
+  });
 
   load();
 })();

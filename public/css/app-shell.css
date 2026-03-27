@@ -327,6 +327,55 @@
   line-height: 1.5;
 }
 
+/* Anvil: reference section rail — refresh control + sources + research plan */
+.app-anvil-rail__inner--reference {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.app-anvil-rail__reference-top {
+  flex: 0 0 auto;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 0.5rem;
+}
+.app-insight.app-anvil-rail .insight-h--reference {
+  color: var(--blue);
+}
+.anvil-ref-rail-hint {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0 0 0.6rem;
+  line-height: 1.45;
+}
+.anvil-refresh-references-btn {
+  width: 100%;
+  box-sizing: border-box;
+}
+.app-anvil-rail__bottom--reference {
+  flex: 1 1 42%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.app-anvil-rail__research-plan-block {
+  flex: 1 1 42%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--line);
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+  overflow: hidden;
+}
+.app-anvil-rail__scroll--research-plan {
+  flex: 1;
+  min-height: 6rem;
+}
+
 /* ── The Crucible: right rail = source suggestions top 50% + research plan bottom 50% ── */
 .app-body--workspace-shell .app-insight.app-crucible-rail {
   display: flex;
