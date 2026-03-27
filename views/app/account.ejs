@@ -134,7 +134,7 @@
               <% } else if (subscriptionRow && subscriptionRow.status === 'past_due') { %>
                 <p class="account-status">Your last payment failed (<strong>past due</strong>). Use <strong>Update Card on File</strong> below or the Stripe emails you receive to update your payment method.</p>
               <% } else if (appAccess.trialing && appAccess.trialEndsLabel) { %>
-                <p class="account-status">Free trial active. Upgrade to unlock <strong>The Foundry</strong>.</p>
+                <p class="account-status">Free trial active. Upgrade to continue forging and to unlock all features.</p>
               <% } else { %>
                 <p class="account-status">No active paid subscription.</p>
               <% } %>
@@ -189,7 +189,7 @@
                       <% } %>
                     </div>
                     <% if (typeof stripeElementsConfigured !== 'undefined' && stripeElementsConfigured) { %>
-                      <p class="account-meta">Choose a plan — you’ll enter card details on the next page (processed by Stripe; we never store your card).</p>
+                      <p class="account-meta">Subscribe by selecting your plan preference and completing our simple checkout (powered by Stripe)</p>
                     <% } else { %>
                       <p class="account-meta">Choose billing interval — secure checkout via Stripe. Add <strong>STRIPE_PUBLISHABLE_KEY</strong> to pay on this site instead of redirecting to Stripe.</p>
                     <% } %>
