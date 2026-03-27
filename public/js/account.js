@@ -195,6 +195,8 @@
 
   const modalCancelRenewal = document.getElementById('account-modal-cancel-renewal');
   const modalCancelRenewalConfirm = document.getElementById('account-modal-cancel-renewal-confirm');
+  const modalBillingHistory = document.getElementById('account-modal-billing-history');
+  const openBillingHistoryBtn = document.getElementById('account-open-billing-history');
   const modalYearlyPlan = document.getElementById('account-modal-yearly-plan');
   const modalYearlyAmount = document.getElementById('account-modal-yearly-amount');
   const modalYearlyConfirm = document.getElementById('account-modal-yearly-confirm');
@@ -226,6 +228,9 @@
       pendingYearlyPlanBtn = null;
       closeAccountModal(modalYearlyPlan);
     }
+    if (which === 'billing-history' && modalBillingHistory) {
+      closeAccountModal(modalBillingHistory);
+    }
   });
 
   document.addEventListener('keydown', function (e) {
@@ -238,7 +243,16 @@
       pendingYearlyPlanBtn = null;
       closeAccountModal(modalYearlyPlan);
     }
+    if (modalBillingHistory && !modalBillingHistory.hidden) {
+      closeAccountModal(modalBillingHistory);
+    }
   });
+
+  if (openBillingHistoryBtn && modalBillingHistory) {
+    openBillingHistoryBtn.addEventListener('click', function () {
+      openAccountModal(modalBillingHistory);
+    });
+  }
 
   if (modalCancelRenewalConfirm && modalCancelRenewal) {
     modalCancelRenewalConfirm.addEventListener('click', async function () {

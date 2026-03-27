@@ -3345,6 +3345,52 @@
 .account-payment-method-link {
   margin: 0.5rem 0 0;
 }
+.account-payment-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1.25rem;
+  margin: 0.65rem 0 0;
+}
+.account-open-billing-history-btn {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.45rem 0.95rem;
+  border-radius: 10px;
+  border: 1px solid rgba(47, 128, 236, 0.45);
+  background: transparent;
+  color: #6eb0ff;
+  cursor: pointer;
+}
+.account-open-billing-history-btn:hover {
+  background: rgba(47, 128, 236, 0.12);
+  border-color: rgba(47, 128, 236, 0.65);
+}
+
+.account-subscription-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem 1.25rem;
+  margin-top: 0.5rem;
+}
+.account-subscription-actions-row .account-billing-maintain,
+.account-subscription-actions-row .account-plan-switch {
+  flex: 1 1 220px;
+  max-width: 100%;
+  margin-top: 0;
+}
+.account-subscription-actions-row .account-plan-switch {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.35rem;
+}
+.account-plan-preview-estimate {
+  margin-top: 0.5rem;
+  max-width: 40rem;
+}
 
 .account-billing-maintain {
   margin: 0.85rem 0 0;
@@ -3489,6 +3535,26 @@
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(22, 28, 36, 0.98);
   box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+.account-modal-overlay__panel--billing-history {
+  max-width: min(40rem, calc(100vw - 2rem));
+  max-height: min(90vh, 880px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.account-modal-billing-history-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: min(50vh, 420px);
+  margin: 0 0 0.35rem;
+}
+.account-modal-overlay__panel--billing-history .account-billing-history-table th {
+  color: #8eb8f0;
+}
+.account-modal-overlay__panel--billing-history .account-billing-history-table th,
+.account-modal-overlay__panel--billing-history .account-billing-history-table td {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 .account-modal-overlay__title {
   margin: 0 0 0.75rem;

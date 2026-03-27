@@ -149,35 +149,41 @@
               <% if (showYearlyMonthlyWindowNotice) { %>
                 <p class="account-meta account-meta--subscription-notice">Switching to monthly billing is available within 30 days of your renewal<% if (typeof renewalDateLabel !== 'undefined' && renewalDateLabel) { %> (next renewal: <%= renewalDateLabel %>)<% } %>.</p>
               <% } %>
-
-              <% if (showSubMaintain) { %>
-                <div class="account-billing-maintain" id="account-subscription-actions">
-                  <% if (capEnd) { %>
-                    <button type="button" class="app-btn-primary" data-action="resume-subscription">Resume auto-renewal</button>
-                    <p class="account-meta">Restores renewal after the date above. You can turn auto-renew off again anytime.</p>
-                  <% } else { %>
-                    <button type="button" class="app-btn-primary account-btn-yearly" data-action="cancel-at-period-end">Turn off auto-renewal</button>
+              <% var showPlanSwitch = showSubMaintain && typeof billingPriceMode !== 'undefined' && billingPriceMode === 'dual' && (currentPlanInterval === 'month' || (currentPlanInterval === 'year' && typeof within30DaysOfRenewal !== 'undefined' && within30DaysOfRenewal)); %>
+              <% if (showSubMaintain || showPlanSwitch) { %>
+                <div class="account-subscription-actions-row">
+                  <% if (showSubMaintain) { %>
+                    <div class="account-billing-maintain" id="account-subscription-actions">
+                      <% if (capEnd) { %>
+                        <button type="button" class="app-btn-primary" data-action="resume-subscription">Resume auto-renewal</button>
+                        <p class="account-meta">Restores renewal after the date above. You can turn auto-renew off again anytime.</p>
+                      <% } else { %>
+                        <button type="button" class="app-btn-primary account-btn-yearly" data-action="cancel-at-period-end">Turn off auto-renewal</button>
+                      <% } %>
+                      <div id="account-subscription-msg" class="account-form-msg" hidden></div>
+                    </div>
                   <% } %>
-                  <div id="account-subscription-msg" class="account-form-msg" hidden></div>
+                  <% if (showPlanSwitch) { %>
+                    <div class="account-plan-switch" id="account-plan-switch">
+                      <% if (currentPlanInterval === 'month') { %>
+                        <button type="button" class="app-btn-primary account-btn-yearly" data-action="switch-plan" data-interval="year">Switch to yearly billing</button>
+                      <% } else { %>
+                        <button type="button" class="app-btn-primary" data-action="switch-plan" data-interval="month">Switch to monthly billing</button>
+                        <p class="account-meta">Stripe will prorate the rest of this billing period (charge or credit on your next invoice).</p>
+                      <% } %>
+                      <div id="account-plan-switch-msg" class="account-form-msg" hidden></div>
+                    </div>
+                  <% } %>
                 </div>
               <% } %>
-
-              <% if (showSubMaintain && typeof billingPriceMode !== 'undefined' && billingPriceMode === 'dual' && (currentPlanInterval === 'month' || (currentPlanInterval === 'year' && typeof within30DaysOfRenewal !== 'undefined' && within30DaysOfRenewal))) { %>
-                <div class="account-plan-switch" id="account-plan-switch">
-                  <% if (currentPlanInterval === 'month') { %>
-                    <button type="button" class="app-btn-primary account-btn-yearly" data-action="switch-plan" data-interval="year">Switch to yearly billing</button>
-                    <p id="account-plan-preview-estimate" class="account-plan-preview-estimate" hidden aria-live="polite"></p>
-                  <% } else { %>
-                    <button type="button" class="app-btn-primary" data-action="switch-plan" data-interval="month">Switch to monthly billing</button>
-                    <p class="account-meta">Stripe will prorate the rest of this billing period (charge or credit on your next invoice).</p>
-                  <% } %>
-                  <div id="account-plan-switch-msg" class="account-form-msg" hidden></div>
-                </div>
+              <% if (showPlanSwitch && currentPlanInterval === 'month') { %>
+                <p id="account-plan-preview-estimate" class="account-plan-preview-estimate" hidden aria-live="polite"></p>
               <% } %>
 
               <% if (stripeConfigured && subscriptionRow && subscriptionRow.stripe_customer_id) { %>
-                <p class="account-payment-method-link">
+                <p class="account-payment-links">
                   <a href="/billing/payment-method" class="app-link-cta">Update payment method</a>
+                  <button type="button" class="account-open-billing-history-btn" id="account-open-billing-history">Payment history</button>
                 </p>
               <% } %>
 
@@ -216,39 +222,6 @@
               <% } %>
             </section>
 
-            <% if (stripeConfigured && subscriptionRow && subscriptionRow.stripe_customer_id) { %>
-            <hr class="account-section-rule" aria-hidden="true" />
-            <section class="account-rail-section" aria-label="Payment history">
-              <h2 class="account-h2">Payment history</h2>
-              <p class="account-meta">Completed charges on your membership (via Stripe). Official receipts are sent to your email when a payment succeeds.</p>
-              <% if (typeof billingHistory !== 'undefined' && billingHistory.length) { %>
-                <div class="account-table-scroll" role="region" aria-label="Past charges table">
-                  <table class="account-billing-history-table">
-                    <thead>
-                      <tr>
-                        <th scope="col">Date</th>
-                        <th scope="col">Description</th>
-                        <th scope="col">Amount</th>
-                        <th scope="col">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <% billingHistory.forEach(function (row) { %>
-                        <tr>
-                          <td><%= row.dateLabel %></td>
-                          <td><%= row.description %></td>
-                          <td><%= row.amountLabel %></td>
-                          <td><%= row.statusLabel %></td>
-                        </tr>
-                      <% }); %>
-                    </tbody>
-                  </table>
-                </div>
-              <% } else { %>
-                <p class="account-meta">No paid invoices on file yet. After your first successful payment, entries will appear here.</p>
-              <% } %>
-            </section>
-            <% } %>
           </div>
         </div>
       </div>
@@ -266,6 +239,45 @@
       </div>
     </div>
   </div>
+
+  <% if (stripeConfigured && subscriptionRow && subscriptionRow.stripe_customer_id) { %>
+  <div id="account-modal-billing-history" class="account-modal-overlay" hidden>
+    <div class="account-modal-overlay__backdrop" data-account-modal-dismiss="billing-history" tabindex="-1" aria-hidden="true"></div>
+    <div class="account-modal-overlay__panel account-modal-overlay__panel--billing-history" role="dialog" aria-modal="true" aria-labelledby="account-modal-billing-history-title">
+      <h3 id="account-modal-billing-history-title" class="account-modal-overlay__title">Payment history</h3>
+      <p class="account-modal-overlay__text">Completed charges on your membership (via Stripe). Official receipts are sent to your email when a payment succeeds.</p>
+      <% if (typeof billingHistory !== 'undefined' && billingHistory.length) { %>
+        <div class="account-table-scroll account-modal-billing-history-scroll" role="region" aria-label="Past charges table">
+          <table class="account-billing-history-table">
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Description</th>
+                <th scope="col">Amount</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% billingHistory.forEach(function (row) { %>
+                <tr>
+                  <td><%= row.dateLabel %></td>
+                  <td><%= row.description %></td>
+                  <td><%= row.amountLabel %></td>
+                  <td><%= row.statusLabel %></td>
+                </tr>
+              <% }); %>
+            </tbody>
+          </table>
+        </div>
+      <% } else { %>
+        <p class="account-modal-overlay__text">No paid invoices on file yet. After your first successful payment, entries will appear here.</p>
+      <% } %>
+      <div class="account-modal-overlay__actions">
+        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--secondary" data-account-modal-dismiss="billing-history">Close</button>
+      </div>
+    </div>
+  </div>
+  <% } %>
 
   <div id="account-modal-yearly-plan" class="account-modal-overlay" hidden>
     <div class="account-modal-overlay__backdrop" data-account-modal-dismiss="yearly-plan" tabindex="-1" aria-hidden="true"></div>
