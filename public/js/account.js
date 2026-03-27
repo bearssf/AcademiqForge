@@ -56,15 +56,20 @@
 
   document.querySelectorAll('[data-password-toggle]').forEach(function (btn) {
     btn.addEventListener('click', function () {
-      var row = btn.closest('.account-password-field__row');
-      var input = row && row.querySelector('input');
+      var wrap = btn.closest('.account-password-field__inner');
+      var input = wrap && wrap.querySelector('input');
       if (!input) return;
       var show = input.type === 'password';
       input.type = show ? 'text' : 'password';
       btn.setAttribute('aria-pressed', show ? 'true' : 'false');
-      btn.textContent = show ? 'Hide' : 'Show';
       var pl = btn.getAttribute('data-password-label') || 'password';
       btn.setAttribute('aria-label', (show ? 'Hide ' : 'Show ') + pl);
+      var openSvg = btn.querySelector('.account-password-toggle__svg--open');
+      var closedSvg = btn.querySelector('.account-password-toggle__svg--closed');
+      if (openSvg && closedSvg) {
+        openSvg.hidden = !!show;
+        closedSvg.hidden = !show;
+      }
     });
   });
 
@@ -193,6 +198,76 @@
     return { res: res, data: data };
   }
 
+  const modalCancelRenewal = document.getElementById('account-modal-cancel-renewal');
+  const modalCancelRenewalConfirm = document.getElementById('account-modal-cancel-renewal-confirm');
+  const modalYearlyPlan = document.getElementById('account-modal-yearly-plan');
+  const modalYearlyEstimate = document.getElementById('account-modal-yearly-estimate');
+  const modalYearlyConfirm = document.getElementById('account-modal-yearly-confirm');
+
+  let pendingCancelRenewalBtn = null;
+  let pendingYearlyPlanBtn = null;
+
+  function openAccountModal(overlay) {
+    if (!overlay) return;
+    overlay.hidden = false;
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeAccountModal(overlay) {
+    if (!overlay) return;
+    overlay.hidden = true;
+    document.body.style.overflow = '';
+  }
+
+  document.addEventListener('click', function (e) {
+    var dismiss = e.target.closest('[data-account-modal-dismiss]');
+    if (!dismiss) return;
+    var which = dismiss.getAttribute('data-account-modal-dismiss');
+    if (which === 'cancel-renewal' && modalCancelRenewal) {
+      pendingCancelRenewalBtn = null;
+      closeAccountModal(modalCancelRenewal);
+    }
+    if (which === 'yearly-plan' && modalYearlyPlan) {
+      pendingYearlyPlanBtn = null;
+      closeAccountModal(modalYearlyPlan);
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (modalCancelRenewal && !modalCancelRenewal.hidden) {
+      pendingCancelRenewalBtn = null;
+      closeAccountModal(modalCancelRenewal);
+    }
+    if (modalYearlyPlan && !modalYearlyPlan.hidden) {
+      pendingYearlyPlanBtn = null;
+      closeAccountModal(modalYearlyPlan);
+    }
+  });
+
+  if (modalCancelRenewalConfirm && modalCancelRenewal) {
+    modalCancelRenewalConfirm.addEventListener('click', async function () {
+      var btn = pendingCancelRenewalBtn;
+      closeAccountModal(modalCancelRenewal);
+      pendingCancelRenewalBtn = null;
+      if (!btn) return;
+      showMsg(subMsg, '');
+      btn.disabled = true;
+      try {
+        const result = await postBilling('/api/billing/subscription/cancel-at-period-end');
+        if (!result.res.ok) {
+          showMsg(subMsg, result.data.error || 'Could not update subscription.', 'error');
+          btn.disabled = false;
+          return;
+        }
+        window.location.reload();
+      } catch (err) {
+        showMsg(subMsg, 'Network error. Try again.', 'error');
+        btn.disabled = false;
+      }
+    });
+  }
+
   if (subActions && subMsg) {
     subActions.addEventListener('click', async function (e) {
       const btn = e.target.closest('[data-action]');
@@ -200,26 +275,8 @@
       const action = btn.getAttribute('data-action');
       showMsg(subMsg, '');
       if (action === 'cancel-at-period-end') {
-        if (
-          !window.confirm(
-            'Turn off auto-renewal? You keep access until the end of your current billing period.'
-          )
-        ) {
-          return;
-        }
-        btn.disabled = true;
-        try {
-          const result = await postBilling('/api/billing/subscription/cancel-at-period-end');
-          if (!result.res.ok) {
-            showMsg(subMsg, result.data.error || 'Could not update subscription.', 'error');
-            btn.disabled = false;
-            return;
-          }
-          window.location.reload();
-        } catch (err) {
-          showMsg(subMsg, 'Network error. Try again.', 'error');
-          btn.disabled = false;
-        }
+        pendingCancelRenewalBtn = btn;
+        openAccountModal(modalCancelRenewal);
       } else if (action === 'resume-subscription') {
         btn.disabled = true;
         try {
@@ -245,7 +302,7 @@
 
   if (planPreviewEstimate) {
     (async function loadPlanPreview() {
-      planPreviewEstimate.hidden = false;
+      planPreviewEstimate.hidden = true;
       planPreviewEstimate.textContent = 'Loading payment estimate…';
       try {
         const result = await postBillingJson('/api/billing/subscription/plan/preview', {
@@ -269,20 +326,52 @@
     })();
   }
 
+  async function runPlanSwitch(btn, interval) {
+    showMsg(planSwitchMsg, '');
+    btn.disabled = true;
+    try {
+      const result = await postBillingJson('/api/billing/subscription/plan', { interval: interval });
+      if (!result.res.ok) {
+        showMsg(planSwitchMsg, result.data.error || 'Could not change plan.', 'error');
+        btn.disabled = false;
+        return;
+      }
+      window.location.reload();
+    } catch (err) {
+      showMsg(planSwitchMsg, 'Network error. Try again.', 'error');
+      btn.disabled = false;
+    }
+  }
+
+  if (modalYearlyConfirm && modalYearlyPlan) {
+    modalYearlyConfirm.addEventListener('click', async function () {
+      var btn = pendingYearlyPlanBtn;
+      closeAccountModal(modalYearlyPlan);
+      pendingYearlyPlanBtn = null;
+      if (!btn) return;
+      await runPlanSwitch(btn, 'year');
+    });
+  }
+
   if (planSwitch && planSwitchMsg) {
     planSwitch.addEventListener('click', async function (e) {
       const btn = e.target.closest('[data-action="switch-plan"]');
       if (!btn || btn.disabled) return;
       const interval = btn.getAttribute('data-interval');
       if (interval !== 'month' && interval !== 'year') return;
-      const label = interval === 'year' ? 'yearly' : 'monthly';
-      var estimateHint = '';
-      if (interval === 'year' && planPreviewEstimate) {
-        var est = planPreviewEstimate.getAttribute('data-amount-due-formatted');
-        if (est) {
-          estimateHint = ' Estimated charge today (if you proceed): ' + est + '.';
+
+      if (interval === 'year') {
+        pendingYearlyPlanBtn = btn;
+        if (modalYearlyEstimate) {
+          var t = planPreviewEstimate && planPreviewEstimate.textContent ? planPreviewEstimate.textContent.trim() : '';
+          modalYearlyEstimate.textContent = t;
         }
+        openAccountModal(modalYearlyPlan);
+        return;
       }
+
+      const label = 'monthly';
+      var estimateHint = '';
       if (
         !window.confirm(
           'Switch to ' +
@@ -293,20 +382,7 @@
       ) {
         return;
       }
-      showMsg(planSwitchMsg, '');
-      btn.disabled = true;
-      try {
-        const result = await postBillingJson('/api/billing/subscription/plan', { interval: interval });
-        if (!result.res.ok) {
-          showMsg(planSwitchMsg, result.data.error || 'Could not change plan.', 'error');
-          btn.disabled = false;
-          return;
-        }
-        window.location.reload();
-      } catch (err) {
-        showMsg(planSwitchMsg, 'Network error. Try again.', 'error');
-        btn.disabled = false;
-      }
+      await runPlanSwitch(btn, 'month');
     });
   }
 })();

@@ -3086,35 +3086,46 @@
 .account-billing-pending__meta {
   margin: 0.5rem 0 0;
 }
-.account-password-field__row {
-  display: flex;
-  align-items: stretch;
-  gap: 0.5rem;
+.account-password-field__inner {
+  position: relative;
+  display: block;
+  width: 100%;
 }
-.account-password-field__row input {
-  flex: 1;
+.account-password-field__inner input {
+  width: 100%;
   min-width: 0;
+  box-sizing: border-box;
+  padding-right: 2.75rem;
 }
-.account-password-toggle {
-  flex-shrink: 0;
-  align-self: stretch;
-  padding: 0.45rem 0.65rem;
+.account-password-toggle--eye {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  border: none;
   border-radius: 8px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.04);
-  color: var(--muted);
-  font-size: 0.82rem;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.45);
   cursor: pointer;
   font-family: inherit;
-  white-space: nowrap;
 }
-.account-password-toggle:hover {
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.22);
+.account-password-toggle--eye:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.06);
 }
-.account-password-toggle[aria-pressed='true'] {
-  border-color: rgba(47, 128, 237, 0.45);
+.account-password-toggle--eye[aria-pressed='true'] {
   color: rgba(200, 220, 255, 0.95);
+}
+.account-password-toggle__svg {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
 }
 .app-body--account-page .app-canvas .sub {
   color: #1bb5c0;
@@ -3341,12 +3352,124 @@
 .account-meta--profile {
   margin: 0 0 1rem;
 }
-.account-optional {
-  font-weight: 400;
-  color: var(--muted);
+.account-required-star {
+  color: #a58181;
+  font-weight: 700;
+  text-decoration: none;
+  margin-left: 0.1em;
+}
+.account-form-required-note {
+  margin: 0.65rem 0 0;
+  font-size: 0.82rem;
+  color: #a58181;
+}
+.account-form-required-note .account-required-star {
+  margin-left: 0;
+  margin-right: 0.2em;
 }
 .account-form {
   margin-bottom: 1.75rem;
+}
+
+/* Account confirmation modals */
+.account-modal-overlay[hidden] {
+  display: none !important;
+}
+.account-modal-overlay:not([hidden]) {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  box-sizing: border-box;
+}
+.account-modal-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  cursor: pointer;
+}
+.account-modal-overlay__panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 26rem;
+  padding: 1.35rem 1.35rem 1.15rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(22, 28, 36, 0.98);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+}
+.account-modal-overlay__title {
+  margin: 0 0 0.75rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #e8eef5;
+  line-height: 1.35;
+}
+.account-modal-overlay__text {
+  margin: 0 0 0.65rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.78);
+}
+.account-modal-overlay__text--estimate {
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.65);
+}
+.account-modal-overlay__text--estimate:empty {
+  display: none;
+}
+.account-modal-overlay__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: flex-end;
+  margin-top: 1.1rem;
+}
+.account-modal-overlay__btn {
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: #0f1419;
+}
+.account-modal-overlay__btn--keep {
+  background: #addbbf;
+  border-color: rgba(0, 0, 0, 0.06);
+  color: #0f1419;
+}
+.account-modal-overlay__btn--keep:hover {
+  filter: brightness(1.05);
+}
+.account-modal-overlay__btn--confirm-cancel {
+  background: #a58181;
+  border-color: rgba(0, 0, 0, 0.08);
+  color: #fff;
+}
+.account-modal-overlay__btn--confirm-cancel:hover {
+  filter: brightness(1.08);
+}
+.account-modal-overlay__btn--secondary {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.18);
+  color: rgba(255, 255, 255, 0.88);
+}
+.account-modal-overlay__btn--secondary:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+.account-modal-overlay__btn--confirm-mint {
+  background: #addbbf;
+  border-color: rgba(0, 0, 0, 0.06);
+  color: #0f1419;
+}
+.account-modal-overlay__btn--confirm-mint:hover {
+  filter: brightness(1.05);
 }
 .account-form-msg {
   padding: 0.55rem 0.75rem;

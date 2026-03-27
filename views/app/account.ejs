@@ -10,7 +10,7 @@
     <%- include('../partials/app-sidebar', { user: user, navActive: 'account', projects: projects, currentProjectId: currentProjectId, workspaceSlug: '', appAccess: appAccess }) %>
     <main class="app-canvas">
       <h1>Account</h1>
-      <p class="sub">Profile, billing, and subscription.</p>
+      <p class="sub">Here you can manage your profile, subscription, and associated billing details.</p>
 
       <% if (typeof billingFlash !== 'undefined' && billingFlash) { %>
         <div class="account-flash account-flash--<%= billingFlash.kind %>"><%= billingFlash.text %></div>
@@ -30,11 +30,11 @@
         <div class="account-layout">
           <div class="account-layout__profile">
             <h2 class="account-h2">Profile</h2>
-            <p class="account-meta account-meta--profile">Update your details below. Email is your sign-in identity and can’t be changed here.</p>
+            <p class="account-meta account-meta--profile">Update your details below. Email is your sign-in identity and can’t be changed.</p>
             <form id="account-profile-form" class="app-form-stack account-form" autocomplete="off">
               <% var _titles = typeof allowedTitles !== 'undefined' && allowedTitles.length ? allowedTitles : ['Mr.', 'Mrs.', 'Ms.', 'Miss', 'Mx.', 'Dr.']; %>
               <label class="app-field">
-                <span>Title</span>
+                <span>Title: <abbr class="account-required-star" title="required">*</abbr></span>
                 <select name="title" required>
                   <option value="" disabled <%= !profile.title ? 'selected' : '' %>>Select…</option>
                   <% _titles.forEach(function (t) { %>
@@ -43,19 +43,19 @@
                 </select>
               </label>
               <label class="app-field">
-                <span>First name</span>
+                <span>First Name: <abbr class="account-required-star" title="required">*</abbr></span>
                 <input type="text" name="firstName" required maxlength="100" value="<%= profile.firstName || '' %>" />
               </label>
               <label class="app-field">
-                <span>Last name</span>
+                <span>Last Name: <abbr class="account-required-star" title="required">*</abbr></span>
                 <input type="text" name="lastName" required maxlength="100" value="<%= profile.lastName || '' %>" />
               </label>
               <label class="app-field">
-                <span>Email</span>
+                <span>Email: <abbr class="account-required-star" title="required">*</abbr></span>
                 <input type="email" value="<%= profile.email || user.email %>" readonly aria-readonly="true" />
               </label>
               <label class="app-field">
-                <span>University <span class="account-optional">(optional)</span></span>
+                <span>University:</span>
                 <input type="text" name="university" list="account-university-list" maxlength="255" placeholder="Type or choose from list" value="<%= profile.university || '' %>" />
                 <datalist id="account-university-list">
                   <% (typeof universities !== 'undefined' ? universities : []).forEach(function (u) { %>
@@ -64,11 +64,11 @@
                 </datalist>
               </label>
               <label class="app-field">
-                <span>Research focus <span class="account-optional">(optional)</span></span>
-                <textarea name="researchFocus" rows="3" maxlength="8000" placeholder="Short description"><%= profile.researchFocus || '' %></textarea>
+                <span>Research Focus:</span>
+                <textarea name="researchFocus" rows="3" maxlength="8000" placeholder="i.e. Cognition, Leadership, AI Impacts, Gender Representation in STEM, etc."><%= profile.researchFocus || '' %></textarea>
               </label>
               <label class="app-field">
-                <span>Preferred search engine <span class="account-optional">(optional)</span></span>
+                <span>Preferred Search Engine:</span>
                 <select name="preferredSearchEngine">
                   <option value="" <%= !profile.preferredSearchEngine ? 'selected' : '' %>>Select…</option>
                   <% (typeof searchEngines !== 'undefined' ? searchEngines : []).forEach(function (s) { %>
@@ -80,6 +80,7 @@
               <div class="app-form-actions app-form-actions--account-save">
                 <button type="submit" class="app-btn-primary" id="account-profile-submit">Save profile</button>
               </div>
+              <p class="account-form-required-note"><abbr class="account-required-star" title="required">*</abbr> Required Fields</p>
             </form>
           </div>
 
@@ -88,24 +89,33 @@
               <h2 class="account-h2">Password</h2>
               <form id="account-password-form" class="app-form-stack account-form" autocomplete="off">
                 <label class="app-field account-password-field">
-                  <span>Current password</span>
-                  <span class="account-password-field__row">
+                  <span>Current Password: <abbr class="account-required-star" title="required">*</abbr></span>
+                  <span class="account-password-field__inner">
                     <input type="password" name="currentPassword" required autocomplete="current-password" />
-                    <button type="button" class="account-password-toggle" data-password-toggle data-password-label="current password" aria-label="Show current password" aria-pressed="false">Show</button>
+                    <button type="button" class="account-password-toggle account-password-toggle--eye" data-password-toggle data-password-label="current password" aria-label="Show current password" aria-pressed="false">
+                      <svg class="account-password-toggle__svg account-password-toggle__svg--open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      <svg class="account-password-toggle__svg account-password-toggle__svg--closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    </button>
                   </span>
                 </label>
                 <label class="app-field account-password-field">
-                  <span>New password</span>
-                  <span class="account-password-field__row">
+                  <span>New Password: <abbr class="account-required-star" title="required">*</abbr></span>
+                  <span class="account-password-field__inner">
                     <input type="password" name="newPassword" required minlength="8" autocomplete="new-password" />
-                    <button type="button" class="account-password-toggle" data-password-toggle data-password-label="new password" aria-label="Show new password" aria-pressed="false">Show</button>
+                    <button type="button" class="account-password-toggle account-password-toggle--eye" data-password-toggle data-password-label="new password" aria-label="Show new password" aria-pressed="false">
+                      <svg class="account-password-toggle__svg account-password-toggle__svg--open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      <svg class="account-password-toggle__svg account-password-toggle__svg--closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    </button>
                   </span>
                 </label>
                 <label class="app-field account-password-field">
-                  <span>Confirm new password</span>
-                  <span class="account-password-field__row">
+                  <span>Confirm New Password: <abbr class="account-required-star" title="required">*</abbr></span>
+                  <span class="account-password-field__inner">
                     <input type="password" name="confirmPassword" required minlength="8" autocomplete="new-password" />
-                    <button type="button" class="account-password-toggle" data-password-toggle data-password-label="confirm password" aria-label="Show confirm password" aria-pressed="false">Show</button>
+                    <button type="button" class="account-password-toggle account-password-toggle--eye" data-password-toggle data-password-label="confirm new password" aria-label="Show confirm new password" aria-pressed="false">
+                      <svg class="account-password-toggle__svg account-password-toggle__svg--open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                      <svg class="account-password-toggle__svg account-password-toggle__svg--closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    </button>
                   </span>
                 </label>
                 <div id="account-password-msg" class="account-form-msg" role="status" aria-live="polite" hidden></div>
@@ -150,7 +160,6 @@
                     <p class="account-meta">Restores renewal after the date above. You can turn auto-renew off again anytime.</p>
                   <% } else { %>
                     <button type="button" class="app-btn-primary account-btn-yearly" data-action="cancel-at-period-end">Turn off auto-renewal</button>
-                    <p class="account-meta">You keep access until the end of the current billing period; the subscription won’t renew after that.</p>
                   <% } %>
                   <div id="account-subscription-msg" class="account-form-msg" hidden></div>
                 </div>
@@ -160,8 +169,7 @@
                 <div class="account-plan-switch" id="account-plan-switch">
                   <% if (currentPlanInterval === 'month') { %>
                     <button type="button" class="app-btn-primary account-btn-yearly" data-action="switch-plan" data-interval="year">Switch to yearly billing</button>
-                    <p id="account-plan-preview-estimate" class="account-meta account-plan-preview-estimate" hidden></p>
-                    <p class="account-meta">Stripe will prorate the rest of this billing period (charge or credit on your next invoice).</p>
+                    <p id="account-plan-preview-estimate" class="account-plan-preview-estimate" hidden aria-live="polite"></p>
                   <% } else { %>
                     <button type="button" class="app-btn-primary" data-action="switch-plan" data-interval="month">Switch to monthly billing</button>
                     <p class="account-meta">Stripe will prorate the rest of this billing period (charge or credit on your next invoice).</p>
@@ -215,6 +223,32 @@
       </div>
     </main>
   </div>
+
+  <div id="account-modal-cancel-renewal" class="account-modal-overlay" hidden>
+    <div class="account-modal-overlay__backdrop" data-account-modal-dismiss="cancel-renewal" tabindex="-1" aria-hidden="true"></div>
+    <div class="account-modal-overlay__panel" role="dialog" aria-modal="true" aria-labelledby="account-modal-cancel-renewal-title">
+      <h3 id="account-modal-cancel-renewal-title" class="account-modal-overlay__title">Turning Off Auto-Renewal</h3>
+      <p class="account-modal-overlay__text">Are you sure that you wish to turn off auto-renewal? Doing so will limit your access to the end of your billing period.</p>
+      <div class="account-modal-overlay__actions">
+        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--keep" data-account-modal-dismiss="cancel-renewal">Keep Subscription</button>
+        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--confirm-cancel" id="account-modal-cancel-renewal-confirm">Confirmed, Cancel Subscription</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="account-modal-yearly-plan" class="account-modal-overlay" hidden>
+    <div class="account-modal-overlay__backdrop" data-account-modal-dismiss="yearly-plan" tabindex="-1" aria-hidden="true"></div>
+    <div class="account-modal-overlay__panel" role="dialog" aria-modal="true" aria-labelledby="account-modal-yearly-title">
+      <h3 id="account-modal-yearly-title" class="account-modal-overlay__title">Confirm the Change to Annual Plan</h3>
+      <p class="account-modal-overlay__text">Stripe will prorate the rest of this billing period (charge or credit on your next invoice).</p>
+      <p id="account-modal-yearly-estimate" class="account-modal-overlay__text account-modal-overlay__text--estimate"></p>
+      <div class="account-modal-overlay__actions">
+        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--secondary" data-account-modal-dismiss="yearly-plan">Cancel</button>
+        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--confirm-mint" id="account-modal-yearly-confirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/js/account.js" defer></script>
 </body>
 </html>
