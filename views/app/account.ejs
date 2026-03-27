@@ -92,9 +92,8 @@
                   <span>Current Password: <abbr class="account-required-star" title="required">*</abbr></span>
                   <span class="account-password-field__inner">
                     <input type="password" name="currentPassword" required autocomplete="current-password" />
-                    <button type="button" class="account-password-toggle account-password-toggle--eye" data-password-toggle data-password-label="current password" aria-label="Show current password" aria-pressed="false">
-                      <svg class="account-password-toggle__svg account-password-toggle__svg--open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                      <svg class="account-password-toggle__svg account-password-toggle__svg--closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    <button type="button" class="account-password-toggle account-password-toggle--eye" data-password-toggle data-password-label="current password" aria-label="Show current password" aria-pressed="false" title="Show password">
+                      <%- include('../partials/password-visibility-icons') %>
                     </button>
                   </span>
                 </label>
@@ -102,9 +101,8 @@
                   <span>New Password: <abbr class="account-required-star" title="required">*</abbr></span>
                   <span class="account-password-field__inner">
                     <input type="password" name="newPassword" required minlength="8" autocomplete="new-password" />
-                    <button type="button" class="account-password-toggle account-password-toggle--eye" data-password-toggle data-password-label="new password" aria-label="Show new password" aria-pressed="false">
-                      <svg class="account-password-toggle__svg account-password-toggle__svg--open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                      <svg class="account-password-toggle__svg account-password-toggle__svg--closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    <button type="button" class="account-password-toggle account-password-toggle--eye" data-password-toggle data-password-label="new password" aria-label="Show new password" aria-pressed="false" title="Show password">
+                      <%- include('../partials/password-visibility-icons') %>
                     </button>
                   </span>
                 </label>
@@ -112,9 +110,8 @@
                   <span>Confirm New Password: <abbr class="account-required-star" title="required">*</abbr></span>
                   <span class="account-password-field__inner">
                     <input type="password" name="confirmPassword" required minlength="8" autocomplete="new-password" />
-                    <button type="button" class="account-password-toggle account-password-toggle--eye" data-password-toggle data-password-label="confirm new password" aria-label="Show confirm new password" aria-pressed="false">
-                      <svg class="account-password-toggle__svg account-password-toggle__svg--open" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                      <svg class="account-password-toggle__svg account-password-toggle__svg--closed" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" hidden><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    <button type="button" class="account-password-toggle account-password-toggle--eye" data-password-toggle data-password-label="confirm new password" aria-label="Show confirm new password" aria-pressed="false" title="Show password">
+                      <%- include('../partials/password-visibility-icons') %>
                     </button>
                   </span>
                 </label>

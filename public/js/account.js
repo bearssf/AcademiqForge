@@ -64,12 +64,13 @@
       btn.setAttribute('aria-pressed', show ? 'true' : 'false');
       var pl = btn.getAttribute('data-password-label') || 'password';
       btn.setAttribute('aria-label', (show ? 'Hide ' : 'Show ') + pl);
-      var openSvg = btn.querySelector('.account-password-toggle__svg--open');
-      var closedSvg = btn.querySelector('.account-password-toggle__svg--closed');
-      if (openSvg && closedSvg) {
-        openSvg.hidden = !!show;
-        closedSvg.hidden = !show;
+      var eyeSvg = btn.querySelector('.account-password-toggle__svg--eye');
+      var eyeSlashSvg = btn.querySelector('.account-password-toggle__svg--eye-slash');
+      if (eyeSvg && eyeSlashSvg) {
+        eyeSvg.hidden = !!show;
+        eyeSlashSvg.hidden = !show;
       }
+      btn.setAttribute('title', show ? 'Hide password' : 'Show password');
     });
   });
 
