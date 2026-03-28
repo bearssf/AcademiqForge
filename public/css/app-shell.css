@@ -1696,8 +1696,7 @@
   min-height: 0;
 }
 .app-body--anvil .app-canvas > .app-trial-bar,
-.app-body--anvil .app-canvas > .app-anvil-page-head,
-.app-body--anvil .app-canvas > .sub {
+.app-body--anvil .app-canvas > .app-anvil-page-head {
   flex-shrink: 0;
 }
 .app-anvil-page-head {
@@ -1710,12 +1709,12 @@
   width: 100%;
   box-sizing: border-box;
 }
-.app-anvil-page-head__title {
+.app-anvil-page-head__left {
   flex: 1;
   min-width: 0;
 }
-.app-anvil-page-head__title h1 {
-  margin: 0;
+.app-anvil-page-head__left h1 {
+  margin: 0 0 0.35rem;
 }
 .app-anvil-scoring-head {
   flex: 0 0 auto;
