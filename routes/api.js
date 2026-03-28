@@ -450,6 +450,7 @@ function createApiRouter(getPool) {
         return {
           title: s.title,
           body: s.body != null ? String(s.body) : '',
+          slug: s.slug != null ? String(s.slug) : '',
         };
       });
       const base = sanitizeFilename(projectName);
@@ -500,6 +501,7 @@ function createApiRouter(getPool) {
         return {
           title: s.title != null ? String(s.title) : 'Section',
           body: s.body != null ? String(s.body) : '',
+          slug: s.slug != null ? String(s.slug) : '',
         };
       });
       const buf = await buildProjectDocxBuffer({ projectName, sections, citationStyle });
@@ -537,7 +539,13 @@ function createApiRouter(getPool) {
             : bundle.project.citationStyle != null
               ? String(bundle.project.citationStyle)
               : 'APA';
-      const buf = await buildSectionDocxBuffer({ title, html, citationStyle });
+      const sectionSlug =
+        body.sectionSlug != null
+          ? String(body.sectionSlug).trim().toLowerCase()
+          : sec.slug != null
+            ? String(sec.slug).trim().toLowerCase()
+            : '';
+      const buf = await buildSectionDocxBuffer({ title, html, citationStyle, sectionSlug });
       const fname = sanitizeFilename(title) + '.docx';
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
       res.setHeader('Content-Disposition', contentDispositionAttachment(fname));

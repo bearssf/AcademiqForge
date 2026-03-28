@@ -1758,6 +1758,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  margin-bottom: 15px;
 }
 .anvil-layout--single .anvil-editor-footer {
   flex-shrink: 0;
@@ -2181,6 +2182,9 @@
 }
 .anvil-quill-wrap.anvil-quill-manuscript:not([data-ms-profile='ieee']) .ql-editor p {
   text-indent: 0.5in !important;
+}
+.anvil-quill-wrap.anvil-quill-manuscript:not([data-ms-profile='ieee']) .ql-editor p.ql-align-center {
+  text-indent: 0 !important;
 }
 .anvil-quill-wrap.anvil-quill-manuscript[data-ms-profile='ieee'] .ql-editor p {
   text-indent: 0 !important;

@@ -30,6 +30,17 @@
   </div>
 </aside>
 
+<div id="anvil-pending-change-modal" class="account-modal-overlay" hidden>
+  <div class="account-modal-overlay__backdrop" id="anvil-pending-change-modal-backdrop" tabindex="-1" aria-hidden="true"></div>
+  <div class="account-modal-overlay__panel" role="dialog" aria-modal="true" aria-labelledby="anvil-pending-change-modal-title">
+    <h3 id="anvil-pending-change-modal-title" class="account-modal-overlay__title">Confirm or undo first</h3>
+    <p class="account-modal-overlay__text">Please confirm or undo the current change before applying another suggestion.</p>
+    <div class="account-modal-overlay__actions">
+      <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--confirm-mint" id="anvil-pending-change-modal-dismiss">OK</button>
+    </div>
+  </div>
+</div>
+
 <div id="anvil-title-profile-modal" class="account-modal-overlay" hidden>
   <div class="account-modal-overlay__backdrop" id="anvil-title-profile-modal-backdrop" tabindex="-1" aria-hidden="true"></div>
   <div class="account-modal-overlay__panel" role="dialog" aria-modal="true" aria-labelledby="anvil-title-profile-modal-title">

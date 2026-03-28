@@ -310,9 +310,13 @@
     var courseH = escapeHtml('[Course — add here; not stored in Account]');
     var instrH = escapeHtml('[Instructor — add here]');
     var dateH = escapeHtml('[Due date — add here]');
+    /* APA-style student title page: title block begins after four double-spaced blank lines from the top margin. */
+    var lead =
+      '<p><br></p><p><br></p><p><br></p><p><br></p>';
 
     if (sk === 'MLA') {
       return (
+        lead +
         '<p>' + authorH + '</p>' +
         '<p>' + instrH + '</p>' +
         '<p>' + courseH + '</p>' +
@@ -324,6 +328,7 @@
 
     if (sk === 'IEEE') {
       return (
+        lead +
         '<p class="ql-align-center"><strong>' + ptitle + '</strong></p>' +
         '<p class="ql-align-center">' + authorH + '</p>' +
         '<p class="ql-align-center">' + uniH + '</p>' +
@@ -333,6 +338,7 @@
 
     if (sk === 'CHICAGO' || sk === 'TURABIAN') {
       return (
+        lead +
         '<p class="ql-align-center"><strong>' + ptitle + '</strong></p>' +
         '<p class="ql-align-center">' + authorH + '</p>' +
         '<p class="ql-align-center">' + uniH + '</p>' +
@@ -344,6 +350,7 @@
 
     /* APA, Harvard, AMA, Vancouver, default */
     return (
+      lead +
       '<p class="ql-align-center"><strong>' + ptitle + '</strong></p>' +
       '<p class="ql-align-center">' + authorH + '</p>' +
       '<p class="ql-align-center">' + uniH + '</p>' +
@@ -848,7 +855,7 @@
     if (!quill || !row || row.status !== 'active') return;
     if (!row.item.isActionable && !itemHasReplacement(row.item)) return;
     if (hasPendingChange) {
-      alert('Please confirm or undo the current change first.');
+      showPendingChangeModal();
       return;
     }
     var plain = getDraftPlain();
@@ -1546,6 +1553,10 @@
         wrap.removeAttribute('data-ms-profile');
       }
     }
+    var ed = document.querySelector('#anvil-quill-wrap .ql-editor');
+    if (ed) {
+      ed.style.lineHeight = prof.lineHeight || '2';
+    }
     var len = quill.getLength();
     if (len > 1) {
       quill.formatText(0, len, 'font', prof.font, 'silent');
@@ -1570,6 +1581,53 @@
     }
   }
 
+  function stripColorsForExportHtml(html) {
+    var d = document.createElement('div');
+    d.innerHTML = html || '';
+    d.querySelectorAll('[style]').forEach(function (el) {
+      var st = el.getAttribute('style');
+      if (!st) return;
+      var next = st
+        .replace(/\bcolor\s*:\s*[^;]+;?/gi, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (next) el.setAttribute('style', next);
+      else el.removeAttribute('style');
+    });
+    d.querySelectorAll('[class]').forEach(function (el) {
+      var cl = el.getAttribute('class');
+      if (!cl) return;
+      var next = cl
+        .split(/\s+/)
+        .filter(function (c) {
+          return c && !/^ql-color-/.test(c) && !/^ql-bg-color-/.test(c);
+        })
+        .join(' ');
+      if (next) el.setAttribute('class', next);
+      else el.removeAttribute('class');
+    });
+    return d.innerHTML;
+  }
+
+  function showPendingChangeModal() {
+    var modal = document.getElementById('anvil-pending-change-modal');
+    if (!modal) return;
+    modal.hidden = false;
+  }
+
+  function bindPendingChangeModal() {
+    var modal = document.getElementById('anvil-pending-change-modal');
+    if (!modal || modal.dataset.anvilBound) return;
+    modal.dataset.anvilBound = '1';
+    var close = function () {
+      modal.hidden = true;
+    };
+    var btn = document.getElementById('anvil-pending-change-modal-dismiss');
+    var bd = document.getElementById('anvil-pending-change-modal-backdrop');
+    if (btn) btn.addEventListener('click', close);
+    if (bd) bd.addEventListener('click', close);
+  }
+
   /* ── Export helpers ── */
   function downloadBlob(blob, filename) {
     var url = URL.createObjectURL(blob);
@@ -1584,20 +1642,29 @@
     }, 100);
   }
 
-  function htmlToRtf(html) {
+  function htmlToRtf(html, opts) {
+    opts = opts || {};
     var container = document.createElement('div');
     container.innerHTML = html;
     var text = container.innerText || container.textContent || '';
-    var rtf = '{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Times New Roman;}}' +
-      '\\f0\\fs24 ';
+    var rtf = '{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Times New Roman;}}';
+    if (opts.rtfAlignCenter) rtf += '\\qc ';
+    rtf += '\\f0\\fs24 ';
+    if (opts.leadPars) {
+      for (var p = 0; p < opts.leadPars; p++) {
+        rtf += '\\par ';
+      }
+    }
     var lines = text.split('\n');
+    var apaIndent = opts.apaBodyIndent;
     for (var i = 0; i < lines.length; i++) {
+      if (i > 0) rtf += '\\par ';
+      if (apaIndent) rtf += '\\fi720 ';
       var line = lines[i]
         .replace(/\\/g, '\\\\')
         .replace(/\{/g, '\\{')
         .replace(/\}/g, '\\}');
       rtf += line;
-      if (i < lines.length - 1) rtf += '\\par\n';
     }
     rtf += '}';
     return rtf;
@@ -1606,8 +1673,14 @@
   function exportSectionRtf() {
     if (selectedId == null) return;
     var sec = sectionById(selectedId);
-    var html = getDraftHtml();
-    var rtf = htmlToRtf(html);
+    var slug = sectionSlugKey(sec);
+    var style = getProjectCitationStyle();
+    var html = stripColorsForExportHtml(getDraftHtml());
+    var rtf = htmlToRtf(html, {
+      rtfAlignCenter: slug === 'title',
+      leadPars: slug === 'title' ? 4 : 0,
+      apaBodyIndent: slug !== 'title' && style !== 'IEEE',
+    });
     var blob = new Blob([rtf], { type: 'application/rtf' });
     var name = (sec ? sec.title : 'Section') + '.rtf';
     downloadBlob(blob, name);
@@ -1616,13 +1689,18 @@
   function exportSectionDocx() {
     if (selectedId == null) return;
     var sec = sectionById(selectedId);
-    var html = getDraftHtml();
+    var html = stripColorsForExportHtml(getDraftHtml());
     var title = sec ? sec.title : 'Section';
     fetch('/api/projects/' + projectId + '/sections/' + selectedId + '/export-docx', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ html: html, title: title }),
+      body: JSON.stringify({
+        html: html,
+        title: title,
+        citationStyle: getProjectCitationStyle(),
+        sectionSlug: sectionSlugKey(sec),
+      }),
     })
       .then(function (r) {
         if (!r.ok) throw new Error('Export failed');
@@ -1636,12 +1714,18 @@
 
   function exportAllRtf() {
     if (!bundle || !bundle.sections) return;
+    var style = getProjectCitationStyle();
     var combined = '';
     bundle.sections.forEach(function (sec) {
-      combined += '<h2>' + escapeHtml(sec.title) + '</h2>';
+      var slug = sectionSlugKey(sec);
+      if (slug !== 'title') {
+        combined += '<h2>' + escapeHtml(sec.title) + '</h2>';
+      }
       combined += (sec.body || '') + '\n';
     });
-    var rtf = htmlToRtf(combined);
+    var rtf = htmlToRtf(stripColorsForExportHtml(combined), {
+      apaBodyIndent: style !== 'IEEE',
+    });
     var blob = new Blob([rtf], { type: 'application/rtf' });
     var name = (bundle.project ? bundle.project.name : 'Project') + '.rtf';
     downloadBlob(blob, name);
@@ -1650,13 +1734,17 @@
   function exportAllDocx() {
     if (!bundle || !bundle.sections) return;
     var sections = bundle.sections.map(function (s) {
-      return { title: s.title, body: s.body || '' };
+      return { title: s.title, body: s.body || '', slug: s.slug };
     });
     fetch('/api/projects/' + projectId + '/export-project-docx', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sections: sections }),
+      body: JSON.stringify({
+        sections: sections,
+        citationStyle: getProjectCitationStyle(),
+        projectName: bundle.project ? bundle.project.name : 'Project',
+      }),
     })
       .then(function (r) {
         if (!r.ok) throw new Error('Export failed');
@@ -1812,19 +1900,28 @@
     var marker = formatInTextCitation(src, getProjectCitationStyle());
     var range = quill.getSelection(true);
     var index = range ? range.index : quill.getLength() - 1;
+    var insertAt = index;
+    if (index > 0) {
+      var before = quill.getText(index - 1, 1);
+      if (before && before !== ' ') {
+        quill.insertText(index, ' ', 'user');
+        insertAt = index + 1;
+      }
+    }
 
     var isHtml = marker.indexOf('<sup>') !== -1;
     if (isHtml) {
       var num = marker.replace(/<\/?sup>/g, '');
-      quill.insertText(index, num, { script: 'super' }, 'user');
+      quill.insertText(insertAt, num, { script: 'super' }, 'user');
     } else {
-      quill.insertText(index, marker, 'user');
+      quill.insertText(insertAt, marker, 'user');
     }
 
     var body = getDraftHtml();
     var plain = getDraftPlain();
-    var start = Math.max(0, index - 30);
-    var end = Math.min(plain.length, index + marker.length + 30);
+    var start = Math.max(0, insertAt - 30);
+    var citeLen = isHtml ? String(marker.replace(/<\/?sup>/g, '')).length : marker.length;
+    var end = Math.min(plain.length, insertAt + citeLen + 30);
     var context = plain.slice(start, end);
 
     fetch('/api/projects/' + projectId + '/citation-usages', {
@@ -2203,5 +2300,6 @@
     }
   });
 
+  bindPendingChangeModal();
   load();
 })();
