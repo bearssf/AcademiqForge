@@ -13,14 +13,22 @@
       <% if (appAccess.trialing && !appAccess.paid && appAccess.trialEndsLabel) { %>
         <div class="app-trial-bar">Free trial — ends <%= appAccess.trialEndsLabel %>. The Foundry requires a paid plan.</div>
       <% } %>
-      <h1><%= phaseTitle %></h1>
       <% if (phaseSlug === 'anvil') { %>
+        <div class="app-anvil-page-head">
+          <div class="app-anvil-page-head__title">
+            <h1><%= phaseTitle %></h1>
+          </div>
+          <div id="anvil-scoring-panel" class="anvil-top-metrics__scoring app-anvil-scoring-head" hidden aria-live="polite"></div>
+        </div>
         <p class="sub app-anvil-intro">Where ideas are shaped and formed into arguments and reasoning.</p>
-      <% } else if (phaseSlug === 'crucible') { %>
+      <% } else { %>
+      <h1><%= phaseTitle %></h1>
+      <% } %>
+      <% if (phaseSlug === 'crucible') { %>
         <p class="sub app-crucible-intro">Where ideas and arguments are strengthened by the work of others.</p>
       <% } else if (phaseSlug === 'framework') { %>
         <p class="sub">Argument outline and evidence mapping for <strong><%= projectTitle %></strong>.</p>
-      <% } else { %>
+      <% } else if (phaseSlug !== 'anvil') { %>
         <p class="sub"><%= projectTitle %> — center canvas placeholder. Rich editor, sources, and workflow tools will mount here.</p>
       <% } %>
 

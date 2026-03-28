@@ -870,7 +870,7 @@
     quill.deleteText(m.start, len, 'silent');
     quill.insertText(m.start, sug, 'silent');
     if (sug.length > 0) {
-      quill.formatText(m.start, sug.length, 'background', '#64d7ec', 'silent');
+      quill.formatText(m.start, sug.length, { background: '#64d7ec', color: '#000000' }, 'silent');
     }
     row.status = 'pending';
     row.matchPosition = null;
@@ -1038,7 +1038,7 @@
     var idx = plain.indexOf(sug, Math.max(0, pc.quillStart - 20));
     if (idx === -1) idx = plain.indexOf(sug);
     if (idx !== -1 && sug.length > 0) {
-      quill.formatText(idx, sug.length, 'background', false, 'silent');
+      quill.formatText(idx, sug.length, { background: false, color: false }, 'silent');
     }
     pc.row.status = 'applied';
     pendingChange = null;
@@ -1067,7 +1067,7 @@
     if (idx === -1) idx = plain.indexOf(sug);
     if (idx !== -1) {
       if (sug.length > 0) {
-        quill.formatText(idx, sug.length, 'background', false, 'silent');
+        quill.formatText(idx, sug.length, { background: false, color: false }, 'silent');
       }
       quill.deleteText(idx, sug.length, 'silent');
       quill.insertText(idx, orig, 'silent');
@@ -1954,9 +1954,6 @@
       '<div class="anvil-layout--single">' +
       '<div class="anvil-top-metrics">' +
       '<div class="anvil-top-metrics__progress">' + progressHtml + '</div>' +
-      '<div class="anvil-top-metrics__scoring" id="anvil-scoring-panel"' +
-      (hideScoring ? ' hidden' : '') +
-      '></div>' +
       '</div>' +
       '<div id="anvil-analyze-banner" class="anvil-analyze-banner" hidden aria-live="polite"></div>' +
       '<div class="anvil-editor">' +
@@ -1993,6 +1990,11 @@
       '</div>' +
       '</div>';
 
+    var extScoring = document.getElementById('anvil-scoring-panel');
+    if (extScoring) {
+      extScoring.hidden = !!hideScoring;
+    }
+
     mountEditor(draft);
     restoreManuscriptMode();
     feedbackRows = [];
@@ -2006,6 +2008,9 @@
     ieeeCounter = 0;
     ieeeMap = {};
     renderFeedbackRail();
+    if (extScoring && !hideScoring) {
+      updateScoring();
+    }
     loadSectionSources();
     loadCitationUsages();
     loadFeedbackFromDb();
