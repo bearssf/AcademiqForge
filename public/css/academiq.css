@@ -19,9 +19,9 @@ body {
   margin: 0 auto;
   padding: 1.5rem 1.5rem 3.5rem;
 }
-/* Home: no extra padding above header tile; 75px between header and badge */
+/* Home: 25px above header tile; 75px between header and badge */
 body.home-page .shell {
-  padding-top: 0;
+  padding-top: 25px;
 }
 body.home-page .hero {
   padding: 75px 0.1rem 4rem;
