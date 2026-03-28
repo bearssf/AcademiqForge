@@ -45,7 +45,11 @@
       variables: { colorPrimary: '#2f80ed' },
     };
     const elements = stripe.elements({ clientSecret: clientSecret, appearance: appearance });
-    const paymentElement = elements.create('payment');
+    const paymentElement = elements.create('payment', {
+      terms: {
+        card: 'never',
+      },
+    });
     paymentElement.mount('#billing-pm-payment');
     submitBtn.disabled = false;
 

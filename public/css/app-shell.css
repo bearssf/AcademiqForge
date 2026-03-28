@@ -3753,6 +3753,18 @@
   margin-top: 0.25rem;
 }
 
+.app-body--billing-payment-method .billing-pm-lead {
+  color: #1cb9c6;
+}
+.app-body--billing-payment-method .billing-pm-legal {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+#billing-pm-payment {
+  margin-bottom: 1rem;
+}
+
 /* Image resize overlay for Quill editor (viewport-fixed) */
 .anvil-img-overlay {
   display: none;
