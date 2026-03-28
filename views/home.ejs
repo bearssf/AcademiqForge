@@ -39,8 +39,10 @@
         <div class="pillars-col" aria-label="Highlights">
           <% pillars.forEach(function (pillar) { %>
             <article class="card">
-              <div class="ico"></div>
-              <h3><%= pillar.title %></h3>
+              <div class="pillar-card-head">
+                <div class="ico" aria-hidden="true"></div>
+                <h3><%= pillar.title %></h3>
+              </div>
               <p><%= pillar.body %></p>
             </article>
           <% }) %>
