@@ -40,7 +40,7 @@
     btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'tw-btn';
-    btn.textContent = 'Continue';
+    btn.textContent = 'Next';
     actions.appendChild(btn);
     card.appendChild(arrow);
     card.appendChild(textEl);
@@ -170,7 +170,7 @@
     if (!steps.length || i < 0 || i >= steps.length) return;
     var s = steps[i];
     textEl.textContent = s.text || '';
-    btn.textContent = i >= steps.length - 1 ? 'Finish' : 'Continue';
+    btn.textContent = i >= steps.length - 1 ? 'Finish' : 'Next';
 
     clearTarget();
     var el = null;
