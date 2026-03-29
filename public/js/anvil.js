@@ -1970,7 +1970,7 @@
       sectionPct = sectionTarget > 0 ? Math.min(100, Math.round((sectionWords / sectionTarget) * 100)) : 0;
     }
 
-    return '<div class="anvil-progress-row">' +
+    return '<div id="tw-anvil-progress-charts" class="anvil-progress-row">' +
       '<div class="anvil-progress-item">' +
         '<span class="anvil-progress-label">Section: ' + sectionPct + '% complete</span>' +
         '<div class="anvil-progress-track"><div class="anvil-progress-fill" style="width:' + sectionPct + '%"></div></div>' +

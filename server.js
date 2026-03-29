@@ -45,6 +45,7 @@ const { buildDashboardProjectProgress, dashboardCategory } = require('./lib/dash
 const {
   parseTransTrainOpacity,
   pathFromRequest,
+  trainingPageSlugFromPath,
   loadTrainingClientPayload,
   listAllStepsForAdmin,
   adminUpsertStep,
@@ -347,6 +348,7 @@ function trainingRenderLocals(res) {
   return {
     trainingClientPayload: res.locals.trainingClientPayload,
     trainingReplayAvailable: res.locals.trainingReplayAvailable,
+    trainingPageSlug: res.locals.trainingPageSlug,
     transTrainOpacity: res.locals.transTrainOpacity,
   };
 }
@@ -354,8 +356,10 @@ function trainingRenderLocals(res) {
 async function attachTrainingWalkthroughLocals(req, res, next) {
   res.locals.trainingClientPayload = null;
   res.locals.trainingReplayAvailable = false;
+  res.locals.trainingPageSlug = null;
   res.locals.transTrainOpacity = parseTransTrainOpacity(process.env.TRANS_TRAIN);
   if (!req.session || !req.session.userId) return next();
+  res.locals.trainingPageSlug = trainingPageSlugFromPath(pathFromRequest(req)) || null;
   try {
     const payload = await loadTrainingClientPayload(
       getPool,

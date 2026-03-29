@@ -1485,9 +1485,9 @@
   font-size: 0.78rem;
   color: rgba(255, 255, 255, 0.38);
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 0.75rem;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.5rem;
 }
 .app-sidebar-home {
   color: #1cb9c5;

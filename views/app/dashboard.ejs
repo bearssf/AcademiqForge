@@ -150,7 +150,7 @@
         <% } %>
       </div>
 
-      <div class="dash-ideas-tile dash-published-tile dash-ideas-tile--with-list">
+      <div class="dash-ideas-tile dash-published-tile dash-ideas-tile--with-list" id="tw-portfolio-published">
         <div class="dash-ideas-tile__head">
           <div class="dash-ideas-tile__text">
             <div class="dash-ideas-tile__title dash-ideas-tile__title--published">Published Work</div>
@@ -178,7 +178,7 @@
 
     <aside class="app-insight app-insight--dashboard">
       <div class="dash-rail-top">
-        <div class="dash-rail-head-row">
+        <div class="dash-rail-head-row" id="tw-dash-rail-filter">
           <div class="insight-h">Projects in Portfolio</div>
           <select id="dash-project-filter" class="dash-project-filter" aria-label="Filter projects by status">
             <option value="active-completed" selected>Active/Completed</option>
@@ -213,7 +213,7 @@
           <% } %>
         </div>
       </div>
-      <div class="dash-rail-bottom">
+      <div class="dash-rail-bottom" id="tw-dash-account-status">
         <% var bLines = typeof billingSummary !== 'undefined' && billingSummary && billingSummary.lines ? billingSummary.lines : []; %>
         <% if (appAccess.paid || bLines.length) { %>
           <% bLines.forEach(function(row) { %>

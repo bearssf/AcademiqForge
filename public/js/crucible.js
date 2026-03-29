@@ -391,7 +391,7 @@
     var html = '';
 
     /* sort / filter bar */
-    html += '<div class="crucible-toolbar">' +
+    html += '<div class="crucible-toolbar" id="tw-crucible-filters">' +
       '<div class="crucible-toolbar__left">' +
         '<span class="crucible-toolbar-spacer"></span>' +
         '<label class="crucible-sort-label">Sort: ' +

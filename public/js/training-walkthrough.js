@@ -265,7 +265,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', function () {
-    var replayBtn = document.getElementById('app-sidebar-training-replay');
+    var replayBtn = document.getElementById('tw-sidebar-page-tour');
     if (!replayBtn) return;
     replayBtn.addEventListener('click', function (e) {
       e.preventDefault();

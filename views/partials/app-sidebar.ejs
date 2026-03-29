@@ -27,12 +27,12 @@
   <div class="app-nav-section">
     <div class="app-nav-label">Workspace</div>
     <nav class="app-nav">
-      <a href="/app/account" class="<%= na === 'account' ? 'active' : '' %>">Account</a>
-      <a href="/app/dashboard" class="<%= na === 'dashboard' ? 'active' : '' %>">Portfolio dashboard</a>
+      <a href="/app/account" id="tw-nav-account" class="<%= na === 'account' ? 'active' : '' %>">Account</a>
+      <a href="/app/dashboard" id="tw-nav-portfolio" class="<%= na === 'dashboard' ? 'active' : '' %>">Portfolio dashboard</a>
       <% if (access.foundryUnlocked) { %>
-        <a href="<%= effectivePid ? '/app/project/' + effectivePid + '/foundry' : '#' %>" class="<%= slug === 'foundry' ? 'active' : '' %>">The Foundry</a>
+        <a href="<%= effectivePid ? '/app/project/' + effectivePid + '/foundry' : '#' %>" id="tw-nav-foundry" class="<%= slug === 'foundry' ? 'active' : '' %>">The Foundry</a>
       <% } else { %>
-        <a href="<%= effectivePid ? '/app/project/' + effectivePid + '/foundry' : '#' %>" class="<%= slug === 'foundry' ? 'active' : '' %> locked">The Foundry <span class="badge-pay">Paid</span></a>
+        <a href="<%= effectivePid ? '/app/project/' + effectivePid + '/foundry' : '#' %>" id="tw-nav-foundry" class="<%= slug === 'foundry' ? 'active' : '' %> locked">The Foundry <span class="badge-pay">Paid</span></a>
       <% } %>
     </nav>
   </div>
@@ -45,7 +45,7 @@
       <a href="/app/project/<%= effectivePid %>/settings" class="app-sidebar-project-name" title="<%= currentProject.name %>"><%= truncateProjectTitle(currentProject.name) %></a>
       <nav class="app-nav">
         <% var hasActiveSection = typeof anvilSectionId !== 'undefined' && anvilSectionId != null; %>
-        <a href="/app/project/<%= effectivePid %>/anvil<%= (typeof anvilSections !== 'undefined' && anvilSections.length) ? ('?section=' + anvilSections[0].id) : '' %>" class="<%= slug === 'anvil' && !hasActiveSection ? 'active' : '' %>">The Anvil</a>
+        <a href="/app/project/<%= effectivePid %>/anvil<%= (typeof anvilSections !== 'undefined' && anvilSections.length) ? ('?section=' + anvilSections[0].id) : '' %>" id="tw-nav-anvil" class="<%= slug === 'anvil' && !hasActiveSection ? 'active' : '' %>">The Anvil</a>
         <% if (typeof anvilSections !== 'undefined' && anvilSections.length && slug !== 'foundry') { %>
         <nav class="app-nav app-nav--anvil-sections" aria-label="Section drafts">
           <% anvilSections.forEach(function (sec) { %>
@@ -53,16 +53,16 @@
           <% }); %>
         </nav>
         <% } %>
-        <a href="/app/project/<%= effectivePid %>/crucible" class="<%= slug === 'crucible' ? 'active' : '' %>">The Crucible</a>
-        <a href="/app/project/<%= effectivePid %>/framework" class="<%= slug === 'framework' ? 'active' : '' %>">Framework</a>
+        <a href="/app/project/<%= effectivePid %>/crucible" id="tw-nav-crucible" class="<%= slug === 'crucible' ? 'active' : '' %>">The Crucible</a>
+        <a href="/app/project/<%= effectivePid %>/framework" id="tw-nav-framework" class="<%= slug === 'framework' ? 'active' : '' %>">Framework</a>
       </nav>
     <% } %>
   </div>
 
   <div class="app-sidebar-footer">
-    <a href="/" class="app-sidebar-home">Home</a>
+    <a href="/" class="app-sidebar-home" id="tw-sidebar-home">Home</a>
     <% if (typeof trainingReplayAvailable !== 'undefined' && trainingReplayAvailable && typeof trainingClientPayload !== 'undefined' && trainingClientPayload && trainingClientPayload.pageSlug) { %>
-    <button type="button" class="app-sidebar-training" id="app-sidebar-training-replay" data-page-slug="<%= trainingClientPayload.pageSlug %>">Page tour</button>
+    <button type="button" class="app-sidebar-training" id="tw-sidebar-page-tour" data-page-slug="<%= trainingClientPayload.pageSlug %>">Page Tour</button>
     <% } %>
   </div>
 </aside>
