@@ -170,7 +170,7 @@
     if (!steps.length || i < 0 || i >= steps.length) return;
     var s = steps[i];
     textEl.textContent = s.text || '';
-    btn.textContent = i >= steps.length - 1 ? 'Done' : 'Continue';
+    btn.textContent = i >= steps.length - 1 ? 'Finish' : 'Continue';
 
     clearTarget();
     var el = null;
