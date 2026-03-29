@@ -15,7 +15,7 @@
         <div class="app-trial-bar">Free trial — ends <%= appAccess.trialEndsLabel %>. The Foundry requires a paid plan.</div>
       <% } %>
       <% if (phaseSlug === 'anvil') { %>
-        <div class="app-anvil-page-head">
+        <div class="app-anvil-page-head" id="tw-anvil-head">
           <div class="app-anvil-page-head__left">
             <h1><%= phaseTitle %></h1>
             <p class="sub app-anvil-intro">Where ideas are shaped and formed into arguments and reasoning.</p>
@@ -34,7 +34,7 @@
       <% } %>
 
       <% if (foundryLocked) { %>
-        <div class="app-paywall">
+        <div class="app-paywall" id="tw-foundry-paywall">
           <h2>The Foundry is for members</h2>
           <p>The Foundry is not included in the free trial. Subscribe to unlock literature-gap and topic ideation powered by your sources and interests.</p>
         </div>
@@ -56,12 +56,12 @@
           data-sections="<%= encodeURIComponent(JSON.stringify((typeof crucibleSections !== 'undefined' ? crucibleSections : []).map(function(s){ return { id: s.id, title: s.title }; }))) %>">
         </div>
       <% } else if (phaseSlug === 'framework') { %>
-        <div class="app-placeholder">
+        <div class="app-placeholder" id="tw-framework-workspace">
           <p style="margin:0 0 .5rem"><strong>Coming soon.</strong> The Framework workspace isn’t wired up yet—we’ll revisit the right experience for outline and evidence here.</p>
           <p style="margin:0;color:rgba(255,255,255,.55);font-size:.9rem">The Anvil already covers section drafts for this project.</p>
         </div>
       <% } else { %>
-        <div class="app-placeholder">
+        <div class="app-placeholder" id="tw-foundry-workspace">
           <strong>Placeholder workspace.</strong> Section-specific writing, capture, or visualization will load here for <code><%= phaseSlug %></code>.
         </div>
       <% } %>

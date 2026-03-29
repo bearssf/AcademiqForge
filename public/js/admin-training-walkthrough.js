@@ -6,6 +6,7 @@
 
   var data = JSON.parse(raw.textContent || '{}');
   var pages = data.pages || [];
+  var pageAnchors = data.pageAnchors || [];
   var steps = data.steps || [];
 
   var token = new URLSearchParams(window.location.search).get('token') || '';
@@ -20,6 +21,33 @@
   }
 
   function render() {
+    var anchorBlocks = pageAnchors
+      .map(function (pg) {
+        var items = (pg.anchors || [])
+          .map(function (a) {
+            return (
+              '<li><span class="mono">' +
+              esc(a.selector) +
+              '</span> — ' +
+              esc(a.description) +
+              '</li>'
+            );
+          })
+          .join('');
+        return (
+          '<section class="train-page-anchors"><h2>' +
+          esc(pg.label) +
+          ' <span class="train-slug mono">(' +
+          esc(pg.slug) +
+          ')</span></h2>' +
+          (items
+            ? '<ul>' + items + '</ul>'
+            : '<p class="train-empty">No documented anchors for this page yet.</p>') +
+          '</section>'
+        );
+      })
+      .join('');
+
     var pageOpts = pages
       .map(function (p) {
         return '<option value="' + esc(p.slug) + '">' + esc(p.label) + '</option>';
@@ -59,6 +87,11 @@
       : '';
 
     root.innerHTML =
+      '<div class="train-anchors-wrap">' +
+      '<h2 style="font-size:1rem;margin:0 0 0.35rem">Tour focus selectors by page</h2>' +
+      '<p class="hint" style="margin-top:0">Use these in the <strong>Focus selector</strong> field. Other stable <span class="mono">#id</span> values on the same screen also work.</p>' +
+      anchorBlocks +
+      '</div>' +
       '<div class="form-block">' +
       '<h2 style="font-size:1rem;margin:0 0 0.75rem">Add or edit step</h2>' +
       '<label>Page</label><select id="train-page">' +

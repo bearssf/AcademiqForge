@@ -50,6 +50,7 @@ const {
   adminUpsertStep,
   adminDeleteStep,
   TRAINING_PAGE_OPTIONS,
+  trainingAnchorsForAdmin,
   ensureTrainingWalkthroughSchema,
 } = require('./lib/trainingWalkthrough');
 const { fetchBillingHistoryForCustomer } = require('./lib/billingHistory');
@@ -260,7 +261,11 @@ function requireAdminTrainingEditorToken(req, res, next) {
 async function renderAdminTrainingWalkthroughPage(req, res, next) {
   try {
     const rows = await listAllStepsForAdmin(getPool);
-    const payload = { pages: TRAINING_PAGE_OPTIONS, steps: rows };
+    const payload = {
+      pages: TRAINING_PAGE_OPTIONS,
+      pageAnchors: trainingAnchorsForAdmin(),
+      steps: rows,
+    };
     const data = JSON.stringify(payload);
     const safe = data.replace(/</g, '\\u003c');
     res.render('admin-training-walkthrough', { trainingAdminJson: safe });

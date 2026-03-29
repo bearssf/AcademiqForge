@@ -24,11 +24,20 @@
     #admin-train-status.err { color: #f85149; }
     #admin-train-status.ok { color: #3fb950; }
     .form-block { max-width: 36rem; padding: 1rem; border: 1px dashed #30363d; border-radius: 10px; margin-top: 1rem; }
+    .train-anchors-wrap { max-width: 56rem; margin-bottom: 1.25rem; }
+    .train-anchors-wrap > .hint { margin-bottom: 0.75rem; }
+    .train-page-anchors { margin: 0 0 1rem; padding-bottom: 0.85rem; border-bottom: 1px solid #21262d; }
+    .train-page-anchors:last-child { border-bottom: none; }
+    .train-page-anchors h2 { font-weight: 600; color: #e6edf3; }
+    .train-slug { color: #8b949e; font-weight: 400; }
+    .train-page-anchors ul { margin: 0.35rem 0 0; padding-left: 1.15rem; }
+    .train-page-anchors li { margin: 0.25rem 0; color: #c9d1d9; }
+    .train-empty { margin: 0.25rem 0 0; font-size: 0.8rem; color: #6e7681; }
   </style>
 </head>
 <body>
   <h1>Training walkthrough steps</h1>
-  <p class="hint">Use <code>?token=…</code> with <code>ADMIN_TRAINING_EDITOR_TOKEN</code>. Each row is one tooltip step: page, CSS selector for the focus element, body text, sort order. Portfolio dashboard example selectors: <span class="mono">#tw-portfolio-head</span>, <span class="mono">#tw-portfolio-add-project</span>, <span class="mono">#tw-portfolio-metrics</span>.</p>
+  <p class="hint">Use <code>?token=…</code> with <code>ADMIN_TRAINING_EDITOR_TOKEN</code>. Each step needs a page, a CSS selector (see the list below), body text, and sort order.</p>
   <script id="admin-train-json" type="application/json"><%- trainingAdminJson %></script>
   <div id="admin-train-root"></div>
   <script src="/js/admin-training-walkthrough.js" defer></script>
