@@ -48,18 +48,16 @@
             sec.pct +
             '%</span>' +
             '</div>' +
-            '<div class="dash-section-bar__metrics" aria-label="Words written and open research items">' +
+            '<div class="dash-section-bar__metrics">' +
             '<div class="dash-section-bar__metric">' +
             '<span class="dash-section-bar__metric-value">' +
             (sec.words || 0).toLocaleString() +
             '</span>' +
-            '<span class="dash-section-bar__metric-label">words</span>' +
             '</div>' +
             '<div class="dash-section-bar__metric">' +
             '<span class="dash-section-bar__metric-value">' +
             (sec.researchOpen || 0) +
             '</span>' +
-            '<span class="dash-section-bar__metric-label">open</span>' +
             '</div>' +
             '</div>' +
             '</div>'

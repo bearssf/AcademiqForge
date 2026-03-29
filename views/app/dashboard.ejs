@@ -45,18 +45,22 @@
         <% if (recentProject && progressData.length) { %>
         <% var recentProg = progressData.find(function(pp) { return pp.id === recentProject.id; }); %>
         <div class="dash-visual-card" id="dash-active-visual" data-project-id="<%= recentProject.id %>">
-          <div class="dash-visual-card__header">
-            <div class="dash-visual-card__title"><%= recentProject.name %></div>
-            <div class="dash-ring-wrap">
-              <svg class="dash-ring" viewBox="0 0 120 120" aria-hidden="true">
-                <circle class="dash-ring__bg" cx="60" cy="60" r="52" />
-                <circle class="dash-ring__fill dash-ring__fill--active" cx="60" cy="60" r="52" stroke-dasharray="<%= Math.round(326.7 * (recentProg ? recentProg.pct : 0) / 100) %> 327" />
-                <text class="dash-ring__text" x="60" y="66"><%= recentProg ? recentProg.pct : 0 %>%</text>
-              </svg>
-            </div>
-            <div class="dash-visual-card__sub">Project completion</div>
+          <div class="dash-visual-card__title"><%= recentProject.name %></div>
+          <div class="dash-ring-wrap">
+            <svg class="dash-ring" viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="dash-ring__bg" cx="60" cy="60" r="52" />
+              <circle class="dash-ring__fill dash-ring__fill--active" cx="60" cy="60" r="52" stroke-dasharray="<%= Math.round(326.7 * (recentProg ? recentProg.pct : 0) / 100) %> 327" />
+              <text class="dash-ring__text" x="60" y="66"><%= recentProg ? recentProg.pct : 0 %>%</text>
+            </svg>
           </div>
-          <div class="dash-visual-card__metrics-scroll">
+          <div class="dash-visual-card__sub">Project completion</div>
+          <div class="dash-section-bars-header">
+            <div class="dash-section-bars-header__graph-spacer" aria-hidden="true"></div>
+            <div class="dash-section-bars-header__metrics">
+              <span class="dash-section-bars-header__col">Words completed</span>
+              <span class="dash-section-bars-header__col">Research outstanding</span>
+            </div>
+          </div>
           <div class="dash-section-bars" id="dash-active-section-bars">
             <% if (recentProg && recentProg.sections && recentProg.sections.length) { %>
             <% recentProg.sections.forEach(function(sec) { %>
@@ -66,38 +70,39 @@
                 <div class="dash-section-bar__track"><div class="dash-section-bar__fill" style="width:<%= sec.pct %>%"></div></div>
                 <span class="dash-section-bar__pct"><%= sec.pct %>%</span>
               </div>
-              <div class="dash-section-bar__metrics" aria-label="Words written and open research items">
+              <div class="dash-section-bar__metrics">
                 <div class="dash-section-bar__metric">
                   <span class="dash-section-bar__metric-value"><%= sec.words.toLocaleString() %></span>
-                  <span class="dash-section-bar__metric-label">words</span>
                 </div>
                 <div class="dash-section-bar__metric">
                   <span class="dash-section-bar__metric-value"><%= sec.researchOpen %></span>
-                  <span class="dash-section-bar__metric-label">open</span>
                 </div>
               </div>
             </div>
             <% }); %>
             <% } %>
           </div>
-          </div>
         </div>
         <% } %>
 
         <% if (portfolioRows.length) { %>
         <div class="dash-visual-card" id="dash-portfolio-visual">
-          <div class="dash-visual-card__header">
-            <div class="dash-visual-card__title">All Projects</div>
-            <div class="dash-ring-wrap">
-              <svg class="dash-ring" viewBox="0 0 120 120" aria-hidden="true">
-                <circle class="dash-ring__bg" cx="60" cy="60" r="52" />
-                <circle class="dash-ring__fill dash-ring__fill--portfolio" cx="60" cy="60" r="52" stroke-dasharray="<%= Math.round(326.7 * portfolioPct / 100) %> 327" />
-                <text class="dash-ring__text" x="60" y="66"><%= portfolioPct %>%</text>
-              </svg>
-            </div>
-            <div class="dash-visual-card__sub">Portfolio completion</div>
+          <div class="dash-visual-card__title">All Projects</div>
+          <div class="dash-ring-wrap">
+            <svg class="dash-ring" viewBox="0 0 120 120" aria-hidden="true">
+              <circle class="dash-ring__bg" cx="60" cy="60" r="52" />
+              <circle class="dash-ring__fill dash-ring__fill--portfolio" cx="60" cy="60" r="52" stroke-dasharray="<%= Math.round(326.7 * portfolioPct / 100) %> 327" />
+              <text class="dash-ring__text" x="60" y="66"><%= portfolioPct %>%</text>
+            </svg>
           </div>
-          <div class="dash-visual-card__metrics-scroll">
+          <div class="dash-visual-card__sub">Portfolio completion</div>
+          <div class="dash-section-bars-header">
+            <div class="dash-section-bars-header__graph-spacer" aria-hidden="true"></div>
+            <div class="dash-section-bars-header__metrics">
+              <span class="dash-section-bars-header__col">Words completed</span>
+              <span class="dash-section-bars-header__col">Research outstanding</span>
+            </div>
+          </div>
           <div class="dash-section-bars">
             <% portfolioRows.forEach(function(pp) { %>
             <div class="dash-section-bar">
@@ -106,19 +111,16 @@
                 <div class="dash-section-bar__track"><div class="dash-section-bar__fill" style="width:<%= pp.pct %>%"></div></div>
                 <span class="dash-section-bar__pct"><%= pp.pct %>%</span>
               </div>
-              <div class="dash-section-bar__metrics" aria-label="Words written and open research items">
+              <div class="dash-section-bar__metrics">
                 <div class="dash-section-bar__metric">
                   <span class="dash-section-bar__metric-value"><%= pp.totalWords.toLocaleString() %></span>
-                  <span class="dash-section-bar__metric-label">words</span>
                 </div>
                 <div class="dash-section-bar__metric">
                   <span class="dash-section-bar__metric-value"><%= pp.researchOpenTotal %></span>
-                  <span class="dash-section-bar__metric-label">open</span>
                 </div>
               </div>
             </div>
             <% }); %>
-          </div>
           </div>
         </div>
         <% } %>
