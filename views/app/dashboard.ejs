@@ -58,10 +58,21 @@
             <% if (recentProg && recentProg.sections && recentProg.sections.length) { %>
             <% recentProg.sections.forEach(function(sec) { %>
             <div class="dash-section-bar">
-              <span class="dash-section-bar__label" title="<%= sec.title %>"><%= sec.title %></span>
-              <div class="dash-section-bar__track"><div class="dash-section-bar__fill" style="width:<%= sec.pct %>%"></div></div>
-              <span class="dash-section-bar__pct"><%= sec.pct %>%</span>
-              <span class="dash-section-bar__stats"><%= sec.words.toLocaleString() %> w · <%= sec.researchOpen %> open</span>
+              <div class="dash-section-bar__graph">
+                <span class="dash-section-bar__label" title="<%= sec.title %>"><%= sec.title %></span>
+                <div class="dash-section-bar__track"><div class="dash-section-bar__fill" style="width:<%= sec.pct %>%"></div></div>
+                <span class="dash-section-bar__pct"><%= sec.pct %>%</span>
+              </div>
+              <div class="dash-section-bar__metrics" aria-label="Words written and open research items">
+                <div class="dash-section-bar__metric">
+                  <span class="dash-section-bar__metric-value"><%= sec.words.toLocaleString() %></span>
+                  <span class="dash-section-bar__metric-label">words</span>
+                </div>
+                <div class="dash-section-bar__metric">
+                  <span class="dash-section-bar__metric-value"><%= sec.researchOpen %></span>
+                  <span class="dash-section-bar__metric-label">open</span>
+                </div>
+              </div>
             </div>
             <% }); %>
             <% } %>
@@ -83,10 +94,21 @@
           <div class="dash-section-bars">
             <% portfolioRows.forEach(function(pp) { %>
             <div class="dash-section-bar">
-              <span class="dash-section-bar__label" title="<%= pp.name %>"><%= pp.name %></span>
-              <div class="dash-section-bar__track"><div class="dash-section-bar__fill" style="width:<%= pp.pct %>%"></div></div>
-              <span class="dash-section-bar__pct"><%= pp.pct %>%</span>
-              <span class="dash-section-bar__stats"><%= pp.totalWords.toLocaleString() %> w · <%= pp.researchOpenTotal %> open</span>
+              <div class="dash-section-bar__graph">
+                <span class="dash-section-bar__label" title="<%= pp.name %>"><%= pp.name %></span>
+                <div class="dash-section-bar__track"><div class="dash-section-bar__fill" style="width:<%= pp.pct %>%"></div></div>
+                <span class="dash-section-bar__pct"><%= pp.pct %>%</span>
+              </div>
+              <div class="dash-section-bar__metrics" aria-label="Words written and open research items">
+                <div class="dash-section-bar__metric">
+                  <span class="dash-section-bar__metric-value"><%= pp.totalWords.toLocaleString() %></span>
+                  <span class="dash-section-bar__metric-label">words</span>
+                </div>
+                <div class="dash-section-bar__metric">
+                  <span class="dash-section-bar__metric-value"><%= pp.researchOpenTotal %></span>
+                  <span class="dash-section-bar__metric-label">open</span>
+                </div>
+              </div>
             </div>
             <% }); %>
           </div>
@@ -94,7 +116,9 @@
         <% } %>
       </div>
 
-      <div class="dash-ideas-tile">
+      <% var researchIdeasList = typeof researchIdeas !== 'undefined' && researchIdeas ? researchIdeas : []; %>
+      <% var publishedWorkList = typeof publishedWork !== 'undefined' && publishedWork ? publishedWork : []; %>
+      <div class="dash-ideas-tile dash-ideas-tile--with-list">
         <div class="dash-ideas-tile__head">
           <div class="dash-ideas-tile__text">
             <div class="dash-ideas-tile__title">Project &amp; Future Research Ideas</div>
@@ -102,9 +126,20 @@
           </div>
           <button type="button" class="app-btn-primary dash-ideas-tile__btn" id="dash-open-research-modal">Track Project/Research Ideas</button>
         </div>
+        <% if (researchIdeasList.length) { %>
+        <div class="dash-saved-tiles" role="list">
+          <% researchIdeasList.forEach(function(idea) { %>
+          <div class="dash-saved-tile dash-saved-tile--idea" role="listitem">
+            <div class="dash-saved-tile__title"><%= idea.research_topic %></div>
+            <% if (idea.keywords) { %><div class="dash-saved-tile__meta"><%= idea.keywords %></div><% } %>
+            <% if (idea.notes) { %><p class="dash-saved-tile__notes"><%= idea.notes.length > 220 ? idea.notes.slice(0, 220) + '…' : idea.notes %></p><% } %>
+          </div>
+          <% }); %>
+        </div>
+        <% } %>
       </div>
 
-      <div class="dash-ideas-tile dash-published-tile">
+      <div class="dash-ideas-tile dash-published-tile dash-ideas-tile--with-list">
         <div class="dash-ideas-tile__head">
           <div class="dash-ideas-tile__text">
             <div class="dash-ideas-tile__title dash-ideas-tile__title--published">Published Work</div>
@@ -112,6 +147,21 @@
           </div>
           <button type="button" class="app-btn-primary dash-ideas-tile__btn" id="dash-open-published-modal">Record Published Work</button>
         </div>
+        <% if (publishedWorkList.length) { %>
+        <div class="dash-saved-tiles" role="list">
+          <% publishedWorkList.forEach(function(pub) { %>
+          <div class="dash-saved-tile dash-saved-tile--published" role="listitem">
+            <div class="dash-saved-tile__title"><%= pub.title %></div>
+            <div class="dash-saved-tile__meta">
+              <% if (pub.date_published) { %><span><%= pub.date_published %></span><% } %>
+              <% if (pub.date_published && pub.where_published) { %> · <% } %>
+              <% if (pub.where_published) { %><span><%= pub.where_published %></span><% } %>
+            </div>
+            <% if (pub.link) { %><a href="<%= pub.link %>" class="dash-saved-tile__link" target="_blank" rel="noopener noreferrer">View link</a><% } %>
+          </div>
+          <% }); %>
+        </div>
+        <% } %>
       </div>
     </main>
 
@@ -130,7 +180,12 @@
           <% if (projects && projects.length) { %>
             <% projects.forEach(function(p) { %>
               <div class="dash-rail-project-tile" data-dash-cat="<%= p.dashCat %>">
-                <button type="button" class="dash-rail-tile-cancel" aria-label="Cancel project" title="Cancel project" data-project-id="<%= p.id %>" data-project-name="<%= encodeURIComponent(p.name) %>">×</button>
+                <button type="button" class="dash-rail-tile-cancel" aria-label="Cancel project" title="Cancel project" data-project-id="<%= p.id %>" data-project-name="<%= encodeURIComponent(p.name) %>">
+                  <svg class="dash-rail-tile-cancel__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.75"/>
+                    <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M8.5 8.5l7 7m0-7l-7 7"/>
+                  </svg>
+                </button>
                 <a href="/app/project/<%= p.id %>/anvil" class="dash-rail-project-tile__name"><%= p.name %></a>
                 <div class="dash-rail-project-tile__row">
                   <span class="dash-rail-project-tile__meta"><%= p.purpose %> · <%= p.citation_style %></span>
@@ -141,6 +196,7 @@
                 </div>
               </div>
             <% }); %>
+            <p id="dash-rail-filter-empty" class="dash-rail-filter-empty" hidden>No projects match this filter.</p>
           <% } else { %>
             <p class="dash-rail-empty">No projects yet.</p>
           <% } %>

@@ -393,6 +393,24 @@ app.get(
     const priceCfg = getStripePriceConfig();
     const billingSummary = buildBillingSummaryLines(subscriptionRow, priceCfg);
 
+    const uid = req.session.userId;
+    const [ideasRes, publishedRes] = await Promise.all([
+      query(
+        getPool,
+        `SELECT id, research_topic, keywords, notes, created_at
+         FROM user_research_ideas WHERE user_id = @uid ORDER BY created_at DESC LIMIT 80`,
+        { uid }
+      ),
+      query(
+        getPool,
+        `SELECT id, title, date_published, where_published, link, created_at
+         FROM user_published_work WHERE user_id = @uid ORDER BY created_at DESC LIMIT 80`,
+        { uid }
+      ),
+    ]);
+    const researchIdeas = ideasRes.recordset || [];
+    const publishedWork = publishedRes.recordset || [];
+
     const dashboardClientJson = JSON.stringify({
       projectProgress,
       projects: projectsForView.map((p) => ({ id: p.id, name: p.name, dashCat: p.dashCat })),
@@ -407,6 +425,8 @@ app.get(
       billingSummary,
       foundryProjectId,
       dashboardClientJson,
+      researchIdeas,
+      publishedWork,
     });
   })
 );

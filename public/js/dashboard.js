@@ -35,6 +35,7 @@
         .map(function (sec) {
           return (
             '<div class="dash-section-bar">' +
+            '<div class="dash-section-bar__graph">' +
             '<span class="dash-section-bar__label" title="' +
             esc(sec.title) +
             '">' +
@@ -46,11 +47,21 @@
             '<span class="dash-section-bar__pct">' +
             sec.pct +
             '%</span>' +
-            '<span class="dash-section-bar__stats">' +
+            '</div>' +
+            '<div class="dash-section-bar__metrics" aria-label="Words written and open research items">' +
+            '<div class="dash-section-bar__metric">' +
+            '<span class="dash-section-bar__metric-value">' +
             (sec.words || 0).toLocaleString() +
-            ' w · ' +
+            '</span>' +
+            '<span class="dash-section-bar__metric-label">words</span>' +
+            '</div>' +
+            '<div class="dash-section-bar__metric">' +
+            '<span class="dash-section-bar__metric-value">' +
             (sec.researchOpen || 0) +
-            ' open</span>' +
+            '</span>' +
+            '<span class="dash-section-bar__metric-label">open</span>' +
+            '</div>' +
+            '</div>' +
             '</div>'
           );
         })
@@ -72,18 +83,26 @@
   function applyProjectFilter() {
     if (!filterSel || !rail) return;
     var v = filterSel.value;
-    rail.querySelectorAll('.dash-rail-project-tile').forEach(function (tile) {
+    var tiles = rail.querySelectorAll('.dash-rail-project-tile');
+    var emptyFilter = document.getElementById('dash-rail-filter-empty');
+    var visible = 0;
+    tiles.forEach(function (tile) {
       var cat = tile.getAttribute('data-dash-cat') || 'active';
       var show = false;
       if (v === 'active-completed') show = cat === 'active' || cat === 'completed';
       else if (v === 'active') show = cat === 'active';
       else if (v === 'completed') show = cat === 'completed';
       else if (v === 'canceled') show = cat === 'canceled';
-      tile.hidden = !show;
+      tile.classList.toggle('dash-rail-project-tile--hidden', !show);
+      if (show) visible += 1;
     });
+    if (emptyFilter) {
+      emptyFilter.hidden = tiles.length === 0 || visible > 0;
+    }
   }
   if (filterSel) {
     filterSel.addEventListener('change', applyProjectFilter);
+    filterSel.addEventListener('input', applyProjectFilter);
     applyProjectFilter();
   }
 
@@ -152,6 +171,7 @@
         .then(function () {
           researchForm.reset();
           closeModal(researchModal);
+          window.location.reload();
         })
         .catch(function (err) {
           if (researchMsg) {
@@ -192,6 +212,7 @@
         .then(function () {
           publishedForm.reset();
           closeModal(publishedModal);
+          window.location.reload();
         })
         .catch(function (err) {
           if (publishedMsg) {
