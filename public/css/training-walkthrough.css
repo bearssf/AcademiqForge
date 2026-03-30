@@ -43,6 +43,8 @@
 .tw-card__actions {
   display: flex;
   justify-content: flex-end;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 0.5rem;
 }
 
@@ -60,6 +62,18 @@
 
 .tw-btn:hover {
   background: #256fd0;
+}
+
+.tw-btn--skip {
+  background: transparent;
+  color: rgba(20, 24, 32, 0.75);
+  border: 1px solid rgba(20, 24, 32, 0.2);
+  font-weight: 500;
+}
+
+.tw-btn--skip:hover {
+  background: rgba(20, 24, 32, 0.06);
+  color: rgba(20, 24, 32, 0.92);
 }
 
 .tw-arrow {

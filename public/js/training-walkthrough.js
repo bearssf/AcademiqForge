@@ -12,6 +12,7 @@
   var arrow = null;
   var textEl = null;
   var btn = null;
+  var skipBtn = null;
   var stepIndex = 0;
   var steps = [];
   var pageSlug = '';
@@ -37,10 +38,15 @@
     textEl.className = 'tw-card__text';
     var actions = document.createElement('div');
     actions.className = 'tw-card__actions';
+    skipBtn = document.createElement('button');
+    skipBtn.type = 'button';
+    skipBtn.className = 'tw-btn tw-btn--skip';
+    skipBtn.textContent = 'Skip this Overview';
     btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'tw-btn';
     btn.textContent = 'Next';
+    actions.appendChild(skipBtn);
     actions.appendChild(btn);
     card.appendChild(arrow);
     card.appendChild(textEl);
@@ -49,6 +55,7 @@
     root.appendChild(card);
     document.body.appendChild(root);
 
+    skipBtn.addEventListener('click', onSkip);
     btn.addEventListener('click', onContinue);
     dim.addEventListener('click', function (e) {
       e.stopPropagation();
@@ -217,6 +224,13 @@
         if (!r.ok) throw new Error((data && data.error) || 'Request failed');
         return data;
       });
+    });
+  }
+
+  function onSkip() {
+    closeTour();
+    postJson('/api/me/training/complete', { pageSlug: pageSlug }).catch(function () {
+      /* completion is best-effort; tour already dismissed */
     });
   }
 
