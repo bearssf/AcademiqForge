@@ -429,6 +429,7 @@ h2 {
 .modal-forgot a { color: var(--blue); text-decoration: none; }
 .modal-forgot a:hover { text-decoration: underline; }
 .hint-msg { color: rgba(255, 255, 255, 0.55); font-size: 0.82rem; margin-bottom: 0.75rem; line-height: 1.45; }
+.auth-sent-msg { max-width: 40rem; color: rgba(255, 255, 255, 0.78); font-size: 0.88rem; }
 .create-link { text-align: center; color: var(--blue); font-size: 0.88rem; }
 .auth-page-shell { max-width: 420px; margin: 2rem auto 3rem; padding: 0 0.25rem; }
 .auth-page-card { border: 1px solid var(--line); border-radius: 16px; padding: 1.5rem; background: rgba(255, 255, 255, 0.03); }
