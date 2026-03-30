@@ -1485,13 +1485,15 @@
   font-size: 0.78rem;
   color: rgba(255, 255, 255, 0.38);
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.5rem;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 1rem;
 }
 .app-sidebar-home {
   color: #1cb9c5;
   text-decoration: none;
+  line-height: 1.35;
 }
 .app-sidebar-home:hover {
   color: #3dd4e0;
@@ -1503,14 +1505,16 @@
   padding: 0;
   margin: 0;
   font: inherit;
-  font-size: 0.78rem;
-  color: #2f80ee;
+  font-size: inherit;
+  font-family: inherit;
+  line-height: 1.35;
+  color: #1cb9c5;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration: none;
 }
 .app-sidebar-training:hover {
-  color: #5a9ef8;
+  color: #3dd4e0;
+  text-decoration: underline;
 }
 .app-body--anvil .app-sidebar-project-name {
   color: #1eb8c6;
