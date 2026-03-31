@@ -17,6 +17,23 @@ Single-page home with centered logo, email/password sign-in, and registration ba
 
 Store database credentials only in environment variables or your host’s secret store—never commit them to git.
 
+## Email (password reset)
+
+Forgot-password emails use **nodemailer** with SMTP. Set at least **`SMTP_HOST`**, **`MAIL_FROM`**, and usually **`SMTP_USER`** / **`SMTP_PASS`**. **`PUBLIC_BASE_URL`** must be set so reset links work.
+
+| Variable | Role |
+| --- | --- |
+| `SMTP_HOST` | SMTP server hostname (e.g. `smtp.mailgun.org`) |
+| `SMTP_PORT` | Often **`587`** (STARTTLS) or **`465`** (implicit SSL) |
+| `SMTP_SECURE` | `true` for port **465**; `false` for **587** |
+| `SMTP_USE_TLS` | When `SMTP_SECURE` is false, defaults to requiring STARTTLS on **587** (`true`). Set `false` only if your provider requires it. |
+| `SMTP_USER` / `SMTP_PASS` | SMTP credentials |
+| `MAIL_FROM` | From address, e.g. `"AcademiqForge <noreply@yourdomain.com>"` |
+
+Other apps use different env names for the same idea (e.g. Zulip: `SETTING_EMAIL_HOST`, `SETTING_EMAIL_HOST_USER`, `SECRETS_email_password`, `SETTING_EMAIL_PORT`, TLS/SSL flags; Ghost: `mail__transport`, `mail__options__auth__user` / `mail__options__auth__pass`; Forem: `SENDGRID_API_KEY`, etc.). Map those values onto **`SMTP_HOST`**, **`SMTP_USER`**, **`SMTP_PASS`**, and port/TLS settings here.
+
+**Render:** Free web services often **block outbound SMTP** on ports **25, 465, and 587**; you may need a **paid** instance to use SMTP, or an email provider that offers an **HTTP API** instead of plain SMTP.
+
 ## Stripe (subscriptions)
 
 Used for **Upgrade to member** on **Account** and **`subscriptions`** rows (`status`, Stripe IDs, `current_period_end`).
