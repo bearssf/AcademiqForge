@@ -24,8 +24,8 @@
           <span><%= t('project.purpose') %></span>
           <select id="project-purpose" name="purpose" required>
             <option value="" disabled <%= !form.purpose ? 'selected' : '' %>><%= t('project.select') %></option>
-            <% purposes.forEach(function(p) { %>
-              <option value="<%= p %>" <%= form.purpose === p ? 'selected' : '' %>><%= p %></option>
+            <% purposes.forEach(function(pk) { %>
+              <option value="<%= pk %>" <%= form.purpose === pk ? 'selected' : '' %>><%= t('projectPurposes.' + pk) %></option>
             <% }); %>
           </select>
         </label>
@@ -38,7 +38,7 @@
           <select name="citationStyle" required>
             <option value="" disabled <%= !form.citationStyle ? 'selected' : '' %>><%= t('project.select') %></option>
             <% citationStyles.forEach(function(c) { %>
-              <option value="<%= c %>" <%= form.citationStyle === c ? 'selected' : '' %>><%= c %></option>
+              <option value="<%= c %>" <%= form.citationStyle === c ? 'selected' : '' %>><%= t('citationStyles.' + String(c).toLowerCase()) %></option>
             <% }); %>
           </select>
         </label>
@@ -46,8 +46,8 @@
           <span><%= t('project.template') %></span>
           <select id="project-template-key" name="templateKey" required>
             <option value="" disabled <%= !form.templateKey ? 'selected' : '' %>><%= t('project.select') %></option>
-            <% templateOptions.forEach(function(t) { %>
-              <option value="<%= t.key %>" <%= form.templateKey === t.key ? 'selected' : '' %>><%= t.label %></option>
+            <% templateOptions.forEach(function(tpl) { %>
+              <option value="<%= tpl.key %>" <%= form.templateKey === tpl.key ? 'selected' : '' %>><%= t('projectTemplateLabels.' + tpl.key.replace(/-/g, '_')) %></option>
             <% }); %>
           </select>
         </label>

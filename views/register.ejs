@@ -258,8 +258,8 @@
           <label for="title">Title *</label>
           <select id="title" name="title" required>
             <option value="" disabled <%= !form.title ? 'selected' : '' %>>Select…</option>
-            <% (typeof allowedTitles !== 'undefined' ? allowedTitles : ['Mr.', 'Mrs.', 'Ms.', 'Miss', 'Mx.', 'Dr.']).forEach(function (t) { %>
-              <option value="<%= t %>" <%= form.title === t ? 'selected' : '' %>><%= t %></option>
+            <% (typeof allowedTitles !== 'undefined' ? allowedTitles : ['mr', 'mrs', 'ms', 'miss', 'mx', 'dr']).forEach(function (tk) { %>
+              <option value="<%= tk %>" <%= form.title === tk ? 'selected' : '' %>><%= typeof t !== 'undefined' ? t('accountTitles.' + tk) : tk %></option>
             <% }); %>
           </select>
         </div>
@@ -304,8 +304,8 @@
           <label for="preferredSearchEngine">Preferred search engine <span class="opt">(optional)</span></label>
           <select id="preferredSearchEngine" name="preferredSearchEngine">
             <option value="">—</option>
-            <% searchEngines.forEach(function (se) { %>
-              <option value="<%= se %>" <%= form.preferredSearchEngine === se ? 'selected' : '' %>><%= se %></option>
+            <% searchEngines.forEach(function (sk) { %>
+              <option value="<%= sk %>" <%= form.preferredSearchEngine === sk ? 'selected' : '' %>><%= typeof t !== 'undefined' ? t('searchEngineOptions.' + sk) : sk %></option>
             <% }); %>
           </select>
         </div>

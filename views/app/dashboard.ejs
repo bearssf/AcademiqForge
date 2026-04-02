@@ -7,9 +7,12 @@
 <body class="app-body app-body--workspace-shell app-body--dashboard">
   <%
     var _purposeSlug = { 'Academic Assignment': 'academicAssignment', 'Academic Publication': 'academicPublication', 'Conference': 'conference', 'Dissertation/Thesis': 'dissertationThesis', 'Other': 'other' };
+    var _purposeKeys = { academicAssignment: 1, academicPublication: 1, conference: 1, dissertationThesis: 1, other: 1 };
     function formatPurpose(purpose) {
-      var slug = _purposeSlug[purpose];
-      return slug ? t('projectPurposes.' + slug) : (purpose || '');
+      if (!purpose) return '';
+      var slug = _purposeSlug[purpose] || purpose;
+      if (_purposeKeys[slug]) return t('projectPurposes.' + slug);
+      return purpose;
     }
     var _citeSlug = { APA: 'apa', MLA: 'mla', Chicago: 'chicago', Turabian: 'turabian', IEEE: 'ieee' };
     function formatCitation(cs) {

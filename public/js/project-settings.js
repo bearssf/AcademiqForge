@@ -7,7 +7,7 @@
 
   function togglePurposeOther() {
     if (!purposeEl || !purposeOtherWrap) return;
-    purposeOtherWrap.hidden = purposeEl.value !== 'Other';
+    purposeOtherWrap.hidden = purposeEl.value !== 'other';
   }
 
   function updateSum() {

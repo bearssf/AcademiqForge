@@ -10,7 +10,7 @@
 
   function togglePurposeOther() {
     if (!purposeEl || !purposeOtherWrap) return;
-    const show = purposeEl.value === 'Other';
+    const show = purposeEl.value === 'other';
     purposeOtherWrap.hidden = !show;
   }
 

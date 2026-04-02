@@ -265,6 +265,16 @@
     "otherSectionsIntro": "Please add the section names for your document. Also, please enter the percentage of the entire document that each section represents. You can add up to 15 sections and they must total 100%.",
     "addSection": "Add section"
   },
+  "projectTemplateLabels": {
+    "academic_publication": "Academic publication",
+    "essay": "Essay",
+    "dissertation": "Dissertation",
+    "literature_review": "Literature review",
+    "persuasive_speech": "Persuasive speech",
+    "scientific_report": "Scientific report",
+    "thesis": "Thesis",
+    "other": "Custom"
+  },
   "projectPurposes": {
     "academicAssignment": "Academic Assignment",
     "academicPublication": "Academic Publication",

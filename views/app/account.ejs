@@ -8,25 +8,11 @@
 </head>
 <body class="app-body app-body--account-page" data-subscription-success="<%= typeof subscriptionSuccessReturn !== 'undefined' && subscriptionSuccessReturn ? '1' : '' %>">
   <%
-    var _titleSlug = { 'Mr.': 'mr', 'Mrs.': 'mrs', 'Ms.': 'ms', 'Miss': 'miss', 'Mx.': 'mx', 'Dr.': 'dr' };
-    function formatTitleOption(tv) {
-      var slug = _titleSlug[tv];
-      return slug ? t('accountTitles.' + slug) : tv;
+    function titleLabel(key) {
+      return t('accountTitles.' + key);
     }
-    var _seSlug = {
-      'Google Scholar': 'googleScholar',
-      'Worldcat.org': 'worldcat',
-      'PubMed Central': 'pubMedCentral',
-      'JSTOR': 'jstor',
-      'CORE': 'core',
-      'Semantic Scholar': 'semanticScholar',
-      'ResearchGate': 'researchGate',
-      'Lens.org': 'lens',
-      'Other/University Specific': 'otherUniversity'
-    };
-    function formatSearchEngineLabel(s) {
-      var k = _seSlug[s];
-      return k ? t('searchEngineOptions.' + k) : s;
+    function searchEngineLabel(key) {
+      return t('searchEngineOptions.' + key);
     }
   %>
   <div class="app-grid app-grid--account">
@@ -56,13 +42,13 @@
             <p class="account-meta account-meta--profile"><%= t('account.profileMeta') %></p>
             <form id="account-profile-form" class="app-form-stack account-form" autocomplete="off">
               <% var _ploc = (profile.preferredLocale != null && profile.preferredLocale !== '') ? profile.preferredLocale : locale; %>
-              <% var _titles = typeof allowedTitles !== 'undefined' && allowedTitles.length ? allowedTitles : ['Mr.', 'Mrs.', 'Ms.', 'Miss', 'Mx.', 'Dr.']; %>
+              <% var _titles = typeof allowedTitles !== 'undefined' && allowedTitles.length ? allowedTitles : ['mr', 'mrs', 'ms', 'miss', 'mx', 'dr']; %>
               <label class="app-field">
                 <span><%= t('account.labelTitle') %> <abbr class="account-required-star" title="<%= t('account.requiredAbbr') %>">*</abbr></span>
                 <select name="title" required>
                   <option value="" disabled <%= !profile.title ? 'selected' : '' %>><%= t('project.select') %></option>
-                  <% _titles.forEach(function (tv) { %>
-                    <option value="<%= tv %>" <%= profile.title === tv ? 'selected' : '' %>><%= formatTitleOption(tv) %></option>
+                  <% _titles.forEach(function (tk) { %>
+                    <option value="<%= tk %>" <%= String(profile.title) === String(tk) ? 'selected' : '' %>><%= titleLabel(tk) %></option>
                   <% }); %>
                 </select>
               </label>
@@ -95,8 +81,8 @@
                 <span><%= t('account.labelPreferredSearchEngine') %></span>
                 <select name="preferredSearchEngine">
                   <option value="" <%= !profile.preferredSearchEngine ? 'selected' : '' %>><%= t('project.select') %></option>
-                  <% (typeof searchEngines !== 'undefined' ? searchEngines : []).forEach(function (s) { %>
-                    <option value="<%= s %>" <%= profile.preferredSearchEngine === s ? 'selected' : '' %>><%= formatSearchEngineLabel(s) %></option>
+                  <% (typeof searchEngines !== 'undefined' ? searchEngines : []).forEach(function (sk) { %>
+                    <option value="<%= sk %>" <%= String(profile.preferredSearchEngine) === String(sk) ? 'selected' : '' %>><%= searchEngineLabel(sk) %></option>
                   <% }); %>
                 </select>
               </label>

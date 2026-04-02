@@ -23,7 +23,14 @@ const {
   PURPOSES,
   CITATION_STYLES,
 } = require('./lib/projectService');
-const { ALLOWED_TITLES, SEARCH_ENGINES } = require('./lib/userConstants');
+const {
+  normalizeTitleToKey,
+  normalizeSearchEngineToKey,
+  isAllowedTitleKey,
+  isAllowedSearchEngineKey,
+  SEARCH_ENGINE_KEYS_ORDERED,
+  TITLE_KEYS_ORDERED,
+} = require('./lib/canonicalSelects');
 const { getUserProfileRow, rowToPublicUser } = require('./lib/userProfile');
 const createApiRouter = require('./routes/api');
 const createBillingApiRouter = require('./routes/billingApi');
@@ -909,8 +916,8 @@ app.get(
       renewalDateLabel,
       profile,
       universities: loadUniversities(),
-      searchEngines: SEARCH_ENGINES,
-      allowedTitles: ALLOWED_TITLES,
+      searchEngines: SEARCH_ENGINE_KEYS_ORDERED,
+      allowedTitles: TITLE_KEYS_ORDERED,
       stripeConfigured,
       stripeElementsConfigured,
       billingEnvMissing,
@@ -1129,8 +1136,8 @@ function registerPageLocals(form) {
   const cfg = getStripePriceConfig();
   return {
     universities: loadUniversities(),
-    searchEngines: SEARCH_ENGINES,
-    allowedTitles: ALLOWED_TITLES,
+    searchEngines: SEARCH_ENGINE_KEYS_ORDERED,
+    allowedTitles: TITLE_KEYS_ORDERED,
     form: form || {},
     memberSubscribeAvailable: !!(stripe && isStripeBillingConfigured(stripe)),
     billingPriceMode: cfg.mode,
@@ -1306,14 +1313,17 @@ app.post('/register', async (req, res) => {
     String(billingIntervalRaw || 'month').toLowerCase() === 'year' ? 'year' : 'month';
   const subscribePromo = String(subscribePromoRaw || '').trim();
 
+  const titleNorm = normalizeTitleToKey((title || '').trim());
+  const engineNorm = normalizeSearchEngineToKey((preferredSearchEngine || '').trim());
+
   const form = {
-    title: (title || '').trim(),
+    title: titleNorm || '',
     firstName: (firstName || '').trim(),
     lastName: (lastName || '').trim(),
     email: (email || '').trim().toLowerCase(),
     university: (university || '').trim(),
     researchFocus: (researchFocus || '').trim(),
-    preferredSearchEngine: (preferredSearchEngine || '').trim(),
+    preferredSearchEngine: engineNorm || '',
     subscribeChoice,
     billingInterval,
     subscribePromo,
@@ -1325,7 +1335,7 @@ app.post('/register', async (req, res) => {
       ...registerPageLocals(form),
     });
 
-  if (!form.title || !ALLOWED_TITLES.includes(form.title)) {
+  if (!form.title || !isAllowedTitleKey(form.title)) {
     return renderErr('Please select a valid title.');
   }
   if (!form.firstName || !form.lastName || !form.email) {
@@ -1342,7 +1352,10 @@ app.post('/register', async (req, res) => {
 
   const uni = form.university || null;
   const research = form.researchFocus || null;
-  const engine = form.preferredSearchEngine || null;
+  const engine =
+    form.preferredSearchEngine && isAllowedSearchEngineKey(form.preferredSearchEngine)
+      ? form.preferredSearchEngine
+      : null;
 
   try {
     const hash = await bcrypt.hash(pw, 10);

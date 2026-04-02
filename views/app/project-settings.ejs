@@ -29,12 +29,12 @@
         <label class="app-field">
           <span>Purpose</span>
           <select id="settings-purpose" name="purpose" required>
-            <% purposes.forEach(function(p) { %>
-              <option value="<%= p %>" <%= proj.purpose === p ? 'selected' : '' %>><%= p %></option>
+            <% purposes.forEach(function(pk) { %>
+              <option value="<%= pk %>" <%= proj.purpose === pk ? 'selected' : '' %>><%= t('projectPurposes.' + pk) %></option>
             <% }); %>
           </select>
         </label>
-        <label class="app-field project-purpose-other-wrap" id="settings-purpose-other-wrap" <%= proj.purpose === 'Other' ? '' : 'hidden' %>>
+        <label class="app-field project-purpose-other-wrap" id="settings-purpose-other-wrap" <%= proj.purpose === 'other' ? '' : 'hidden' %>>
           <span>Describe purpose <span class="account-optional">(optional)</span></span>
           <input type="text" name="purposeOther" maxlength="500" value="<%= proj.purpose_other || '' %>" placeholder="Brief description when purpose is Other" autocomplete="off" />
         </label>
@@ -42,7 +42,7 @@
           <span>Citation style</span>
           <select name="citationStyle" required>
             <% citationStyles.forEach(function(c) { %>
-              <option value="<%= c %>" <%= proj.citation_style === c ? 'selected' : '' %>><%= c %></option>
+              <option value="<%= c %>" <%= proj.citation_style === c ? 'selected' : '' %>><%= t('citationStyles.' + String(c).toLowerCase()) %></option>
             <% }); %>
           </select>
         </label>

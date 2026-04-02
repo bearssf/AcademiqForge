@@ -5,7 +5,12 @@ const multer = require('multer');
 const { query, queryRaw } = require('../lib/db');
 const bcrypt = require('bcryptjs');
 const { ensureSubscriptionRow, getSubscriptionRow, appAccessFromRow } = require('../lib/subscriptions');
-const { ALLOWED_TITLES, SEARCH_ENGINES } = require('../lib/userConstants');
+const {
+  normalizeTitleToKey,
+  normalizeSearchEngineToKey,
+  isAllowedTitleKey,
+  isAllowedSearchEngineKey,
+} = require('../lib/canonicalSelects');
 const { getUserProfileRow, rowToPublicUser } = require('../lib/userProfile');
 const i18n = require('../lib/i18n');
 const {
@@ -157,25 +162,28 @@ function createApiRouter(getPool) {
   router.patch('/me', async (req, res, next) => {
     try {
       const body = req.body || {};
-      const title = (body.title || '').trim();
+      const titleRaw = (body.title || '').trim();
+      const title = normalizeTitleToKey(titleRaw) || titleRaw;
       const firstName = (body.firstName || '').trim();
       const lastName = (body.lastName || '').trim();
       const university = (body.university || '').trim();
       const researchFocus = (body.researchFocus || '').trim();
-      const preferredSearchEngine = (body.preferredSearchEngine || '').trim();
+      const preferredSearchEngineRaw = (body.preferredSearchEngine || '').trim();
+      const preferredSearchEngine =
+        normalizeSearchEngineToKey(preferredSearchEngineRaw) || preferredSearchEngineRaw;
       const preferredLocaleRaw = body.preferredLocale;
       const hasPreferredLocale =
         preferredLocaleRaw !== undefined &&
         preferredLocaleRaw !== null &&
         String(preferredLocaleRaw).trim() !== '';
 
-      if (!ALLOWED_TITLES.includes(title)) {
+      if (!title || !isAllowedTitleKey(title)) {
         return apiErr(req, res, 400, 'errors.invalidTitle');
       }
       if (!firstName || !lastName) {
         return apiErr(req, res, 400, 'errors.nameRequired');
       }
-      if (preferredSearchEngine && !SEARCH_ENGINES.includes(preferredSearchEngine)) {
+      if (preferredSearchEngine && !isAllowedSearchEngineKey(preferredSearchEngine)) {
         return apiErr(req, res, 400, 'errors.invalidSearchEngine');
       }
 
