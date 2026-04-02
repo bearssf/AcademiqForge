@@ -486,8 +486,10 @@ app.get('/locale/set', asyncHandler(async (req, res) => {
   const code = i18n.normalizeLocale(req.query.code || req.query.lang || 'en');
   const ret = safeReturnTo(req.query.returnTo || '/');
   i18n.setLocaleCookie(res, code);
-  if (req.session && req.session.userId) {
+  if (req.session) {
     req.session.locale = code;
+  }
+  if (req.session && req.session.userId) {
     try {
       await query(getPool, 'UPDATE users SET preferred_locale = @l WHERE id = @id', {
         l: code,
