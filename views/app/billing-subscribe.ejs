@@ -1,23 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= typeof htmlLang !== 'undefined' ? htmlLang : 'en' %>" dir="<%= typeof textDir !== 'undefined' ? textDir : 'ltr' %>">
 <head>
-  <% var title = 'Subscribe'; %>
+  <% var title = t('billing.subscribeTitle'); %>
   <%- include('../partials/app-head') %>
 </head>
 <body class="app-body app-body--account-page">
   <div class="app-grid app-grid--account">
     <%- include('../partials/app-sidebar', { user: user, navActive: 'account', projects: projects, currentProjectId: currentProjectId, workspaceSlug: '', appAccess: appAccess }) %>
     <main class="app-canvas">
-      <h1>Subscribe</h1>
-      <p class="sub">Complete your membership — <%= intervalLabel %> plan, secure payment on AcademiqForge.</p>
+      <h1><%= t('billing.subscribeTitle') %></h1>
+      <p class="sub"><%= t('billing.subscribeSub', { interval: intervalLabel }) %></p>
 
       <div class="app-placeholder account-block billing-subscribe-card">
-        <p class="account-meta" style="margin-top:0">Card details are collected by Stripe and never touch our servers.</p>
+        <p class="account-meta" style="margin-top:0"><%= t('billing.cardBlurb') %></p>
         <div class="billing-promo-row" id="billing-promo-row">
-          <label class="billing-promo-label" for="billing-promo-input">Promotion code</label>
+          <label class="billing-promo-label" for="billing-promo-input"><%= t('billing.promoLabel') %></label>
           <div class="billing-promo-controls">
-            <input type="text" id="billing-promo-input" class="billing-promo-input" placeholder="Optional" autocomplete="off" />
-            <button type="button" id="billing-promo-apply" class="app-btn-secondary billing-promo-apply">Apply</button>
+            <input type="text" id="billing-promo-input" class="billing-promo-input" placeholder="<%= t('billing.promoOptional') %>" autocomplete="off" />
+            <button type="button" id="billing-promo-apply" class="app-btn-secondary billing-promo-apply"><%= t('billing.promoApply') %></button>
           </div>
           <p id="billing-promo-hint" class="billing-promo-hint" hidden></p>
         </div>
@@ -25,10 +25,10 @@
           <div id="billing-subscribe-payment"></div>
           <p id="billing-subscribe-error" class="billing-subscribe-error" hidden></p>
           <button type="submit" id="billing-subscribe-submit" class="app-btn-primary billing-subscribe-submit" disabled>
-            Pay and subscribe
+            <%= t('billing.paySubscribe') %>
           </button>
         </form>
-        <p class="account-meta"><a href="/app/account" class="app-link-cta">← Back to Account</a></p>
+        <p class="account-meta"><a href="/app/account" class="app-link-cta"><%= t('billing.backAccount') %></a></p>
       </div>
     </main>
   </div>
@@ -38,7 +38,8 @@
       publishableKey: <%- JSON.stringify(stripePublishableKey) %>,
       interval: <%- JSON.stringify(billingInterval) %>,
       priceMode: <%- JSON.stringify(billingPriceMode) %>,
-      promoPrefill: <%- JSON.stringify(typeof promoPrefill !== 'undefined' ? promoPrefill : '') %>
+      promoPrefill: <%- JSON.stringify(typeof promoPrefill !== 'undefined' ? promoPrefill : '') %>,
+      stripeLocale: <%- JSON.stringify(typeof stripeLocale !== 'undefined' ? stripeLocale : 'en') %>
     };
   </script>
   <script src="/js/billing-subscribe.js" defer></script>

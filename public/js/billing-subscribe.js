@@ -25,11 +25,16 @@
   }
 
   if (!cfg || !cfg.publishableKey || !form || !mountEl || typeof Stripe === 'undefined') {
-    showError('Billing could not load. Refresh the page or return to Account.');
+    var b = window.__I18N__ && window.__I18N__.billing;
+    showError(
+      (b && b.couldNotLoad) || 'Billing could not load. Refresh the page or return to Account.'
+    );
     return;
   }
 
-  stripe = Stripe(cfg.publishableKey);
+  stripe = Stripe(cfg.publishableKey, {
+    locale: cfg.stripeLocale || window.__STRIPE_LOCALE__ || 'auto',
+  });
   const base = window.location.origin;
 
   function destroyPaymentElement() {

@@ -1,4 +1,9 @@
 (function () {
+  function A(key, fallback) {
+    var a = window.__I18N__ && window.__I18N__.account;
+    return (a && a[key]) || fallback;
+  }
+
   const profileForm = document.getElementById('account-profile-form');
   const passwordForm = document.getElementById('account-password-form');
   const profileMsg = document.getElementById('account-profile-msg');
@@ -93,7 +98,7 @@
   if (profileForm) {
     profileForm.addEventListener('submit', async function (e) {
       e.preventDefault();
-      showMsg(profileMsg, 'Saving…', 'pending');
+      showMsg(profileMsg, A('saving', 'Saving…'), 'pending');
       if (profileSubmit) profileSubmit.disabled = true;
       const fd = new FormData(profileForm);
       const body = {
@@ -103,6 +108,7 @@
         university: (fd.get('university') || '').trim(),
         researchFocus: (fd.get('researchFocus') || '').trim(),
         preferredSearchEngine: (fd.get('preferredSearchEngine') || '').trim(),
+        preferredLocale: (fd.get('preferredLocale') || '').trim(),
       };
       try {
         const res = await fetch('/api/me', {
@@ -115,14 +121,14 @@
           return {};
         });
         if (!res.ok) {
-          showMsg(profileMsg, data.error || 'Could not save profile.', 'error');
+          showMsg(profileMsg, data.error || A('couldNotSaveProfile', 'Could not save profile.'), 'error');
           if (profileSubmit) profileSubmit.disabled = false;
           return;
         }
-        showMsg(profileMsg, 'Profile saved.', 'ok');
+        showMsg(profileMsg, A('profileSaved', 'Profile saved.'), 'ok');
         if (profileSubmit) profileSubmit.disabled = false;
       } catch (err) {
-        showMsg(profileMsg, 'Network error. Try again.', 'error');
+        showMsg(profileMsg, A('networkError', 'Network error. Try again.'), 'error');
         if (profileSubmit) profileSubmit.disabled = false;
       }
     });
@@ -131,7 +137,7 @@
   if (passwordForm) {
     passwordForm.addEventListener('submit', async function (e) {
       e.preventDefault();
-      showMsg(passwordMsg, 'Saving…', 'pending');
+      showMsg(passwordMsg, A('saving', 'Saving…'), 'pending');
       if (passwordSubmit) passwordSubmit.disabled = true;
       const fd = new FormData(passwordForm);
       const body = {
@@ -150,15 +156,15 @@
           return {};
         });
         if (!res.ok) {
-          showMsg(passwordMsg, data.error || 'Could not update password.', 'error');
+          showMsg(passwordMsg, data.error || A('couldNotUpdatePassword', 'Could not update password.'), 'error');
           if (passwordSubmit) passwordSubmit.disabled = false;
           return;
         }
         passwordForm.reset();
-        showMsg(passwordMsg, 'Password saved.', 'ok');
+        showMsg(passwordMsg, A('passwordSaved', 'Password updated.'), 'ok');
         if (passwordSubmit) passwordSubmit.disabled = false;
       } catch (err) {
-        showMsg(passwordMsg, 'Network error. Try again.', 'error');
+        showMsg(passwordMsg, A('networkError', 'Network error. Try again.'), 'error');
         if (passwordSubmit) passwordSubmit.disabled = false;
       }
     });
@@ -265,13 +271,13 @@
       try {
         const result = await postBilling('/api/billing/subscription/cancel-at-period-end');
         if (!result.res.ok) {
-          showMsg(subMsg, result.data.error || 'Could not update subscription.', 'error');
+          showMsg(subMsg, result.data.error || A('couldNotUpdateSubscription', 'Could not update subscription.'), 'error');
           btn.disabled = false;
           return;
         }
         window.location.reload();
       } catch (err) {
-        showMsg(subMsg, 'Network error. Try again.', 'error');
+        showMsg(subMsg, A('networkError', 'Network error. Try again.'), 'error');
         btn.disabled = false;
       }
     });
@@ -291,13 +297,13 @@
         try {
           const result = await postBilling('/api/billing/subscription/resume');
           if (!result.res.ok) {
-            showMsg(subMsg, result.data.error || 'Could not update subscription.', 'error');
+            showMsg(subMsg, result.data.error || A('couldNotUpdateSubscription', 'Could not update subscription.'), 'error');
             btn.disabled = false;
             return;
           }
           window.location.reload();
         } catch (err) {
-          showMsg(subMsg, 'Network error. Try again.', 'error');
+          showMsg(subMsg, A('networkError', 'Network error. Try again.'), 'error');
           btn.disabled = false;
         }
       }
@@ -312,25 +318,29 @@
   if (planPreviewEstimate) {
     (async function loadPlanPreview() {
       planPreviewEstimate.hidden = true;
-      planPreviewEstimate.textContent = 'Loading payment estimate…';
+      planPreviewEstimate.textContent = A('loadingEstimate', 'Loading payment estimate…');
       try {
         const result = await postBillingJson('/api/billing/subscription/plan/preview', {
           interval: 'year',
         });
         if (!result.res.ok || result.data.amountDueFormatted == null) {
-          planPreviewEstimate.textContent =
-            'We couldn’t load an estimate. Stripe will show the exact amount when you confirm the switch.';
+          planPreviewEstimate.textContent = A(
+            'estimateFailed',
+            'We couldn’t load an estimate. Stripe will show the exact amount when you confirm the switch.'
+          );
           return;
         }
         var due = result.data.amountDueFormatted;
         planPreviewEstimate.textContent =
-          'Estimated charge today if you switch: ' +
-            due +
-            ' (charged now; estimate only, subject to adjustment and taxes).';
+          A('estimatedChargePrefix', 'Estimated charge today if you switch: ') +
+          due +
+          ' (charged now; estimate only, subject to adjustment and taxes).';
         planPreviewEstimate.setAttribute('data-amount-due-formatted', due);
       } catch (err) {
-        planPreviewEstimate.textContent =
-          'We couldn’t load an estimate. Stripe will show the exact amount when you confirm the switch.';
+        planPreviewEstimate.textContent = A(
+          'estimateFailed',
+          'We couldn’t load an estimate. Stripe will show the exact amount when you confirm the switch.'
+        );
       }
     })();
   }
@@ -341,13 +351,13 @@
     try {
       const result = await postBillingJson('/api/billing/subscription/plan', { interval: interval });
       if (!result.res.ok) {
-        showMsg(planSwitchMsg, result.data.error || 'Could not change plan.', 'error');
+        showMsg(planSwitchMsg, result.data.error || A('couldNotChangePlan', 'Could not change plan.'), 'error');
         btn.disabled = false;
         return;
       }
       window.location.reload();
     } catch (err) {
-      showMsg(planSwitchMsg, 'Network error. Try again.', 'error');
+      showMsg(planSwitchMsg, A('networkError', 'Network error. Try again.'), 'error');
       btn.disabled = false;
     }
   }
@@ -387,14 +397,9 @@
         return;
       }
 
-      const label = 'monthly';
-      var estimateHint = '';
       if (
         !window.confirm(
-          'Switch to ' +
-            label +
-            ' billing? Proration is usually charged right away (not deferred to your next renewal).' +
-            estimateHint
+          A('switchToPrefix', 'Switch to ') + 'monthly' + A('switchToSuffix', ' billing?')
         )
       ) {
         return;

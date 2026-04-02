@@ -65,6 +65,7 @@ const {
   resetPasswordWithToken,
 } = require('./lib/passwordReset');
 const { isMailConfigured, sendPasswordResetEmail } = require('./lib/mail');
+const i18n = require('./lib/i18n');
 
 const app = express();
 
@@ -175,6 +176,7 @@ function createSessionMiddleware() {
 }
 
 app.use(createSessionMiddleware());
+app.use(i18n.attachLocaleMiddleware());
 
 /** Strip surrounding quotes (common on Render / .env paste) and whitespace. */
 function trimAdminTemplateToken(v) {
@@ -449,6 +451,7 @@ async function ensureUserExtraColumns() {
     { name: 'university', def: 'VARCHAR(255) NULL' },
     { name: 'research_focus', def: 'LONGTEXT NULL' },
     { name: 'preferred_search_engine', def: 'VARCHAR(100) NULL' },
+    { name: 'preferred_locale', def: "VARCHAR(12) NOT NULL DEFAULT 'en'" },
   ];
   for (const { name, def } of cols) {
     try {
@@ -477,6 +480,25 @@ function safeReturnTo(val) {
   if (!s.startsWith('/') || s.startsWith('//')) return '/';
   return s.split('?')[0] || '/';
 }
+
+/** Set UI language cookie; updates DB when signed in. */
+app.get('/locale/set', asyncHandler(async (req, res) => {
+  const code = i18n.normalizeLocale(req.query.code || req.query.lang || 'en');
+  const ret = safeReturnTo(req.query.returnTo || '/');
+  i18n.setLocaleCookie(res, code);
+  if (req.session && req.session.userId) {
+    req.session.locale = code;
+    try {
+      await query(getPool, 'UPDATE users SET preferred_locale = @l WHERE id = @id', {
+        l: code,
+        id: req.session.userId,
+      });
+    } catch (e) {
+      console.error('locale/set:', e.message);
+    }
+  }
+  res.redirect(302, ret);
+}));
 
 function publicAppOrigin() {
   const b = String(process.env.PUBLIC_BASE_URL || '').trim();
@@ -520,6 +542,20 @@ const WORKSPACE_PHASES = {
   framework: { title: 'Framework', insight: 'Argument outline and evidence mapping will appear here.' },
 };
 
+/** i18n keys for workspace rail (see locales/en.json sidebar + workspace). */
+const WORKSPACE_PHASE_TITLE_KEYS = {
+  anvil: 'sidebar.anvil',
+  crucible: 'sidebar.crucible',
+  foundry: 'sidebar.foundry',
+  framework: 'sidebar.framework',
+};
+const WORKSPACE_PHASE_INSIGHT_KEYS = {
+  anvil: 'workspace.insightAnvil',
+  crucible: 'workspace.insightCrucible',
+  foundry: 'workspace.insightFoundry',
+  framework: 'workspace.insightFramework',
+};
+
 app.get('/app', requireAuth, asyncHandler(loadAppAccess), (req, res) => {
   res.redirect('/app/dashboard');
 });
@@ -541,7 +577,7 @@ app.get(
 
     const subscriptionRow = await getSubscriptionRow(getPool, req.session.userId);
     const priceCfg = getStripePriceConfig();
-    const billingSummary = buildBillingSummaryLines(subscriptionRow, priceCfg);
+    const billingSummary = buildBillingSummaryLines(subscriptionRow, priceCfg, res.locals.t);
 
     const uid = req.session.userId;
     const [ideasRes, publishedRes] = await Promise.all([
@@ -608,6 +644,7 @@ app.get(
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
       allow_promotion_codes: true,
+      locale: i18n.stripeLocale(req.locale),
       success_url: `${base}/app/account?subscription=success`,
       cancel_url: `${base}/app/account?subscription=canceled`,
       client_reference_id: String(req.session.userId),
@@ -657,7 +694,11 @@ app.get(
     const projects = await listProjects(getPool, req.session.userId);
     const currentProjectId = null;
     const intervalLabel =
-      cfg.mode === 'dual' ? (billingInterval === 'year' ? 'Yearly' : 'Monthly') : 'Member';
+      cfg.mode === 'dual'
+        ? billingInterval === 'year'
+          ? res.locals.t('billing.intervalYearly')
+          : res.locals.t('billing.intervalMonthly')
+        : res.locals.t('billing.plan.member');
     const promoPrefill = String(req.query.promo || '').trim();
     res.render('app/billing-subscribe', {
       user: req.session.user,
@@ -665,6 +706,7 @@ app.get(
       projects,
       currentProjectId,
       stripePublishableKey: getStripePublishableKey(),
+      stripeLocale: res.locals.stripeLocale,
       billingInterval,
       billingPriceMode: cfg.mode,
       intervalLabel,
@@ -693,6 +735,7 @@ app.get(
       const portalSession = await stripe.billingPortal.sessions.create({
         customer: subRow.stripe_customer_id,
         return_url: `${base}/app/account?billing=portal_return`,
+        locale: i18n.stripeLocale(req.locale),
       });
       if (!portalSession.url) {
         return res.redirect(302, '/app/account?billing=portal_error');
@@ -753,6 +796,7 @@ app.get(
       projects,
       currentProjectId,
       stripePublishableKey: getStripePublishableKey(),
+      stripeLocale: res.locals.stripeLocale,
       ...trainingRenderLocals(res),
     });
   })
@@ -817,6 +861,7 @@ app.get(
         university: '',
         researchFocus: '',
         preferredSearchEngine: '',
+        preferredLocale: i18n.normalizeLocale(req.session.locale || 'en'),
       };
     }
     const priceCfg = getStripePriceConfig();
@@ -828,7 +873,7 @@ app.get(
     if (!hasStripeSecret) billingEnvMissing.push('STRIPE_SECRET_KEY');
     if (!hasPublicBaseUrl) billingEnvMissing.push('PUBLIC_BASE_URL');
     if (priceCfg.mode === 'none') billingEnvMissing.push(billingPriceEnvHint());
-    const billingSummary = buildBillingSummaryLines(subscriptionRow, priceCfg);
+    const billingSummary = buildBillingSummaryLines(subscriptionRow, priceCfg, res.locals.t);
     const currentPlanInterval = resolvePlanInterval(subscriptionRow, priceCfg);
     const within30DaysOfRenewal = isWithinDaysBeforePeriodEnd(subscriptionRow, 30);
     const renewalDateLabel = subscriptionRow?.current_period_end
@@ -1049,6 +1094,8 @@ app.get(
         return { id: s.id, title: s.title };
       });
     }
+    const titleKey = WORKSPACE_PHASE_TITLE_KEYS[slug];
+    const insightKey = WORKSPACE_PHASE_INSIGHT_KEYS[slug];
     res.render('app/workspace', {
       user: req.session.user,
       appAccess: res.locals.appAccess,
@@ -1056,10 +1103,10 @@ app.get(
       currentProjectId: projectId,
       projectId,
       projectTitle: bundle.project.name,
-      phaseTitle: phase.title,
+      phaseTitle: titleKey ? res.locals.t(titleKey) : phase.title,
       phaseSlug: slug,
       foundryLocked,
-      insightHint: phase.insight,
+      insightHint: insightKey ? res.locals.t(insightKey) : phase.insight,
       anvilSections,
       anvilSectionId,
       crucibleSections,
@@ -1104,7 +1151,7 @@ app.post('/login', async (req, res) => {
   try {
     const result = await query(
       getPool,
-      'SELECT id, first_name, last_name, email, password_hash FROM users WHERE email = @email',
+      'SELECT id, first_name, last_name, email, password_hash, preferred_locale FROM users WHERE email = @email',
       { email: email.trim() }
     );
     const user = result.recordset[0];
@@ -1118,6 +1165,9 @@ app.post('/login', async (req, res) => {
       lastName: user.last_name,
       email: user.email,
     };
+    const loc = i18n.normalizeLocale(user.preferred_locale || 'en');
+    req.session.locale = loc;
+    i18n.setLocaleCookie(res, loc);
     await ensureSubscriptionRow(getPool, user.id);
     return res.redirect(back);
   } catch (err) {
@@ -1293,10 +1343,11 @@ app.post('/register', async (req, res) => {
 
   try {
     const hash = await bcrypt.hash(pw, 10);
+    const prefLoc = i18n.normalizeLocale(req.locale || 'en');
     await query(
       getPool,
-      `INSERT INTO users (title, first_name, last_name, email, password_hash, university, research_focus, preferred_search_engine)
-       VALUES (@title, @first_name, @last_name, @email, @password_hash, @university, @research_focus, @preferred_search_engine)`,
+      `INSERT INTO users (title, first_name, last_name, email, password_hash, university, research_focus, preferred_search_engine, preferred_locale)
+       VALUES (@title, @first_name, @last_name, @email, @password_hash, @university, @research_focus, @preferred_search_engine, @preferred_locale)`,
       {
         title: form.title,
         first_name: form.firstName,
@@ -1306,6 +1357,7 @@ app.post('/register', async (req, res) => {
         university: uni,
         research_focus: research || null,
         preferred_search_engine: engine,
+        preferred_locale: prefLoc,
       }
     );
 
@@ -1322,6 +1374,8 @@ app.post('/register', async (req, res) => {
       lastName: user.last_name,
       email: user.email,
     };
+    req.session.locale = prefLoc;
+    i18n.setLocaleCookie(res, prefLoc);
     await ensureSubscriptionRow(getPool, user.id);
 
     const wantsMember = subscribeChoice === 'member';

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= typeof htmlLang !== 'undefined' ? htmlLang : 'en' %>" dir="<%= typeof textDir !== 'undefined' ? textDir : 'ltr' %>">
 <head>
-  <% var title = 'Portfolio dashboard'; %>
+  <% var title = t('dashboard.title'); %>
   <%- include('../partials/app-head') %>
 </head>
 <body class="app-body app-body--workspace-shell app-body--dashboard">
@@ -9,7 +9,7 @@
     <%- include('../partials/app-sidebar', { user: user, navActive: 'dashboard', projects: projects, currentProjectId: currentProjectId, workspaceSlug: '', appAccess: appAccess }) %>
     <main class="app-canvas app-canvas--dashboard">
       <% if (appAccess.trialing && !appAccess.paid && appAccess.trialEndsLabel) { %>
-        <div class="app-trial-bar">Free trial active — ends <%= appAccess.trialEndsLabel %>. Upgrade to unlock <strong>The Foundry</strong> and full membership.</div>
+        <div class="app-trial-bar"><%- t('dashboard.trialBar', { date: appAccess.trialEndsLabel }) %></div>
       <% } %>
       <% var progressData = typeof projectProgress !== 'undefined' ? projectProgress : []; %>
       <% var recentProject = projects && projects.length ? projects[0] : null; %>
@@ -25,10 +25,10 @@
 
       <div class="dash-canvas-head" id="tw-portfolio-head">
         <div class="dash-canvas-head__titles">
-          <h1>Forge portfolio</h1>
-          <p class="sub">Your projects and quick entry into each workspace.</p>
+          <h1><%= t('dashboard.forgePortfolio') %></h1>
+          <p class="sub"><%= t('dashboard.sub') %></p>
         </div>
-        <a href="/app/projects/new" class="app-btn-primary dash-add-project-btn" id="tw-portfolio-add-project">Add New Project</a>
+        <a href="/app/projects/new" class="app-btn-primary dash-add-project-btn" id="tw-portfolio-add-project"><%= t('dashboard.addProject') %></a>
       </div>
 
       <% if (recentProject && progressData.length) { %>

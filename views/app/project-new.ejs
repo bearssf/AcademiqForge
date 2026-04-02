@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= typeof htmlLang !== 'undefined' ? htmlLang : 'en' %>" dir="<%= typeof textDir !== 'undefined' ? textDir : 'ltr' %>">
 <head>
-  <% var title = 'Forge a new project'; %>
+  <% var title = t('project.newTitle'); %>
   <%- include('../partials/app-head') %>
 </head>
 <body class="app-body app-body--account-page">
   <div class="app-grid app-grid--account">
     <%- include('../partials/app-sidebar', { user: user, navActive: 'workspace', projects: projects, currentProjectId: currentProjectId, workspaceSlug: '', appAccess: appAccess }) %>
     <main class="app-canvas">
-      <h1>Forge a new project</h1>
-      <p class="sub">Name your work, pick a purpose and citation style, and choose a section template.</p>
+      <h1><%= t('project.newTitle') %></h1>
+      <p class="sub"><%= t('project.newSub') %></p>
 
       <% if (error) { %>
         <div class="<%= typeof errorNotice !== 'undefined' && errorNotice ? 'app-form-notice' : 'app-form-error' %>" role="alert"><%= error %></div>
@@ -17,35 +17,35 @@
 
       <form id="project-new-form" class="app-form-stack project-new-form" method="post" action="/app/projects">
         <label class="app-field">
-          <span>Project name</span>
+          <span><%= t('project.name') %></span>
           <input type="text" name="name" required maxlength="255" value="<%= form.name || '' %>" placeholder="e.g. Role of Critical Thinking in Intercultural Relationship Development" autocomplete="off" />
         </label>
         <label class="app-field">
-          <span>Purpose</span>
+          <span><%= t('project.purpose') %></span>
           <select id="project-purpose" name="purpose" required>
-            <option value="" disabled <%= !form.purpose ? 'selected' : '' %>>Select…</option>
+            <option value="" disabled <%= !form.purpose ? 'selected' : '' %>><%= t('project.select') %></option>
             <% purposes.forEach(function(p) { %>
               <option value="<%= p %>" <%= form.purpose === p ? 'selected' : '' %>><%= p %></option>
             <% }); %>
           </select>
         </label>
         <label class="app-field project-purpose-other-wrap" id="project-purpose-other-wrap" hidden>
-          <span>Describe purpose <span class="account-optional">(optional)</span></span>
+          <span><%= t('project.purposeOther') %> <span class="account-optional"><%= t('project.purposeOtherOptional') %></span></span>
           <input type="text" name="purposeOther" maxlength="500" value="<%= form.purposeOther || '' %>" placeholder="Brief description when purpose is Other" autocomplete="off" />
         </label>
         <label class="app-field">
-          <span>Citation style</span>
+          <span><%= t('project.citationStyle') %></span>
           <select name="citationStyle" required>
-            <option value="" disabled <%= !form.citationStyle ? 'selected' : '' %>>Select…</option>
+            <option value="" disabled <%= !form.citationStyle ? 'selected' : '' %>><%= t('project.select') %></option>
             <% citationStyles.forEach(function(c) { %>
               <option value="<%= c %>" <%= form.citationStyle === c ? 'selected' : '' %>><%= c %></option>
             <% }); %>
           </select>
         </label>
         <label class="app-field">
-          <span>Template</span>
+          <span><%= t('project.template') %></span>
           <select id="project-template-key" name="templateKey" required>
-            <option value="" disabled <%= !form.templateKey ? 'selected' : '' %>>Select…</option>
+            <option value="" disabled <%= !form.templateKey ? 'selected' : '' %>><%= t('project.select') %></option>
             <% templateOptions.forEach(function(t) { %>
               <option value="<%= t.key %>" <%= form.templateKey === t.key ? 'selected' : '' %>><%= t.label %></option>
             <% }); %>
@@ -53,15 +53,15 @@
         </label>
 
         <div id="project-other-sections" class="project-other-sections" hidden>
-          <p class="account-meta project-other-sections-intro">Please add the section names for your document. Also, please enter the percentage of the entire document that each section represents. You can add up to 15 sections and they must total 100%.</p>
+          <p class="account-meta project-other-sections-intro"><%= t('project.otherSectionsIntro') %></p>
           <div id="project-other-sections-rows"></div>
           <p class="project-other-sections-sum" id="project-other-sum" aria-live="polite"></p>
-          <button type="button" class="app-btn-primary project-other-add" id="project-other-add">Add section</button>
+          <button type="button" class="app-btn-primary project-other-add" id="project-other-add"><%= t('project.addSection') %></button>
         </div>
 
         <div class="app-form-actions">
-          <button type="submit" class="app-btn-primary">Create project</button>
-          <a href="/app/dashboard" class="app-link-muted">Cancel</a>
+          <button type="submit" class="app-btn-primary"><%= t('project.create') %></button>
+          <a href="/app/dashboard" class="app-link-muted"><%= t('project.cancel') %></a>
         </div>
       </form>
     </main>

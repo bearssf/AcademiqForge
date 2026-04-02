@@ -7,6 +7,7 @@ const bcrypt = require('bcryptjs');
 const { ensureSubscriptionRow, getSubscriptionRow, appAccessFromRow } = require('../lib/subscriptions');
 const { ALLOWED_TITLES, SEARCH_ENGINES } = require('../lib/userConstants');
 const { getUserProfileRow, rowToPublicUser } = require('../lib/userProfile');
+const i18n = require('../lib/i18n');
 const {
   loadTemplates,
   listProjects,
@@ -37,6 +38,14 @@ const { applySuggestionToDraftHtml } = require('../lib/bedrockApplySuggestion');
 const { searchPapers } = require('../lib/semanticScholar');
 const { markPageCompleted, resetPageCompletion } = require('../lib/trainingWalkthrough');
 
+function tReq(req, key, vars) {
+  return i18n.t((req && req.locale) || 'en', key, vars);
+}
+
+function apiErr(req, res, status, key, vars) {
+  return res.status(status).json({ error: tReq(req, key, vars) });
+}
+
 function mapSuggestionRow(r) {
   if (!r) return null;
   return rowToSuggestion({
@@ -55,7 +64,7 @@ function mapSuggestionRow(r) {
 }
 
 function requireApiAuth(req, res, next) {
-  if (!req.session.userId) return res.status(401).json({ error: 'Unauthorized' });
+  if (!req.session.userId) return apiErr(req, res, 401, 'errors.unauthorized');
   next();
 }
 
@@ -96,9 +105,12 @@ function createApiRouter(getPool) {
       anvilUpload.single('image')(req, res, function (err) {
         if (err) {
           if (err.code === 'LIMIT_FILE_SIZE') {
-            return res.status(400).json({ error: 'File too large (max 5 MB).' });
+            return apiErr(req, res, 400, 'errors.fileTooLarge');
           }
-          return res.status(400).json({ error: err.message || 'Upload failed.' });
+          if (err.message === 'Only image files are allowed.') {
+            return apiErr(req, res, 400, 'errors.onlyImageFiles');
+          }
+          return res.status(400).json({ error: err.message || tReq(req, 'errors.uploadFailed') });
         }
         next();
       });
@@ -106,10 +118,10 @@ function createApiRouter(getPool) {
     async function (req, res, next) {
       try {
         const projectId = parseInt(req.params.projectId, 10);
-        if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+        if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
         const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
-        if (!bundle) return res.status(404).json({ error: 'Not found' });
-        if (!req.file) return res.status(400).json({ error: 'No image file.' });
+        if (!bundle) return apiErr(req, res, 404, 'errors.notFound');
+        if (!req.file) return apiErr(req, res, 400, 'errors.noImageFile');
         res.json({ url: '/uploads/anvil/' + req.file.filename });
       } catch (e) {
         next(e);
@@ -151,16 +163,25 @@ function createApiRouter(getPool) {
       const university = (body.university || '').trim();
       const researchFocus = (body.researchFocus || '').trim();
       const preferredSearchEngine = (body.preferredSearchEngine || '').trim();
+      const preferredLocaleRaw = body.preferredLocale;
+      const hasPreferredLocale =
+        preferredLocaleRaw !== undefined &&
+        preferredLocaleRaw !== null &&
+        String(preferredLocaleRaw).trim() !== '';
 
       if (!ALLOWED_TITLES.includes(title)) {
-        return res.status(400).json({ error: 'Invalid title.' });
+        return apiErr(req, res, 400, 'errors.invalidTitle');
       }
       if (!firstName || !lastName) {
-        return res.status(400).json({ error: 'First and last name are required.' });
+        return apiErr(req, res, 400, 'errors.nameRequired');
       }
       if (preferredSearchEngine && !SEARCH_ENGINES.includes(preferredSearchEngine)) {
-        return res.status(400).json({ error: 'Invalid preferred search engine.' });
+        return apiErr(req, res, 400, 'errors.invalidSearchEngine');
       }
+
+      const preferredLocale = hasPreferredLocale
+        ? i18n.normalizeLocale(preferredLocaleRaw)
+        : null;
 
       await query(
         getPool,
@@ -171,6 +192,7 @@ function createApiRouter(getPool) {
             university = @university,
             research_focus = @research_focus,
             preferred_search_engine = @preferred_search_engine
+            ${preferredLocale != null ? ', preferred_locale = @preferred_locale' : ''}
            WHERE id = @id`,
         {
           id: req.session.userId,
@@ -180,8 +202,14 @@ function createApiRouter(getPool) {
           university: university || null,
           research_focus: researchFocus || null,
           preferred_search_engine: preferredSearchEngine || null,
+          ...(preferredLocale != null ? { preferred_locale: preferredLocale } : {}),
         }
       );
+
+      if (preferredLocale != null) {
+        req.session.locale = preferredLocale;
+        i18n.setLocaleCookie(res, preferredLocale);
+      }
 
       req.session.user = {
         id: req.session.userId,
@@ -211,13 +239,13 @@ function createApiRouter(getPool) {
       const confirmPassword = body.confirmPassword || '';
 
       if (!currentPassword) {
-        return res.status(400).json({ error: 'Current password is required.' });
+        return apiErr(req, res, 400, 'errors.currentPasswordRequired');
       }
       if (newPassword.length < 8) {
-        return res.status(400).json({ error: 'New password must be at least 8 characters.' });
+        return apiErr(req, res, 400, 'errors.passwordMinLength');
       }
       if (newPassword !== confirmPassword) {
-        return res.status(400).json({ error: 'New password and confirmation do not match.' });
+        return apiErr(req, res, 400, 'errors.passwordMismatch');
       }
 
       const r = await query(getPool, 'SELECT password_hash FROM users WHERE id = @id', {
@@ -225,7 +253,7 @@ function createApiRouter(getPool) {
       });
       const row = r.recordset[0];
       if (!row || !(await bcrypt.compare(currentPassword, row.password_hash))) {
-        return res.status(400).json({ error: 'Current password is incorrect.' });
+        return apiErr(req, res, 400, 'errors.currentPasswordIncorrect');
       }
 
       const hash = await bcrypt.hash(newPassword, 10);
@@ -245,7 +273,7 @@ function createApiRouter(getPool) {
       const b = req.body || {};
       const researchTopic = String(b.researchTopic || b.research_topic || '').trim();
       if (!researchTopic) {
-        return res.status(400).json({ error: 'Research topic is required.' });
+        return apiErr(req, res, 400, 'errors.researchTopicRequired');
       }
       const keywords = b.keywords != null ? String(b.keywords).trim().slice(0, 500) : null;
       const notes = b.notes != null ? String(b.notes).slice(0, 20000) : null;
@@ -269,7 +297,7 @@ function createApiRouter(getPool) {
   router.post('/me/training/complete', async (req, res, next) => {
     try {
       const pageSlug = String((req.body && req.body.pageSlug) || '').trim().slice(0, 80);
-      if (!pageSlug) return res.status(400).json({ error: 'pageSlug is required.' });
+      if (!pageSlug) return apiErr(req, res, 400, 'errors.pageSlugRequired');
       await markPageCompleted(getPool, req.session.userId, pageSlug);
       res.json({ ok: true });
     } catch (e) {
@@ -280,7 +308,7 @@ function createApiRouter(getPool) {
   router.post('/me/training/reset', async (req, res, next) => {
     try {
       const pageSlug = String((req.body && req.body.pageSlug) || '').trim().slice(0, 80);
-      if (!pageSlug) return res.status(400).json({ error: 'pageSlug is required.' });
+      if (!pageSlug) return apiErr(req, res, 400, 'errors.pageSlugRequired');
       await resetPageCompletion(getPool, req.session.userId, pageSlug);
       res.json({ ok: true });
     } catch (e) {
@@ -293,7 +321,7 @@ function createApiRouter(getPool) {
       const b = req.body || {};
       const title = String(b.title || '').trim();
       if (!title) {
-        return res.status(400).json({ error: 'Title is required.' });
+        return apiErr(req, res, 400, 'errors.titleRequired');
       }
       const datePublished = b.datePublished != null ? String(b.datePublished).trim().slice(0, 100) : null;
       const wherePublished = b.wherePublished != null ? String(b.wherePublished).trim().slice(0, 500) : null;
@@ -352,9 +380,9 @@ function createApiRouter(getPool) {
   router.get('/projects/:projectId', async (req, res, next) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
-      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
       const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
-      if (!bundle) return res.status(404).json({ error: 'Not found' });
+      if (!bundle) return apiErr(req, res, 404, 'errors.notFound');
       attachTemplateMeta(bundle);
       res.json(bundle);
     } catch (e) {
@@ -365,7 +393,7 @@ function createApiRouter(getPool) {
   router.delete('/projects/:projectId', async (req, res, next) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
-      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
       const result = await deleteProject(getPool, req.session.userId, projectId);
       if (!result.ok) {
         return res.status(result.status).json({ error: result.error });
@@ -379,7 +407,7 @@ function createApiRouter(getPool) {
   router.post('/projects/:projectId/cancel', async (req, res, next) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
-      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
       const result = await cancelProject(getPool, req.session.userId, projectId);
       if (!result.ok) {
         return res.status(result.status).json({ error: result.error });
@@ -393,7 +421,7 @@ function createApiRouter(getPool) {
   router.patch('/projects/:projectId', async (req, res, next) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
-      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
       const body = req.body || {};
 
       const hasMeta =
@@ -441,9 +469,9 @@ function createApiRouter(getPool) {
         updates.push('updated_at = NOW()');
         const sqlText = `UPDATE projects SET ${updates.join(', ')} WHERE id = @id AND user_id = @user_id`;
         const r = await query(getPool, sqlText, pubParams);
-        if (r.rowsAffected[0] === 0) return res.status(404).json({ error: 'Not found' });
+        if (r.rowsAffected[0] === 0) return apiErr(req, res, 404, 'errors.notFound');
       } else if (!hasMeta) {
-        return res.status(400).json({ error: 'No valid fields to update' });
+        return apiErr(req, res, 400, 'errors.noValidFieldsToUpdate');
       }
 
       const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
@@ -458,7 +486,7 @@ function createApiRouter(getPool) {
     try {
       const projectId = parseInt(req.params.projectId, 10);
       const sectionId = parseInt(req.params.sectionId, 10);
-      if (Number.isNaN(projectId) || Number.isNaN(sectionId)) return res.status(400).json({ error: 'invalid id' });
+      if (Number.isNaN(projectId) || Number.isNaN(sectionId)) return apiErr(req, res, 400, 'errors.invalidId');
       const body = req.body || {};
       const own = await query(
         getPool,
@@ -467,7 +495,7 @@ function createApiRouter(getPool) {
          WHERE ps.id = @sid AND ps.project_id = @pid AND pr.user_id = @user_id`,
         { sid: sectionId, pid: projectId, user_id: req.session.userId }
       );
-      if (!own.recordset[0]) return res.status(404).json({ error: 'Not found' });
+      if (!own.recordset[0]) return apiErr(req, res, 404, 'errors.notFound');
 
       const updates = [];
       const secParams = { sid: sectionId };
@@ -493,7 +521,7 @@ function createApiRouter(getPool) {
         }
         bodyChanged = true;
       }
-      if (updates.length === 0) return res.status(400).json({ error: 'No valid fields' });
+      if (updates.length === 0) return apiErr(req, res, 400, 'errors.noValidFields');
       updates.push('updated_at = NOW()');
       await query(getPool, `UPDATE project_sections SET ${updates.join(', ')} WHERE id = @sid`, secParams);
       let invalidatedOpen = 0;
@@ -530,13 +558,13 @@ function createApiRouter(getPool) {
   router.get('/projects/:projectId/export', async (req, res, next) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
-      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
       const format = String(req.query.format || '').toLowerCase();
       if (format !== 'txt' && format !== 'docx') {
-        return res.status(400).json({ error: 'query format must be txt or docx' });
+        return apiErr(req, res, 400, 'errors.exportFormatInvalid');
       }
       const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
-      if (!bundle) return res.status(404).json({ error: 'Not found' });
+      if (!bundle) return apiErr(req, res, 404, 'errors.notFound');
       const projectName = bundle.project.name || 'Project';
       const sections = (bundle.sections || []).map(function (s) {
         return {
@@ -571,13 +599,13 @@ function createApiRouter(getPool) {
   router.post('/projects/:projectId/export-project-docx', async (req, res, next) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
-      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
       const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
-      if (!bundle) return res.status(404).json({ error: 'Not found' });
+      if (!bundle) return apiErr(req, res, 404, 'errors.notFound');
       const body = req.body || {};
       const sectionsIn = Array.isArray(body.sections) ? body.sections : [];
       if (!sectionsIn.length) {
-        return res.status(400).json({ error: 'sections array required' });
+        return apiErr(req, res, 400, 'errors.sectionsArrayRequired');
       }
       const citationStyle =
         body.citationStyle != null
@@ -611,14 +639,14 @@ function createApiRouter(getPool) {
       const projectId = parseInt(req.params.projectId, 10);
       const sectionId = parseInt(req.params.sectionId, 10);
       if (Number.isNaN(projectId) || Number.isNaN(sectionId)) {
-        return res.status(400).json({ error: 'invalid id' });
+        return apiErr(req, res, 400, 'errors.invalidId');
       }
       const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
-      if (!bundle) return res.status(404).json({ error: 'Not found' });
+      if (!bundle) return apiErr(req, res, 404, 'errors.notFound');
       const sec = bundle.sections.find(function (s) {
         return Number(s.id) === sectionId;
       });
-      if (!sec) return res.status(404).json({ error: 'Section not found' });
+      if (!sec) return apiErr(req, res, 404, 'errors.sectionNotFound');
       const body = req.body || {};
       const html = body.html != null ? String(body.html) : '';
       const title =
@@ -652,7 +680,7 @@ function createApiRouter(getPool) {
       const projectId = parseInt(req.params.projectId, 10);
       const sectionId = parseInt(req.params.sectionId, 10);
       if (Number.isNaN(projectId) || Number.isNaN(sectionId)) {
-        return res.status(400).json({ error: 'invalid id' });
+        return apiErr(req, res, 400, 'errors.invalidId');
       }
       const own = await query(
         getPool,
@@ -661,7 +689,7 @@ function createApiRouter(getPool) {
          WHERE ps.id = @sid AND ps.project_id = @pid AND pr.user_id = @user_id`,
         { sid: sectionId, pid: projectId, user_id: req.session.userId }
       );
-      if (!own.recordset[0]) return res.status(404).json({ error: 'Not found' });
+      if (!own.recordset[0]) return apiErr(req, res, 404, 'errors.notFound');
 
       const rows = await query(
         getPool,
@@ -686,7 +714,7 @@ function createApiRouter(getPool) {
       const projectId = parseInt(req.params.projectId, 10);
       const sectionId = parseInt(req.params.sectionId, 10);
       if (Number.isNaN(projectId) || Number.isNaN(sectionId)) {
-        return res.status(400).json({ error: 'invalid id' });
+        return apiErr(req, res, 400, 'errors.invalidId');
       }
       const own = await query(
         getPool,
@@ -695,7 +723,7 @@ function createApiRouter(getPool) {
          WHERE ps.id = @sid AND ps.project_id = @pid AND pr.user_id = @user_id`,
         { sid: sectionId, pid: projectId, user_id: req.session.userId }
       );
-      if (!own.recordset[0]) return res.status(404).json({ error: 'Not found' });
+      if (!own.recordset[0]) return apiErr(req, res, 404, 'errors.notFound');
 
       const body = req.body || {};
       const items = [];
@@ -704,7 +732,7 @@ function createApiRouter(getPool) {
           const cat = normalizeCategory(raw && raw.category);
           const text = raw && raw.body != null ? String(raw.body).trim() : '';
           if (!cat || !text) {
-            return res.status(400).json({ error: 'Each suggestion needs category and non-empty body' });
+            return apiErr(req, res, 400, 'errors.suggestionCategoryBody');
           }
           items.push({
             category: cat,
@@ -715,7 +743,7 @@ function createApiRouter(getPool) {
       } else {
         const cat = normalizeCategory(body.category);
         const text = body.body != null ? String(body.body).trim() : '';
-        if (!cat || !text) return res.status(400).json({ error: 'category and body are required' });
+        if (!cat || !text) return apiErr(req, res, 400, 'errors.categoryBodyRequired');
         items.push({
           category: cat,
           body: text,
@@ -723,7 +751,7 @@ function createApiRouter(getPool) {
         });
       }
 
-      if (items.length === 0) return res.status(400).json({ error: 'No suggestions to save' });
+      if (items.length === 0) return apiErr(req, res, 400, 'errors.noSuggestionsToSave');
 
       const created = await insertAnvilSuggestions(getPool, projectId, sectionId, items);
 
@@ -738,12 +766,12 @@ function createApiRouter(getPool) {
       const projectId = parseInt(req.params.projectId, 10);
       const suggestionId = parseInt(req.params.suggestionId, 10);
       if (Number.isNaN(projectId) || Number.isNaN(suggestionId)) {
-        return res.status(400).json({ error: 'invalid id' });
+        return apiErr(req, res, 400, 'errors.invalidId');
       }
       const body = req.body || {};
       const newStatus = body.status != null ? String(body.status).toLowerCase() : '';
       if (!isValidStatus(newStatus) || newStatus === 'open') {
-        return res.status(400).json({ error: 'status must be applied or ignored' });
+        return apiErr(req, res, 400, 'errors.suggestionStatusInvalid');
       }
 
       const upd = await query(
@@ -759,7 +787,7 @@ function createApiRouter(getPool) {
           suggestion_status: newStatus,
         }
       );
-      if (!upd.rowsAffected || !upd.rowsAffected[0]) return res.status(404).json({ error: 'Not found' });
+      if (!upd.rowsAffected || !upd.rowsAffected[0]) return apiErr(req, res, 404, 'errors.notFound');
 
       const row = await query(
         getPool,
@@ -779,7 +807,7 @@ function createApiRouter(getPool) {
       try {
         if (!isBedrockConfigured()) {
           return res.status(503).json({
-            error: 'Bedrock is not configured',
+            error: tReq(req, 'errors.bedrockNotConfigured'),
             bedrockConfigured: false,
           });
         }
@@ -788,13 +816,13 @@ function createApiRouter(getPool) {
         const sectionId = parseInt(req.params.sectionId, 10);
         const suggestionId = parseInt(req.params.suggestionId, 10);
         if (Number.isNaN(projectId) || Number.isNaN(sectionId) || Number.isNaN(suggestionId)) {
-          return res.status(400).json({ error: 'invalid id' });
+          return apiErr(req, res, 400, 'errors.invalidId');
         }
 
         const body = req.body || {};
         const html = body.html != null ? String(body.html) : '';
         if (!html.trim()) {
-          return res.status(400).json({ error: 'html is required' });
+          return apiErr(req, res, 400, 'errors.htmlRequired');
         }
 
         const rowRes = await query(
@@ -813,11 +841,11 @@ function createApiRouter(getPool) {
         );
 
         const row = rowRes.recordset[0];
-        if (!row) return res.status(404).json({ error: 'Not found' });
+        if (!row) return apiErr(req, res, 404, 'errors.notFound');
 
         const st = row.suggestion_status != null ? String(row.suggestion_status).toLowerCase() : 'open';
         if (st !== 'open') {
-          return res.status(400).json({ error: 'Suggestion is not open' });
+          return apiErr(req, res, 400, 'errors.suggestionNotOpen');
         }
 
         const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
@@ -832,7 +860,7 @@ function createApiRouter(getPool) {
 
         const suggestionText = row.body != null ? String(row.body).trim() : '';
         if (!suggestionText) {
-          return res.status(400).json({ error: 'Suggestion has no text' });
+          return apiErr(req, res, 400, 'errors.suggestionNoText');
         }
 
         let result;
@@ -844,7 +872,7 @@ function createApiRouter(getPool) {
             citationStyle,
           });
         } catch (err) {
-          let msg = err && err.message ? String(err.message) : 'Bedrock request failed';
+          let msg = err && err.message ? String(err.message) : tReq(req, 'errors.bedrockRequestFailed');
           if (err && err.name === 'AccessDeniedException') {
             msg = 'Bedrock access denied — check IAM permissions and model access in this region.';
           } else if (/inference profile/i.test(msg) && /on-demand|throughput/i.test(msg)) {
@@ -866,7 +894,7 @@ function createApiRouter(getPool) {
     try {
       if (!isBedrockConfigured()) {
         return res.status(503).json({
-          error: 'Bedrock is not configured',
+          error: tReq(req, 'errors.bedrockNotConfigured'),
           bedrockConfigured: false,
         });
       }
@@ -874,15 +902,15 @@ function createApiRouter(getPool) {
       const projectId = parseInt(req.params.projectId, 10);
       const sectionId = parseInt(req.params.sectionId, 10);
       if (Number.isNaN(projectId) || Number.isNaN(sectionId)) {
-        return res.status(400).json({ error: 'invalid id' });
+        return apiErr(req, res, 400, 'errors.invalidId');
       }
 
       const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
-      if (!bundle) return res.status(404).json({ error: 'Not found' });
+      if (!bundle) return apiErr(req, res, 404, 'errors.notFound');
       const sec = bundle.sections.find(function (s) {
         return Number(s.id) === sectionId;
       });
-      if (!sec) return res.status(404).json({ error: 'Section not found' });
+      if (!sec) return apiErr(req, res, 404, 'errors.sectionNotFound');
 
       const body = req.body || {};
       let html = body.html != null ? String(body.html) : null;
@@ -897,9 +925,10 @@ function createApiRouter(getPool) {
           html,
           plainText,
           sectionTitle: sec.title,
+          outputLanguage: req.languageNameForAi,
         });
       } catch (err) {
-        let msg = err && err.message ? String(err.message) : 'Bedrock request failed';
+        let msg = err && err.message ? String(err.message) : tReq(req, 'errors.bedrockRequestFailed');
         if (err && err.name === 'AccessDeniedException') {
           msg = 'Bedrock access denied — check IAM permissions and model access in this region.';
         } else if (/inference profile/i.test(msg) && /on-demand|throughput/i.test(msg)) {
@@ -1015,9 +1044,9 @@ function createApiRouter(getPool) {
       const projectId = parseInt(req.params.projectId, 10);
       const sectionId = parseInt(req.params.sectionId, 10);
       if (Number.isNaN(projectId) || Number.isNaN(sectionId))
-        return res.status(400).json({ error: 'invalid id' });
+        return apiErr(req, res, 400, 'errors.invalidId');
       if (!(await ownsProject(getPool, projectId, req.session.userId)))
-        return res.status(404).json({ error: 'Not found' });
+        return apiErr(req, res, 404, 'errors.notFound');
 
       const rows = await query(
         getPool,
@@ -1055,14 +1084,14 @@ function createApiRouter(getPool) {
       const projectId = parseInt(req.params.projectId, 10);
       const itemId = parseInt(req.params.itemId, 10);
       if (Number.isNaN(projectId) || Number.isNaN(itemId))
-        return res.status(400).json({ error: 'invalid id' });
+        return apiErr(req, res, 400, 'errors.invalidId');
       if (!(await ownsProject(getPool, projectId, req.session.userId)))
-        return res.status(404).json({ error: 'Not found' });
+        return apiErr(req, res, 404, 'errors.notFound');
 
       const newStatus = (req.body.status || '').trim().toLowerCase();
       const allowed = ['active', 'applied', 'dismissed', 'resolved', 'pending'];
       if (!allowed.includes(newStatus))
-        return res.status(400).json({ error: 'Invalid status' });
+        return apiErr(req, res, 400, 'errors.invalidStatus');
 
       const upd = await query(
         getPool,
@@ -1071,7 +1100,7 @@ function createApiRouter(getPool) {
          WHERE id = @id AND project_id = @pid`,
         { id: itemId, pid: projectId, status: newStatus }
       );
-      if (!upd.rowsAffected[0]) return res.status(404).json({ error: 'Item not found' });
+      if (!upd.rowsAffected[0]) return apiErr(req, res, 404, 'errors.itemNotFound');
       res.json({ ok: true, status: newStatus });
     } catch (e) {
       next(e);
@@ -1083,9 +1112,9 @@ function createApiRouter(getPool) {
       const projectId = parseInt(req.params.projectId, 10);
       const sectionId = parseInt(req.params.sectionId, 10);
       if (Number.isNaN(projectId) || Number.isNaN(sectionId))
-        return res.status(400).json({ error: 'invalid id' });
+        return apiErr(req, res, 400, 'errors.invalidId');
       if (!(await ownsProject(getPool, projectId, req.session.userId)))
-        return res.status(404).json({ error: 'Not found' });
+        return apiErr(req, res, 404, 'errors.notFound');
 
       const plainText = req.body.plainText != null ? String(req.body.plainText) : '';
       const rows = await query(
@@ -1147,9 +1176,9 @@ function createApiRouter(getPool) {
   router.get('/projects/:projectId/feedback-scores', async (req, res, next) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
-      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
       if (!(await ownsProject(getPool, projectId, req.session.userId)))
-        return res.status(404).json({ error: 'Not found' });
+        return apiErr(req, res, 404, 'errors.notFound');
 
       const sectionIdParam = req.query.sectionId ? parseInt(req.query.sectionId, 10) : null;
 
@@ -1229,22 +1258,22 @@ function createApiRouter(getPool) {
   router.post('/projects/:projectId/sources/extract-keywords', async (req, res, next) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
-      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
       const own = await query(
         getPool,
         'SELECT id FROM projects WHERE id = @id AND user_id = @user_id',
         { id: projectId, user_id: req.session.userId }
       );
-      if (!own.recordset[0]) return res.status(404).json({ error: 'Not found' });
+      if (!own.recordset[0]) return apiErr(req, res, 404, 'errors.notFound');
 
       if (!isBedrockConfigured()) {
-        return res.status(503).json({ error: 'AI keyword extraction is not configured (Bedrock).' });
+        return apiErr(req, res, 503, 'errors.aiKeywordsNotConfigured');
       }
 
       const titles = Array.isArray(req.body.titles) ? req.body.titles.filter(Boolean) : [];
       const tags = Array.isArray(req.body.tags) ? req.body.tags.filter(Boolean) : [];
       if (!titles.length && !tags.length) {
-        return res.status(400).json({ error: 'At least one title or tag is required.' });
+        return apiErr(req, res, 400, 'errors.titleOrTagRequired');
       }
 
       const prompt =
@@ -1269,7 +1298,7 @@ function createApiRouter(getPool) {
         keywords = match ? JSON.parse(match[0]) : [];
       } catch (e) {
         console.error('[Bedrock Keywords] Failed to parse response:', raw.slice(0, 300));
-        return res.status(502).json({ error: 'AI returned an invalid response.' });
+        return apiErr(req, res, 502, 'errors.aiInvalidResponse');
       }
 
       keywords = keywords
@@ -1296,13 +1325,13 @@ function createApiRouter(getPool) {
   router.get('/projects/:projectId/sources/search-scholar', async (req, res, next) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
-      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
       const own = await query(
         getPool,
         'SELECT id FROM projects WHERE id = @id AND user_id = @user_id',
         { id: projectId, user_id: req.session.userId }
       );
-      if (!own.recordset[0]) return res.status(404).json({ error: 'Not found' });
+      if (!own.recordset[0]) return apiErr(req, res, 404, 'errors.notFound');
 
       const rawQ = req.query.q || req.query.query || '';
       const keywords = rawQ
@@ -1310,7 +1339,7 @@ function createApiRouter(getPool) {
         .map(function (s) { return s.trim(); })
         .filter(Boolean);
       if (!keywords.length) {
-        return res.status(400).json({ error: 'query parameter "q" is required (comma-separated keywords)' });
+        return apiErr(req, res, 400, 'errors.queryQRequired');
       }
 
       const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
@@ -1328,8 +1357,8 @@ function createApiRouter(getPool) {
       if (e && e.message && e.message.includes('rate limit')) {
         const hasKey = !!(process.env.S2_API_KEY || process.env.SEMANTIC_SCHOLAR_API_KEY);
         const msg = hasKey
-          ? 'Semantic Scholar is temporarily rate-limiting requests. Please try again in a minute.'
-          : 'Semantic Scholar requires an API key for reliable access. Add SEMANTIC_SCHOLAR_API_KEY to your environment. Get a free key at semanticscholar.org/product/api';
+          ? tReq(req, 'errors.semanticScholarRateLimit')
+          : tReq(req, 'errors.semanticScholarNeedsApiKey');
         return res.status(429).json({ error: msg });
       }
       next(e);
@@ -1407,9 +1436,9 @@ function createApiRouter(getPool) {
   router.get('/projects/:projectId/sources', async (req, res, next) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
-      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
       if (!(await ownsProject(getPool, projectId, req.session.userId)))
-        return res.status(404).json({ error: 'Not found' });
+        return apiErr(req, res, 404, 'errors.notFound');
 
       const rows = await query(
         getPool,
@@ -1464,9 +1493,9 @@ function createApiRouter(getPool) {
   router.post('/projects/:projectId/sources', async (req, res, next) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
-      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
       if (!(await ownsProject(getPool, projectId, req.session.userId)))
-        return res.status(404).json({ error: 'Not found' });
+        return apiErr(req, res, 404, 'errors.notFound');
 
       const b = req.body || {};
       function trimOrNull(v) { return (v || '').trim() || null; }
@@ -1495,7 +1524,7 @@ function createApiRouter(getPool) {
       const sectionIds       = Array.isArray(b.section_ids) ? b.section_ids.map(function (s) { return parseInt(s, 10); }).filter(function (n) { return !Number.isNaN(n); }) : [];
 
       if (!articleTitle && !citationText) {
-        return res.status(400).json({ error: 'Article title or citation text is required.' });
+        return apiErr(req, res, 400, 'errors.articleTitleOrCitationRequired');
       }
 
       const ins = await query(
@@ -1581,9 +1610,9 @@ function createApiRouter(getPool) {
       const projectId = parseInt(req.params.projectId, 10);
       const sourceId = parseInt(req.params.sourceId, 10);
       if (Number.isNaN(projectId) || Number.isNaN(sourceId))
-        return res.status(400).json({ error: 'invalid id' });
+        return apiErr(req, res, 400, 'errors.invalidId');
       if (!(await ownsProject(getPool, projectId, req.session.userId)))
-        return res.status(404).json({ error: 'Not found' });
+        return apiErr(req, res, 404, 'errors.notFound');
 
       const b = req.body || {};
       const updates = [];
@@ -1626,7 +1655,7 @@ function createApiRouter(getPool) {
           `UPDATE sources SET ${updates.join(', ')} WHERE id = @sid AND project_id = @pid`,
           patchParams
         );
-        if (!affected.rowsAffected[0]) return res.status(404).json({ error: 'Source not found' });
+        if (!affected.rowsAffected[0]) return apiErr(req, res, 404, 'errors.sourceNotFound');
       }
 
       if (Array.isArray(b.tags)) {
@@ -1670,7 +1699,7 @@ function createApiRouter(getPool) {
          FROM sources WHERE id = @id`,
         { id: sourceId }
       );
-      if (!row.recordset[0]) return res.status(404).json({ error: 'Source not found' });
+      if (!row.recordset[0]) return apiErr(req, res, 404, 'errors.sourceNotFound');
 
       const tRows = await query(getPool, 'SELECT tag FROM source_tags WHERE source_id = @sid', {
         sid: sourceId,
@@ -1693,15 +1722,15 @@ function createApiRouter(getPool) {
       const projectId = parseInt(req.params.projectId, 10);
       const sourceId = parseInt(req.params.sourceId, 10);
       if (Number.isNaN(projectId) || Number.isNaN(sourceId))
-        return res.status(400).json({ error: 'invalid id' });
+        return apiErr(req, res, 400, 'errors.invalidId');
       if (!(await ownsProject(getPool, projectId, req.session.userId)))
-        return res.status(404).json({ error: 'Not found' });
+        return apiErr(req, res, 404, 'errors.notFound');
       const del = await query(
         getPool,
         'DELETE FROM sources WHERE id = @sid AND project_id = @pid',
         { sid: sourceId, pid: projectId }
       );
-      if (!del.rowsAffected[0]) return res.status(404).json({ error: 'Source not found' });
+      if (!del.rowsAffected[0]) return apiErr(req, res, 404, 'errors.sourceNotFound');
       res.status(204).end();
     } catch (e) {
       next(e);
@@ -1713,9 +1742,9 @@ function createApiRouter(getPool) {
   router.get('/projects/:projectId/research-plan', async (req, res, next) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
-      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
       if (!(await ownsProject(getPool, projectId, req.session.userId)))
-        return res.status(404).json({ error: 'Not found' });
+        return apiErr(req, res, 404, 'errors.notFound');
 
       const rows = await query(
         getPool,
@@ -1737,9 +1766,9 @@ function createApiRouter(getPool) {
   router.post('/projects/:projectId/research-plan', async (req, res, next) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
-      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
       if (!(await ownsProject(getPool, projectId, req.session.userId)))
-        return res.status(404).json({ error: 'Not found' });
+        return apiErr(req, res, 404, 'errors.notFound');
 
       const b = req.body || {};
       function trimOrNull(v) { return (v || '').trim() || null; }
@@ -1786,13 +1815,13 @@ function createApiRouter(getPool) {
       const projectId = parseInt(req.params.projectId, 10);
       const itemId = parseInt(req.params.itemId, 10);
       if (Number.isNaN(projectId) || Number.isNaN(itemId))
-        return res.status(400).json({ error: 'invalid id' });
+        return apiErr(req, res, 400, 'errors.invalidId');
       if (!(await ownsProject(getPool, projectId, req.session.userId)))
-        return res.status(404).json({ error: 'Not found' });
+        return apiErr(req, res, 404, 'errors.notFound');
 
       const newStatus = (req.body.status || '').trim();
       if (!['unresolved', 'resolved', 'dismissed'].includes(newStatus))
-        return res.status(400).json({ error: 'Invalid status. Must be unresolved, resolved, or dismissed.' });
+        return apiErr(req, res, 400, 'errors.crucibleStatusInvalid');
 
       const upd = await query(
         getPool,
@@ -1801,7 +1830,7 @@ function createApiRouter(getPool) {
          WHERE id = @id AND project_id = @pid`,
         { id: itemId, pid: projectId, status: newStatus }
       );
-      if (!upd.rowsAffected[0]) return res.status(404).json({ error: 'Item not found' });
+      if (!upd.rowsAffected[0]) return apiErr(req, res, 404, 'errors.itemNotFound');
 
       const row = await query(
         getPool,
@@ -1823,9 +1852,9 @@ function createApiRouter(getPool) {
   router.get('/projects/:projectId/citation-usages', async (req, res, next) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
-      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
       if (!(await ownsProject(getPool, projectId, req.session.userId)))
-        return res.status(404).json({ error: 'Not found' });
+        return apiErr(req, res, 404, 'errors.notFound');
 
       const rows = await query(
         getPool,
@@ -1848,9 +1877,9 @@ function createApiRouter(getPool) {
       const projectId = parseInt(req.params.projectId, 10);
       const sourceId = parseInt(req.params.sourceId, 10);
       if (Number.isNaN(projectId) || Number.isNaN(sourceId))
-        return res.status(400).json({ error: 'invalid id' });
+        return apiErr(req, res, 400, 'errors.invalidId');
       if (!(await ownsProject(getPool, projectId, req.session.userId)))
-        return res.status(404).json({ error: 'Not found' });
+        return apiErr(req, res, 404, 'errors.notFound');
 
       const rows = await query(
         getPool,
@@ -1871,7 +1900,7 @@ function createApiRouter(getPool) {
   router.get('/citation-usages/source/:sourceId', async (req, res, next) => {
     try {
       const sourceId = parseInt(req.params.sourceId, 10);
-      if (Number.isNaN(sourceId)) return res.status(400).json({ error: 'invalid id' });
+      if (Number.isNaN(sourceId)) return apiErr(req, res, 400, 'errors.invalidId');
       const rows = await query(
         getPool,
         `SELECT cu.id, cu.source_id, cu.section_id, cu.project_id, cu.cite_marker,
@@ -1894,15 +1923,15 @@ function createApiRouter(getPool) {
   router.post('/projects/:projectId/citation-usages', async (req, res, next) => {
     try {
       const projectId = parseInt(req.params.projectId, 10);
-      if (Number.isNaN(projectId)) return res.status(400).json({ error: 'invalid project id' });
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
       if (!(await ownsProject(getPool, projectId, req.session.userId)))
-        return res.status(404).json({ error: 'Not found' });
+        return apiErr(req, res, 404, 'errors.notFound');
 
       const b = req.body || {};
       const sourceId = parseInt(b.source_id, 10);
       const sectionId = parseInt(b.section_id, 10);
       if (Number.isNaN(sourceId) || Number.isNaN(sectionId))
-        return res.status(400).json({ error: 'source_id and section_id are required' });
+        return apiErr(req, res, 400, 'errors.sourceSectionRequired');
 
       const citeMarker = (b.cite_marker || '').trim() || null;
       const contextExcerpt = (b.context_excerpt || '').trim() || null;
@@ -1930,9 +1959,9 @@ function createApiRouter(getPool) {
       const projectId = parseInt(req.params.projectId, 10);
       const usageId = parseInt(req.params.usageId, 10);
       if (Number.isNaN(projectId) || Number.isNaN(usageId))
-        return res.status(400).json({ error: 'invalid id' });
+        return apiErr(req, res, 400, 'errors.invalidId');
       if (!(await ownsProject(getPool, projectId, req.session.userId)))
-        return res.status(404).json({ error: 'Not found' });
+        return apiErr(req, res, 404, 'errors.notFound');
 
       await query(getPool, 'DELETE FROM citation_usages WHERE id = @id AND project_id = @pid', {
         id: usageId,

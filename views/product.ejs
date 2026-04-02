@@ -1,61 +1,70 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= typeof htmlLang !== 'undefined' ? htmlLang : 'en' %>" dir="<%= typeof textDir !== 'undefined' ? textDir : 'ltr' %>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Product – AcademiqForge</title>
+  <title><%= t('product.title') %> – AcademiqForge</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/academiq.css" />
+  <%- include('partials/i18n-bootstrap') %>
 </head>
 <body>
   <%
-    const features = [
-      { name: "The Anvil", desc: "Write in a focused workspace with argument guidance, clarity feedback, and completion momentum." },
-      { name: "The Archive", desc: "Capture, organize, and connect sources so your evidence is always within reach." },
-      { name: "The Lattice", desc: "Map sources to claims and strengthen the logical structure of your paper." },
+    const featureKeys = ['anvil', 'archive', 'lattice'];
+    const navMock = [
+      t('product.mockNavDashboard'),
+      t('product.mockNavAnvil'),
+      t('product.mockNavArchive'),
+      t('product.mockNavLattice'),
     ];
-    const steps = ["Capture your research", "Build your structure", "Strengthen your arguments", "Finish your paper"];
-    const navItems = ["Dashboard", "The Anvil", "The Archive", "The Lattice"];
-    const insightItems = ["Clarify design choice", "Tighten participant logic", "Resolve APA issues"];
   %>
   <div class="shell">
     <%- include('partials/topnav', { user: user, navActive: navActive || 'product' }) %>
 
-    <section class="section product" id="product">
+    <section class="section product" id="product" style="position:relative">
+      <form class="home-lang-form" method="get" action="/locale/set" aria-label="<%= t('home.language') %>" style="position:absolute;top:0;right:0;z-index:2;display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:rgba(255,255,255,0.75)">
+        <input type="hidden" name="returnTo" value="/product" />
+        <label for="product-locale-select" class="home-lang-label"><%= t('home.language') %></label>
+        <select id="product-locale-select" name="code" onchange="this.form.submit()" style="max-width:11rem;padding:0.25rem 0.4rem;border-radius:6px;background:rgba(0,0,0,0.35);color:#fff;border:1px solid rgba(255,255,255,0.25)">
+          <% (typeof localeOptions !== 'undefined' ? localeOptions : []).forEach(function (opt) { %>
+            <option value="<%= opt.id %>" <%= locale === opt.id ? 'selected' : '' %>><%= opt.label %></option>
+          <% }); %>
+        </select>
+      </form>
       <div>
-        <div class="eyebrow">A focused product experience</div>
-        <h2>Calm enough for deep work. Smart enough to move you forward.</h2>
-        <p class="sub">AcademiqForge combines writing, source organization, argument feedback, and structural guidance in one restrained workspace.</p>
+        <div class="eyebrow"><%= t('product.eyebrow') %></div>
+        <h2><%= t('product.headline') %></h2>
+        <p class="sub"><%= t('product.sub') %></p>
       </div>
       <div class="product-panel">
         <div class="triple">
           <div class="box">
-            <div class="u">Navigation</div>
+            <div class="u"><%= t('product.mockNavigation') %></div>
             <div class="nav-list">
-              <% navItems.forEach(function (item, index) { %>
+              <% navMock.forEach(function (item, index) { %>
                 <div class="<%= index === 1 ? 'active' : '' %>"><%= item %></div>
               <% }) %>
             </div>
           </div>
           <div class="box">
             <div class="row">
-              <div><div class="u">Workspace</div><div class="workspace-title">Methodology</div></div>
-              <div style="font-size:.84rem;color:rgba(255,255,255,.47)">1,284 words</div>
+              <div><div class="u"><%= t('product.mockWorkspace') %></div><div class="workspace-title"><%= t('product.mockMethodology') %></div></div>
+              <div style="font-size:.84rem;color:rgba(255,255,255,.47)"><%= t('product.mockWordCount') %></div>
             </div>
             <div class="copy" style="margin-top:.7rem">
-              <p>This study employed a qualitative multiple-case design to explore how critical thinking and relationship-development factors interact during early-stage intercultural business relationships.</p>
-              <p>Data collection included semi-structured interviews, researcher memos, and document review to support triangulation and contextual depth.</p>
-              <div class="hint">Consider adding one sentence clarifying why multiple-case design is stronger than a single-case alternative.</div>
+              <p><%= t('product.mockDemoP1') %></p>
+              <p><%= t('product.mockDemoP2') %></p>
+              <div class="hint"><%= t('product.mockHint') %></div>
             </div>
           </div>
           <div class="box">
-            <div class="u">Insights</div>
+            <div class="u"><%= t('product.mockInsights') %></div>
             <div class="ins">
-              <% insightItems.forEach(function (item) { %>
-                <div class="ins-item"><%= item %></div>
-              <% }) %>
+              <% for (let i = 0; i < 3; i++) { %>
+                <div class="ins-item"><%= t('product.insights.' + i) %></div>
+              <% } %>
             </div>
           </div>
         </div>
@@ -64,42 +73,42 @@
 
     <section class="workflow" id="workflow">
       <div class="workflow-top">
-        <div><div class="eyebrow">How it works</div><h2>A system designed to keep research moving.</h2></div>
-        <p class="sub">Bring research into one place, shape it into structure, strengthen the logic, and keep progressing toward a finished paper.</p>
+        <div><div class="eyebrow"><%= t('product.workflowEyebrow') %></div><h2><%= t('product.workflowHeadline') %></h2></div>
+        <p class="sub"><%= t('product.workflowSub') %></p>
       </div>
       <div class="steps">
-        <% steps.forEach(function (step, i) { %>
-          <div class="step"><div class="n">0<%= i + 1 %></div><div class="t"><%= step %></div></div>
-        <% }) %>
+        <% for (let i = 0; i < 4; i++) { %>
+          <div class="step"><div class="n">0<%= i + 1 %></div><div class="t"><%= t('product.steps.' + i) %></div></div>
+        <% } %>
       </div>
     </section>
 
     <section class="section" id="features">
       <div style="max-width:820px">
-        <div class="eyebrow">The forge system</div>
-        <h2>Three connected environments, one research flow.</h2>
+        <div class="eyebrow"><%= t('product.featuresEyebrow') %></div>
+        <h2><%= t('product.featuresHeadline') %></h2>
       </div>
       <div class="feature-grid" style="margin-top:1.4rem">
-        <% features.forEach(function (feature) { %>
+        <% featureKeys.forEach(function (key) { %>
           <article class="card">
             <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:1rem;">
-              <div><h3 style="font-size:2rem"><%= feature.name %></h3><p><%= feature.desc %></p></div>
+              <div><h3 style="font-size:2rem"><%= t('product.features.' + key + '.name') %></h3><p><%= t('product.features.' + key + '.desc') %></p></div>
               <div class="ico" style="margin-bottom:0"></div>
             </div>
           </article>
-        <% }) %>
+        <% }); %>
       </div>
     </section>
 
     <section class="cta" id="cta">
       <div class="cta-glow"></div>
       <div class="cta-inner">
-        <div class="eyebrow">Ready to begin</div>
-        <h2>Build with more clarity. Finish with more confidence.</h2>
-        <p class="sub">Start with a focused writing environment and grow into the full research operating system.</p>
+        <div class="eyebrow"><%= t('product.ctaEyebrow') %></div>
+        <h2><%= t('product.ctaHeadline') %></h2>
+        <p class="sub"><%= t('product.ctaSub') %></p>
         <div class="hero-actions" style="justify-content:center; margin-top:1.5rem;">
-          <button type="button" class="btn btn-blue">Start Forging</button>
-          <button type="button" class="btn btn-outline">Schedule a Demo</button>
+          <button type="button" class="btn btn-blue"><%= t('product.startForging') %></button>
+          <button type="button" class="btn btn-outline"><%= t('product.scheduleDemo') %></button>
         </div>
       </div>
     </section>

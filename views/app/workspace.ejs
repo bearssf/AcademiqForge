@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= typeof htmlLang !== 'undefined' ? htmlLang : 'en' %>" dir="<%= typeof textDir !== 'undefined' ? textDir : 'ltr' %>">
 <head>
   <% var title = typeof phaseTitle !== 'undefined' ? phaseTitle : 'Workspace'; %>
   <%- include('../partials/app-head') %>
@@ -12,13 +12,13 @@
     <%- include('../partials/app-sidebar', { user: user, navActive: 'workspace', projects: projects, currentProjectId: currentProjectId, workspaceSlug: phaseSlug, appAccess: appAccess, anvilSections: typeof anvilSections !== 'undefined' ? anvilSections : [], anvilSectionId: typeof anvilSectionId !== 'undefined' ? anvilSectionId : null }) %>
     <main class="app-canvas">
       <% if (appAccess.trialing && !appAccess.paid && appAccess.trialEndsLabel) { %>
-        <div class="app-trial-bar">Free trial — ends <%= appAccess.trialEndsLabel %>. The Foundry requires a paid plan.</div>
+        <div class="app-trial-bar"><%- t('workspace.trialBarFoundry', { date: appAccess.trialEndsLabel }) %></div>
       <% } %>
       <% if (phaseSlug === 'anvil') { %>
         <div class="app-anvil-page-head" id="tw-anvil-head">
           <div class="app-anvil-page-head__left">
             <h1><%= phaseTitle %></h1>
-            <p class="sub app-anvil-intro">Where ideas are shaped and formed into arguments and reasoning.</p>
+            <p class="sub app-anvil-intro"><%= t('workspace.anvilIntro') %></p>
           </div>
           <div id="tw-anvil-scoring-metrics" class="anvil-scoring-metrics-wrap">
             <div id="anvil-scoring-panel" class="anvil-top-metrics__scoring app-anvil-scoring-head" hidden aria-live="polite"></div>
@@ -28,9 +28,9 @@
       <h1><%= phaseTitle %></h1>
       <% } %>
       <% if (phaseSlug === 'crucible') { %>
-        <p class="sub app-crucible-intro">Where ideas and arguments are strengthened by the work of others.</p>
+        <p class="sub app-crucible-intro"><%= t('workspace.crucibleIntro') %></p>
       <% } else if (phaseSlug === 'framework') { %>
-        <p class="sub">Argument outline and evidence mapping for <strong><%= projectTitle %></strong>.</p>
+        <p class="sub"><%- t('workspace.frameworkSub', { project: projectTitle }) %></p>
       <% } else if (phaseSlug !== 'anvil') { %>
         <p class="sub"><%= projectTitle %> — center canvas placeholder. Rich editor, sources, and workflow tools will mount here.</p>
       <% } %>
@@ -73,7 +73,7 @@
     <% } else if (phaseSlug === 'crucible') { %>
       <%- include('../partials/app-crucible-rail') %>
     <% } else { %>
-      <%- include('../partials/app-insight-panel', { insightHint: insightHint || 'Feedback and suggestions for this step will appear here.' }) %>
+      <%- include('../partials/app-insight-panel', { insightHint: insightHint || t('workspace.insightFallback') }) %>
     <% } %>
   </div>
   <% if (phaseSlug === 'anvil') { %>

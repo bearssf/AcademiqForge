@@ -12,11 +12,16 @@
   }
 
   if (!cfg || !cfg.publishableKey || !form || !mountEl || typeof Stripe === 'undefined') {
-    showError('Billing could not load. Refresh the page or return to Account.');
+    var b = window.__I18N__ && window.__I18N__.billing;
+    showError(
+      (b && b.couldNotLoad) || 'Billing could not load. Refresh the page or return to Account.'
+    );
     return;
   }
 
-  const stripe = Stripe(cfg.publishableKey);
+  const stripe = Stripe(cfg.publishableKey, {
+    locale: cfg.stripeLocale || window.__STRIPE_LOCALE__ || 'auto',
+  });
   const base = window.location.origin;
 
   async function init() {
@@ -30,7 +35,12 @@
       return {};
     });
     if (!res.ok) {
-      showError(data.error || 'Could not start card update. Return to Account.');
+      var b = window.__I18N__ && window.__I18N__.billing;
+      showError(
+        data.error ||
+          (b && b.couldNotStartCard) ||
+          'Could not start card update. Return to Account.'
+      );
       return;
     }
     const clientSecret = data.clientSecret;

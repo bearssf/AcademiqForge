@@ -1,27 +1,27 @@
 <% if (!user) { %>
 <div class="modal-backdrop" id="signin-modal" role="dialog" aria-modal="true" aria-labelledby="signin-title">
   <div class="modal">
-    <button type="button" class="modal-close" id="close-signin" aria-label="Close">&times;</button>
-    <h2 id="signin-title" style="margin:0 0 1rem;">Sign in</h2>
+    <button type="button" class="modal-close" id="close-signin" aria-label="<%= t('client.common.close') %>">&times;</button>
+    <h2 id="signin-title" style="margin:0 0 1rem;"><%= t('auth.signInTitle') %></h2>
     <% if (typeof resetSuccess !== 'undefined' && resetSuccess) { %>
-      <p class="success-msg">Your password was reset. Sign in with your new password.</p>
+      <p class="success-msg"><%= t('auth.resetSuccess') %></p>
     <% } %>
     <% if (typeof error !== 'undefined' && error === 'missing') { %>
-      <p class="error-msg">Please enter email and password.</p>
+      <p class="error-msg"><%= t('auth.errorMissing') %></p>
     <% } else if (typeof error !== 'undefined' && error === 'invalid') { %>
-      <p class="error-msg">Invalid email or password.</p>
+      <p class="error-msg"><%= t('auth.errorInvalid') %></p>
     <% } else if (typeof error !== 'undefined' && error === 'server') { %>
-      <p class="error-msg">Something went wrong. Try again.</p>
+      <p class="error-msg"><%= t('auth.errorServer') %></p>
     <% } %>
     <form action="/login" method="post">
       <input type="hidden" name="returnTo" value="<%= typeof returnTo !== 'undefined' ? returnTo : '/' %>" />
-      <div class="field"><label for="signin-email">Email</label><input type="email" id="signin-email" name="email" required autocomplete="email" /></div>
-      <div class="field"><label for="signin-password">Password</label><input type="password" id="signin-password" name="password" required autocomplete="current-password" /></div>
+      <div class="field"><label for="signin-email"><%= t('auth.email') %></label><input type="email" id="signin-email" name="email" required autocomplete="email" /></div>
+      <div class="field"><label for="signin-password"><%= t('auth.password') %></label><input type="password" id="signin-password" name="password" required autocomplete="current-password" /></div>
       <div class="modal-actions">
-        <button type="submit" class="btn btn-blue">Sign in</button>
-        <a href="/register" class="create-link">Create an account</a>
+        <button type="submit" class="btn btn-blue"><%= t('auth.signInSubmit') %></button>
+        <a href="/register" class="create-link"><%= t('auth.createAccount') %></a>
       </div>
-      <p class="modal-forgot"><a href="/forgot-password">Forgot password?</a></p>
+      <p class="modal-forgot"><a href="/forgot-password"><%= t('auth.forgotPassword') %></a></p>
     </form>
   </div>
 </div>

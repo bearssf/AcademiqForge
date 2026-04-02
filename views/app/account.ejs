@@ -1,17 +1,17 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= typeof htmlLang !== 'undefined' ? htmlLang : 'en' %>" dir="<%= typeof textDir !== 'undefined' ? textDir : 'ltr' %>">
 <head>
   <!-- billing: <%= typeof stripeElementsConfigured !== 'undefined' && stripeElementsConfigured ? 'subscribe-on-site' : 'checkout-redirect' %> -->
   <!-- deploy: git <%= process.env.RENDER_GIT_COMMIT || 'unknown' %> -->
-  <% var title = 'Account'; %>
+  <% var title = t('account.title'); %>
   <%- include('../partials/app-head') %>
 </head>
 <body class="app-body app-body--account-page" data-subscription-success="<%= typeof subscriptionSuccessReturn !== 'undefined' && subscriptionSuccessReturn ? '1' : '' %>">
   <div class="app-grid app-grid--account">
     <%- include('../partials/app-sidebar', { user: user, navActive: 'account', projects: projects, currentProjectId: currentProjectId, workspaceSlug: '', appAccess: appAccess }) %>
     <main class="app-canvas">
-      <h1>Account</h1>
-      <p class="sub">Here you can manage your profile, subscription, and associated billing details.</p>
+      <h1><%= t('account.title') %></h1>
+      <p class="sub"><%= t('account.sub') %></p>
 
       <% if (typeof billingFlash !== 'undefined' && billingFlash) { %>
         <div class="account-flash account-flash--<%= billingFlash.kind %>"><%= billingFlash.text %></div>
@@ -30,9 +30,10 @@
       <div class="app-placeholder account-block">
         <div class="account-layout">
           <div class="account-layout__profile">
-            <h2 class="account-h2">Profile</h2>
-            <p class="account-meta account-meta--profile">Update your details below. Email is your sign-in identity and can’t be changed.</p>
+            <h2 class="account-h2"><%= t('account.profileH2') %></h2>
+            <p class="account-meta account-meta--profile"><%= t('account.profileMeta') %></p>
             <form id="account-profile-form" class="app-form-stack account-form" autocomplete="off">
+              <% var _ploc = (profile.preferredLocale != null && profile.preferredLocale !== '') ? profile.preferredLocale : locale; %>
               <% var _titles = typeof allowedTitles !== 'undefined' && allowedTitles.length ? allowedTitles : ['Mr.', 'Mrs.', 'Ms.', 'Miss', 'Mx.', 'Dr.']; %>
               <label class="app-field">
                 <span>Title: <abbr class="account-required-star" title="required">*</abbr></span>
@@ -71,17 +72,26 @@
               <label class="app-field">
                 <span>Preferred Search Engine:</span>
                 <select name="preferredSearchEngine">
-                  <option value="" <%= !profile.preferredSearchEngine ? 'selected' : '' %>>Select…</option>
+                  <option value="" <%= !profile.preferredSearchEngine ? 'selected' : '' %>><%= t('project.select') %></option>
                   <% (typeof searchEngines !== 'undefined' ? searchEngines : []).forEach(function (s) { %>
                     <option value="<%= s %>" <%= profile.preferredSearchEngine === s ? 'selected' : '' %>><%= s %></option>
                   <% }); %>
                 </select>
               </label>
+              <label class="app-field">
+                <span><%= t('account.languageH2') %></span>
+                <select name="preferredLocale" id="account-preferred-locale" aria-label="<%= t('account.languageH2') %>">
+                  <% (typeof localeOptions !== 'undefined' ? localeOptions : []).forEach(function (opt) { %>
+                    <option value="<%= opt.id %>" <%= String(_ploc) === String(opt.id) ? 'selected' : '' %>><%= opt.label %></option>
+                  <% }); %>
+                </select>
+              </label>
+              <p class="account-meta"><%= t('account.languageMeta') %></p>
               <div id="account-profile-msg" class="account-form-msg" role="status" aria-live="polite" hidden></div>
               <div class="app-form-actions app-form-actions--account-save">
-                <button type="submit" class="app-btn-primary" id="account-profile-submit">Save Profile</button>
+                <button type="submit" class="app-btn-primary" id="account-profile-submit"><%= t('account.saveProfile') %></button>
               </div>
-              <p class="account-form-required-note"><abbr class="account-required-star" title="required">*</abbr> Required Fields</p>
+              <p class="account-form-required-note"><abbr class="account-required-star" title="required">*</abbr> <%= t('account.requiredNote') %></p>
             </form>
           </div>
 

@@ -4,6 +4,11 @@
 (function () {
   'use strict';
 
+  function crucibleT(key, fb) {
+    var o = window.__I18N__ && window.__I18N__.crucible;
+    return (o && o[key]) || fb;
+  }
+
   var root = document.getElementById('crucible-root');
   if (!root) return;
 
@@ -993,7 +998,10 @@
     var panel = document.getElementById('crucible-suggestions');
     if (!panel) return;
     if (!papers || !papers.length) {
-      panel.innerHTML = '<div class="crucible-sug-empty">No related papers found.</div>';
+      panel.innerHTML =
+        '<div class="crucible-sug-empty">' +
+        crucibleT('noRelatedPapers', 'No related papers found.') +
+        '</div>';
       return;
     }
     var tracked = getTrackedTitles();
@@ -1001,7 +1009,10 @@
       return !tracked[(p.title || '').trim().toLowerCase()];
     });
     if (!filtered.length) {
-      panel.innerHTML = '<div class="crucible-sug-empty">All suggestions are already tracked.</div>';
+      panel.innerHTML =
+        '<div class="crucible-sug-empty">' +
+        crucibleT('forgeResearchEmptyTracked', 'All suggestions are already tracked.') +
+        '</div>';
       return;
     }
     var html = '';
@@ -1036,7 +1047,10 @@
     var panel = document.getElementById('crucible-suggestions');
     if (!panel) return;
     if (!keywords.length) {
-      panel.innerHTML = '<div class="crucible-sug-empty">Add sources to see related paper suggestions.</div>';
+      panel.innerHTML =
+        '<div class="crucible-sug-empty">' +
+        crucibleT('forgeResearchEmptySources', 'Add sources to see related paper suggestions.') +
+        '</div>';
       return;
     }
     panel.innerHTML = '<div class="crucible-sug-loading">Searching for related papers…</div>';
@@ -1056,7 +1070,8 @@
         renderSuggestionPapers(papers);
       })
       .catch(function (e) {
-        var msg = (e && e.message) || 'Could not load suggestions.';
+        var msg =
+          (e && e.message) || crucibleT('suggestionsLoadError', 'Could not load suggestions.');
         panel.innerHTML = '<div class="crucible-sug-empty">' + escHtml(msg) + '</div>';
       });
   }
@@ -1297,7 +1312,14 @@
       projectSources = sources.slice();
       openAlertModal('The Suggested Source feature, the ability to add sources, and the research plan are not available while viewing all tracked sources across all research projects.');
       var sugPanel = document.getElementById('crucible-suggestions');
-      if (sugPanel) sugPanel.innerHTML = '<div class="crucible-sug-empty">Suggested Sources are paused while viewing the full source library.</div>';
+      if (sugPanel)
+        sugPanel.innerHTML =
+          '<div class="crucible-sug-empty">' +
+          crucibleT(
+            'suggestionsPaused',
+            'Suggested Sources are paused while viewing the full source library.'
+          ) +
+          '</div>';
       var rpPanel = document.getElementById('crucible-research-plan');
       if (rpPanel) rpPanel.innerHTML = '<div class="crucible-rp-empty">Research Planning is paused while viewing the full source library.</div>';
 

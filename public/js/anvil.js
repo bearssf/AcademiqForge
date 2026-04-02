@@ -3,6 +3,11 @@
  * POST /api/.../review-structured (no persistence to anvil_suggestions).
  */
 (function () {
+  function anvilT(key, fb) {
+    var o = window.__I18N__ && window.__I18N__.anvil;
+    return (o && o[key]) || fb;
+  }
+
   var root = document.getElementById('anvil-root');
   if (!root) return;
 
@@ -972,7 +977,12 @@
     if (!mount) return;
     if (!feedbackRows.length) {
       mount.innerHTML =
-        '<p class="anvil2-feedback-placeholder">Forge Write Assist will appear here as you make progress with your writing.</p>';
+        '<p class="anvil2-feedback-placeholder">' +
+          anvilT(
+            'forgeWriteEmpty',
+            'Forge Write Assist will appear here as you make progress with your writing.'
+          ) +
+          '</p>';
       return;
     }
     var html = '<ul class="anvil2-feedback-list">';
@@ -1277,7 +1287,10 @@
     if (isIncremental) {
       setAnalyzeBanner(true, 'Analyzing new text…');
     } else if (mount) {
-      mount.innerHTML = '<p class="anvil2-feedback-placeholder">Loading Forge Write Assist…</p>';
+      mount.innerHTML =
+        '<p class="anvil2-feedback-placeholder">' +
+        anvilT('forgeWriteLoading', 'Loading Forge Write Assist…') +
+        '</p>';
     }
 
     api('/projects/' + projectId + '/sections/' + selectedId + '/review-structured', 'POST', {
@@ -1291,7 +1304,9 @@
             setAnalyzeBanner(false);
           } else if (mount) {
             mount.innerHTML =
-              '<p class="anvil2-feedback-placeholder">Add a bit more text for feedback.</p>';
+              '<p class="anvil2-feedback-placeholder">' +
+                anvilT('addTextForFeedback', 'Add a bit more text for feedback.') +
+                '</p>';
           }
           return;
         }
@@ -1467,7 +1482,10 @@
           matchers: [],
         },
       },
-      placeholder: 'As you forge ahead, Forge Write Assist will appear in the canvas to the right.',
+      placeholder: anvilT(
+        'forgeWritePlaceholder',
+        'As you forge ahead, Forge Write Assist will appear in the canvas to the right.'
+      ),
     });
 
     quill.clipboard.addMatcher(Node.ELEMENT_NODE, function (node, delta) {

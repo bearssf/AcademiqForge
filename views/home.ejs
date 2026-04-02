@@ -1,38 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= typeof htmlLang !== 'undefined' ? htmlLang : 'en' %>" dir="<%= typeof textDir !== 'undefined' ? textDir : 'ltr' %>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AcademiqForge</title>
+  <title><%= t('home.title') %></title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/academiq.css" />
+  <%- include('partials/i18n-bootstrap') %>
 </head>
 <body class="home-page">
   <%
     const pillars = [
-      { title: "Shaped by Experience", body: "Built from real doctoral workflows so the path from concept to completed paper feels guided, not improvised." },
-      { title: "Hardened for Usability", body: "A calm, minimal interface that removes friction and keeps your attention on research, writing, and momentum." },
-      { title: "Polished for Completion", body: "Designed to carry you from first idea to finished paper with structure, feedback, and progress built in." },
+      { title: t('home.pillar1Title'), body: t('home.pillar1Body') },
+      { title: t('home.pillar2Title'), body: t('home.pillar2Body') },
+      { title: t('home.pillar3Title'), body: t('home.pillar3Body') },
     ];
   %>
   <div class="shell">
     <%- include('partials/topnav', { user: user, navActive: '' }) %>
 
-    <section class="hero">
+    <section class="hero" style="position:relative">
+      <form class="home-lang-form" method="get" action="/locale/set" aria-label="<%= t('home.language') %>" style="position:absolute;top:0.75rem;right:1rem;z-index:2;display:flex;align-items:center;gap:0.5rem;font-size:0.85rem;color:rgba(255,255,255,0.75)">
+        <input type="hidden" name="returnTo" value="/" />
+        <label for="home-locale-select" class="home-lang-label"><%= t('home.language') %></label>
+        <select id="home-locale-select" name="code" onchange="this.form.submit()" style="max-width:11rem;padding:0.25rem 0.4rem;border-radius:6px;background:rgba(0,0,0,0.35);color:#fff;border:1px solid rgba(255,255,255,0.25)">
+          <% (typeof localeOptions !== 'undefined' ? localeOptions : []).forEach(function (opt) { %>
+            <option value="<%= opt.id %>" <%= locale === opt.id ? 'selected' : '' %>><%= opt.label %></option>
+          <% }); %>
+        </select>
+      </form>
       <div class="hero-glow"></div>
       <div class="hero-grid">
         <div>
-          <div class="badge">The research operating system</div>
-          <h1>From idea to finished paper, with less friction and more rigor.</h1>
-          <p class="lead">Shaped by experience, hardened for usability, and polished to carry researchers from scattered notes to structured, defensible writing.</p>
+          <div class="badge"><%= t('home.badge') %></div>
+          <h1><%= t('home.heroH1') %></h1>
+          <p class="lead"><%= t('home.heroLead') %></p>
           <div class="hero-actions">
-            <a href="/app/dashboard" class="btn btn-blue">Start Forging</a>
-            <a href="<%= user ? '/app/account' : '/register' %>" class="btn btn-trial">Claim Your 7 Day Free Trial</a>
+            <a href="/app/dashboard" class="btn btn-blue"><%= t('home.startForging') %></a>
+            <a href="<%= user ? '/app/account' : '/register' %>" class="btn btn-trial"><%= t('home.claimTrial') %></a>
           </div>
           <div class="meta">
-            <div>Managed Writing Environment</div><div class="dot"></div><div>Effectively Manage Sources and Notes</div><div class="dot"></div><div>Feedback and Suggestions on Writing from the Latest AI Models</div>
+            <div><%= t('home.meta1') %></div><div class="dot"></div><div><%= t('home.meta2') %></div><div class="dot"></div><div><%= t('home.meta3') %></div>
           </div>
         </div>
 

@@ -1,0 +1,6 @@
+<script>
+  window.__LOCALE__ = <%- JSON.stringify(typeof locale !== 'undefined' ? locale : 'en') %>;
+  window.__STRIPE_LOCALE__ = <%- JSON.stringify(typeof stripeLocale !== 'undefined' ? stripeLocale : 'en') %>;
+  window.__TEXT_DIR__ = <%- JSON.stringify(typeof textDir !== 'undefined' ? textDir : 'ltr') %>;
+  window.__I18N__ = <%- typeof i18nClientJson !== 'undefined' ? i18nClientJson : '{}' %>;
+</script>

@@ -1,17 +1,17 @@
 <header class="top">
   <div class="brand-row">
-    <a href="/" class="brand-icon-link" title="Home" aria-label="AcademiqForge home">
+    <a href="/" class="brand-icon-link" title="<%= t('nav.home') %>" aria-label="AcademiqForge home">
       <div class="brand-icon"><div class="brand-dot"></div></div>
     </a>
     <div class="brand-text"><span class="a">Academiq</span><span>Forge</span></div>
   </div>
   <div class="actions">
     <% if (user) { %>
-      <span class="welcome">Welcome, <%= user.firstName %></span>
-      <form action="/logout" method="post" style="display:inline;"><button type="submit" class="signout">Sign Out</button></form>
+      <span class="welcome"><%= t('nav.welcome', { name: user.firstName }) %></span>
+      <form action="/logout" method="post" style="display:inline;"><button type="submit" class="signout"><%= t('nav.signOut') %></button></form>
     <% } else { %>
-      <button type="button" class="btn btn-outline" id="open-signin">Sign In</button>
+      <button type="button" class="btn btn-outline" id="open-signin"><%= t('nav.signIn') %></button>
     <% } %>
-    <a href="/app/dashboard" class="btn btn-blue">Start Forging</a>
+    <a href="/app/dashboard" class="btn btn-blue"><%= t('nav.startForging') %></a>
   </div>
 </header>
