@@ -7,6 +7,28 @@
   <%- include('../partials/app-head') %>
 </head>
 <body class="app-body app-body--account-page" data-subscription-success="<%= typeof subscriptionSuccessReturn !== 'undefined' && subscriptionSuccessReturn ? '1' : '' %>">
+  <%
+    var _titleSlug = { 'Mr.': 'mr', 'Mrs.': 'mrs', 'Ms.': 'ms', 'Miss': 'miss', 'Mx.': 'mx', 'Dr.': 'dr' };
+    function formatTitleOption(tv) {
+      var slug = _titleSlug[tv];
+      return slug ? t('accountTitles.' + slug) : tv;
+    }
+    var _seSlug = {
+      'Google Scholar': 'googleScholar',
+      'Worldcat.org': 'worldcat',
+      'PubMed Central': 'pubMedCentral',
+      'JSTOR': 'jstor',
+      'CORE': 'core',
+      'Semantic Scholar': 'semanticScholar',
+      'ResearchGate': 'researchGate',
+      'Lens.org': 'lens',
+      'Other/University Specific': 'otherUniversity'
+    };
+    function formatSearchEngineLabel(s) {
+      var k = _seSlug[s];
+      return k ? t('searchEngineOptions.' + k) : s;
+    }
+  %>
   <div class="app-grid app-grid--account">
     <%- include('../partials/app-sidebar', { user: user, navActive: 'account', projects: projects, currentProjectId: currentProjectId, workspaceSlug: '', appAccess: appAccess }) %>
     <main class="app-canvas">
@@ -18,8 +40,8 @@
       <% } %>
       <% if (typeof subscriptionSuccessReturn !== 'undefined' && subscriptionSuccessReturn && !appAccess.paid) { %>
         <div id="account-billing-pending" class="account-billing-pending">
-          <p class="account-billing-pending__text">Stripe is confirming your membership — this usually takes a few seconds. We’ll reload when you’re active, or <button type="button" id="account-billing-refresh-btn" class="account-billing-pending__btn">refresh status</button>.</p>
-          <p id="account-billing-poll-status" class="account-meta account-billing-pending__meta" hidden>Still confirming…</p>
+          <p class="account-billing-pending__text"><%= t('account.billingPendingLead') %> <button type="button" id="account-billing-refresh-btn" class="account-billing-pending__btn"><%= t('account.refreshStatus') %></button>.</p>
+          <p id="account-billing-poll-status" class="account-meta account-billing-pending__meta" hidden><%= t('account.stillConfirming') %></p>
         </div>
       <% } %>
 
@@ -36,29 +58,29 @@
               <% var _ploc = (profile.preferredLocale != null && profile.preferredLocale !== '') ? profile.preferredLocale : locale; %>
               <% var _titles = typeof allowedTitles !== 'undefined' && allowedTitles.length ? allowedTitles : ['Mr.', 'Mrs.', 'Ms.', 'Miss', 'Mx.', 'Dr.']; %>
               <label class="app-field">
-                <span>Title: <abbr class="account-required-star" title="required">*</abbr></span>
+                <span><%= t('account.labelTitle') %> <abbr class="account-required-star" title="<%= t('account.requiredAbbr') %>">*</abbr></span>
                 <select name="title" required>
-                  <option value="" disabled <%= !profile.title ? 'selected' : '' %>>Select…</option>
-                  <% _titles.forEach(function (t) { %>
-                    <option value="<%= t %>" <%= profile.title === t ? 'selected' : '' %>><%= t %></option>
+                  <option value="" disabled <%= !profile.title ? 'selected' : '' %>><%= t('project.select') %></option>
+                  <% _titles.forEach(function (tv) { %>
+                    <option value="<%= tv %>" <%= profile.title === tv ? 'selected' : '' %>><%= formatTitleOption(tv) %></option>
                   <% }); %>
                 </select>
               </label>
               <label class="app-field">
-                <span>First Name: <abbr class="account-required-star" title="required">*</abbr></span>
+                <span><%= t('account.labelFirstName') %> <abbr class="account-required-star" title="<%= t('account.requiredAbbr') %>">*</abbr></span>
                 <input type="text" name="firstName" required maxlength="100" value="<%= profile.firstName || '' %>" />
               </label>
               <label class="app-field">
-                <span>Last Name: <abbr class="account-required-star" title="required">*</abbr></span>
+                <span><%= t('account.labelLastName') %> <abbr class="account-required-star" title="<%= t('account.requiredAbbr') %>">*</abbr></span>
                 <input type="text" name="lastName" required maxlength="100" value="<%= profile.lastName || '' %>" />
               </label>
               <label class="app-field">
-                <span>Email: <abbr class="account-required-star" title="required">*</abbr></span>
+                <span><%= t('account.labelEmail') %> <abbr class="account-required-star" title="<%= t('account.requiredAbbr') %>">*</abbr></span>
                 <input type="email" value="<%= profile.email || user.email %>" readonly aria-readonly="true" />
               </label>
               <label class="app-field">
-                <span>University:</span>
-                <input type="text" name="university" list="account-university-list" maxlength="255" placeholder="Type or choose from list" value="<%= profile.university || '' %>" />
+                <span><%= t('account.labelUniversity') %></span>
+                <input type="text" name="university" list="account-university-list" maxlength="255" placeholder="<%= t('account.placeholderUniversity') %>" value="<%= profile.university || '' %>" />
                 <datalist id="account-university-list">
                   <% (typeof universities !== 'undefined' ? universities : []).forEach(function (u) { %>
                     <option value="<%= u %>"></option>
@@ -66,15 +88,15 @@
                 </datalist>
               </label>
               <label class="app-field">
-                <span>Research Focus:</span>
-                <textarea name="researchFocus" rows="3" maxlength="8000" placeholder="i.e. Cognition, Leadership, AI Impacts, Gender Representation in STEM, etc."><%= profile.researchFocus || '' %></textarea>
+                <span><%= t('account.labelResearchFocus') %></span>
+                <textarea name="researchFocus" rows="3" maxlength="8000" placeholder="<%= t('account.placeholderResearchFocus') %>"><%= profile.researchFocus || '' %></textarea>
               </label>
               <label class="app-field">
-                <span>Preferred Search Engine:</span>
+                <span><%= t('account.labelPreferredSearchEngine') %></span>
                 <select name="preferredSearchEngine">
                   <option value="" <%= !profile.preferredSearchEngine ? 'selected' : '' %>><%= t('project.select') %></option>
                   <% (typeof searchEngines !== 'undefined' ? searchEngines : []).forEach(function (s) { %>
-                    <option value="<%= s %>" <%= profile.preferredSearchEngine === s ? 'selected' : '' %>><%= s %></option>
+                    <option value="<%= s %>" <%= profile.preferredSearchEngine === s ? 'selected' : '' %>><%= formatSearchEngineLabel(s) %></option>
                   <% }); %>
                 </select>
               </label>
@@ -97,39 +119,39 @@
 
           <div class="account-layout__aside">
             <section class="account-rail-section">
-              <h2 class="account-h2">Password</h2>
-              <p class="account-meta account-meta--password-reset"><a href="/forgot-password">Forgot your password? Send a reset link by email</a></p>
+              <h2 class="account-h2"><%= t('account.passwordH2') %></h2>
+              <p class="account-meta account-meta--password-reset"><a href="/forgot-password"><%= t('account.passwordForgot') %></a></p>
               <form id="account-password-form" class="app-form-stack account-form" autocomplete="off">
                 <label class="app-field account-password-field">
-                  <span>Current Password: <abbr class="account-required-star" title="required">*</abbr></span>
+                  <span><%= t('account.currentPasswordField') %> <abbr class="account-required-star" title="<%= t('account.requiredAbbr') %>">*</abbr></span>
                   <span class="account-password-field__inner">
                     <input type="password" name="currentPassword" required autocomplete="current-password" />
-                    <button type="button" class="account-password-toggle account-password-toggle--eye" data-password-toggle data-password-label="current password" aria-label="Show current password" aria-pressed="false" title="Show password">
+                    <button type="button" class="account-password-toggle account-password-toggle--eye" data-password-toggle data-pwd-kind="current" aria-label="<%= t('auth.password') %>" aria-pressed="false" title="<%= t('client.account.showPassword') %>">
                       <%- include('../partials/password-visibility-icons') %>
                     </button>
                   </span>
                 </label>
                 <label class="app-field account-password-field">
-                  <span>New Password: <abbr class="account-required-star" title="required">*</abbr></span>
+                  <span><%= t('account.newPasswordField') %> <abbr class="account-required-star" title="<%= t('account.requiredAbbr') %>">*</abbr></span>
                   <span class="account-password-field__inner">
                     <input type="password" name="newPassword" required minlength="8" autocomplete="new-password" />
-                    <button type="button" class="account-password-toggle account-password-toggle--eye" data-password-toggle data-password-label="new password" aria-label="Show new password" aria-pressed="false" title="Show password">
+                    <button type="button" class="account-password-toggle account-password-toggle--eye" data-password-toggle data-pwd-kind="new" aria-label="<%= t('auth.password') %>" aria-pressed="false" title="<%= t('client.account.showPassword') %>">
                       <%- include('../partials/password-visibility-icons') %>
                     </button>
                   </span>
                 </label>
                 <label class="app-field account-password-field">
-                  <span>Confirm New Password: <abbr class="account-required-star" title="required">*</abbr></span>
+                  <span><%= t('account.confirmPasswordField') %> <abbr class="account-required-star" title="<%= t('account.requiredAbbr') %>">*</abbr></span>
                   <span class="account-password-field__inner">
                     <input type="password" name="confirmPassword" required minlength="8" autocomplete="new-password" />
-                    <button type="button" class="account-password-toggle account-password-toggle--eye" data-password-toggle data-password-label="confirm new password" aria-label="Show confirm new password" aria-pressed="false" title="Show password">
+                    <button type="button" class="account-password-toggle account-password-toggle--eye" data-password-toggle data-pwd-kind="confirm" aria-label="<%= t('auth.password') %>" aria-pressed="false" title="<%= t('client.account.showPassword') %>">
                       <%- include('../partials/password-visibility-icons') %>
                     </button>
                   </span>
                 </label>
                 <div id="account-password-msg" class="account-form-msg" role="status" aria-live="polite" hidden></div>
                 <div class="app-form-actions app-form-actions--account-save">
-                  <button type="submit" class="app-btn-primary" id="account-password-submit">Update Password</button>
+                  <button type="submit" class="app-btn-primary" id="account-password-submit"><%= t('account.updatePasswordButton') %></button>
                 </div>
               </form>
             </section>
@@ -137,9 +159,9 @@
             <hr class="account-section-rule" aria-hidden="true" />
 
             <section class="account-rail-section">
-              <h2 class="account-h2">Subscription</h2>
+              <h2 class="account-h2"><%= t('account.subscriptionH2') %></h2>
               <% if (typeof billingSummary !== 'undefined' && billingSummary.lines && billingSummary.lines.length) { %>
-                <dl class="account-billing-summary" aria-label="Subscription details">
+                <dl class="account-billing-summary" aria-label="<%= t('account.subscriptionH2') %>">
                   <% billingSummary.lines.forEach(function (row) { %>
                     <div class="account-billing-summary-row">
                       <dt><%= row.label %></dt>
@@ -149,17 +171,17 @@
                 </dl>
               <% } %>
               <% if (appAccess.paid) { %>
-                <p class="account-status account-status--paid">You have an <strong>active</strong> membership. The Foundry and member features are unlocked.</p>
+                <p class="account-status account-status--paid"><%- t('account.activeMember') %></p>
               <% } else if (subscriptionRow && subscriptionRow.status === 'past_due') { %>
-                <p class="account-status">Your last payment failed (<strong>past due</strong>). Use <strong>Update Card on File</strong> below or the Stripe emails you receive to update your payment method.</p>
+                <p class="account-status"><%- t('account.pastDue') %></p>
               <% } else if (appAccess.trialing && appAccess.trialEndsLabel) { %>
-                <p class="account-status">Free trial active. Upgrade to continue forging and to unlock all features.</p>
+                <p class="account-status"><%= t('account.trialing') %></p>
               <% } else { %>
-                <p class="account-status">No active paid subscription.</p>
+                <p class="account-status"><%= t('account.noSubscription') %></p>
               <% } %>
 
               <% if (showYearlyMonthlyWindowNotice) { %>
-                <p class="account-meta account-meta--subscription-notice">Switching to monthly billing is available within 30 days of your renewal<% if (typeof renewalDateLabel !== 'undefined' && renewalDateLabel) { %> (next renewal: <%= renewalDateLabel %>)<% } %>.</p>
+                <p class="account-meta account-meta--subscription-notice"><%= t('account.switchMonthlyWindow') %><% if (typeof renewalDateLabel !== 'undefined' && renewalDateLabel) { %> (<%= t('account.nextRenewalParen') %> <%= renewalDateLabel %>)<% } %>.</p>
               <% } %>
               <% var showPlanSwitch = showSubMaintain && typeof billingPriceMode !== 'undefined' && billingPriceMode === 'dual' && (currentPlanInterval === 'month' || (currentPlanInterval === 'year' && typeof within30DaysOfRenewal !== 'undefined' && within30DaysOfRenewal)); %>
               <% if (showSubMaintain || showPlanSwitch) { %>
@@ -167,10 +189,10 @@
                   <% if (showSubMaintain) { %>
                     <div class="account-billing-maintain" id="account-subscription-actions">
                       <% if (capEnd) { %>
-                        <button type="button" class="app-btn-primary" data-action="resume-subscription">Resume Auto-Renewal</button>
-                        <p class="account-meta">Restores renewal after the date above. You can turn auto-renew off again anytime.</p>
+                        <button type="button" class="app-btn-primary" data-action="resume-subscription"><%= t('account.resumeRenewal') %></button>
+                        <p class="account-meta"><%= t('account.resumeMeta') %></p>
                       <% } else { %>
-                        <button type="button" class="app-btn-primary account-btn-yearly" data-action="cancel-at-period-end">Turn Off Auto-Renewal</button>
+                        <button type="button" class="app-btn-primary account-btn-yearly" data-action="cancel-at-period-end"><%= t('account.turnOffRenewal') %></button>
                       <% } %>
                       <div id="account-subscription-msg" class="account-form-msg" hidden></div>
                     </div>
@@ -178,10 +200,10 @@
                   <% if (showPlanSwitch) { %>
                     <div class="account-plan-switch" id="account-plan-switch">
                       <% if (currentPlanInterval === 'month') { %>
-                        <button type="button" class="app-btn-primary account-btn-yearly" data-action="switch-plan" data-interval="year">Switch to Annual Billing</button>
+                        <button type="button" class="app-btn-primary account-btn-yearly" data-action="switch-plan" data-interval="year"><%= t('account.switchAnnualBilling') %></button>
                       <% } else { %>
-                        <button type="button" class="app-btn-primary" data-action="switch-plan" data-interval="month">Switch to monthly billing</button>
-                        <p class="account-meta">Stripe will prorate the rest of this billing period (charge or credit on your next invoice).</p>
+                        <button type="button" class="app-btn-primary" data-action="switch-plan" data-interval="month"><%= t('account.planSwitchMonthly') %></button>
+                        <p class="account-meta"><%= t('account.planSwitchProrate') %></p>
                       <% } %>
                       <div id="account-plan-switch-msg" class="account-form-msg" hidden></div>
                     </div>
@@ -194,8 +216,8 @@
 
               <% if (stripeConfigured && subscriptionRow && subscriptionRow.stripe_customer_id) { %>
                 <p class="account-payment-links">
-                  <a href="/billing/payment-method" class="app-link-cta">Update Payment Method</a>
-                  <button type="button" class="account-open-billing-history-btn" id="account-open-billing-history">Payment History</button>
+                  <a href="/billing/payment-method" class="app-link-cta"><%= t('account.updatePayment') %></a>
+                  <button type="button" class="account-open-billing-history-btn" id="account-open-billing-history"><%= t('account.paymentHistory') %></button>
                 </p>
               <% } %>
 
@@ -204,31 +226,31 @@
                   <% if (billingPriceMode === 'dual') { %>
                     <div class="account-billing-choices">
                       <% if (typeof stripeElementsConfigured !== 'undefined' && stripeElementsConfigured) { %>
-                        <a class="app-btn-primary" href="/billing/subscribe?interval=month">Subscribe to Monthly Plan</a>
-                        <a class="app-btn-primary account-btn-yearly" href="/billing/subscribe?interval=year">Subscribe to Annual Plan</a>
+                        <a class="app-btn-primary" href="/billing/subscribe?interval=month"><%= t('account.subscribeMonthly') %></a>
+                        <a class="app-btn-primary account-btn-yearly" href="/billing/subscribe?interval=year"><%= t('account.subscribeAnnual') %></a>
                       <% } else { %>
-                        <a class="app-btn-primary" href="/billing/checkout?interval=month">Subscribe to Monthly Plan</a>
-                        <a class="app-btn-primary account-btn-yearly" href="/billing/checkout?interval=year">Subscribe to Annual Plan</a>
+                        <a class="app-btn-primary" href="/billing/checkout?interval=month"><%= t('account.subscribeMonthly') %></a>
+                        <a class="app-btn-primary account-btn-yearly" href="/billing/checkout?interval=year"><%= t('account.subscribeAnnual') %></a>
                       <% } %>
                     </div>
                     <% if (typeof stripeElementsConfigured !== 'undefined' && stripeElementsConfigured) { %>
-                      <p class="account-meta">Subscribe by selecting your plan preference and completing our simple checkout (powered by Stripe)</p>
+                      <p class="account-meta"><%= t('account.billingSubscribeMetaOnSite') %></p>
                     <% } else { %>
-                      <p class="account-meta">Choose billing interval — secure checkout via Stripe. Add <strong>STRIPE_PUBLISHABLE_KEY</strong> to pay on this site instead of redirecting to Stripe.</p>
+                      <p class="account-meta"><%- t('account.billingCheckoutMeta') %></p>
                     <% } %>
                   <% } else { %>
                     <% if (typeof stripeElementsConfigured !== 'undefined' && stripeElementsConfigured) { %>
-                      <p style="margin:.75rem 0 0"><a class="app-btn-primary" href="/billing/subscribe">Upgrade to member</a></p>
-                      <p class="account-meta">Pay on the next page — card details stay with Stripe.</p>
+                      <p style="margin:.75rem 0 0"><a class="app-btn-primary" href="/billing/subscribe"><%= t('account.upgradeMember') %></a></p>
+                      <p class="account-meta"><%= t('account.payOnNextPage') %></p>
                     <% } else { %>
-                      <p style="margin:.75rem 0 0"><a class="app-btn-primary" href="/billing/checkout">Upgrade to member</a></p>
-                      <p class="account-meta">Secure checkout via Stripe. Add <strong>STRIPE_PUBLISHABLE_KEY</strong> to pay on this site instead.</p>
+                      <p style="margin:.75rem 0 0"><a class="app-btn-primary" href="/billing/checkout"><%= t('account.upgradeMember') %></a></p>
+                      <p class="account-meta"><%- t('account.billingCheckoutMetaShort') %></p>
                     <% } %>
                   <% } %>
                 <% } else { %>
-                  <p class="account-meta">Online billing isn’t active on this deploy yet — set <strong>STRIPE_SECRET_KEY</strong>, <strong>PUBLIC_BASE_URL</strong>, and either <strong>STRIPE_PRICE_MONTHLY</strong> + <strong>STRIPE_PRICE_YEARLY</strong> or a single <strong>STRIPE_PRICE_ID</strong>, then redeploy.</p>
+                  <p class="account-meta"><%- t('account.billingNotConfigured') %></p>
                   <% if (typeof billingEnvMissing !== 'undefined' && billingEnvMissing.length) { %>
-                    <p class="account-meta account-meta--warn">Missing from process env: <%= billingEnvMissing.join(', ') %></p>
+                    <p class="account-meta account-meta--warn"><%= t('account.missingEnv') %> <%= billingEnvMissing.join(', ') %></p>
                   <% } %>
                 <% } %>
               <% } %>
@@ -243,11 +265,11 @@
   <div id="account-modal-cancel-renewal" class="account-modal-overlay" hidden>
     <div class="account-modal-overlay__backdrop" data-account-modal-dismiss="cancel-renewal" tabindex="-1" aria-hidden="true"></div>
     <div class="account-modal-overlay__panel" role="dialog" aria-modal="true" aria-labelledby="account-modal-cancel-renewal-title">
-      <h3 id="account-modal-cancel-renewal-title" class="account-modal-overlay__title">Turning Off Auto-Renewal</h3>
-      <p class="account-modal-overlay__text">Are you sure that you wish to turn off auto-renewal? Doing so will limit your access to the end of your billing period.</p>
+      <h3 id="account-modal-cancel-renewal-title" class="account-modal-overlay__title"><%= t('account.modalCancelTitle') %></h3>
+      <p class="account-modal-overlay__text"><%= t('account.modalCancelText') %></p>
       <div class="account-modal-overlay__actions">
-        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--keep" data-account-modal-dismiss="cancel-renewal">Keep Subscription</button>
-        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--confirm-cancel" id="account-modal-cancel-renewal-confirm">Confirmed, Cancel Subscription</button>
+        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--keep" data-account-modal-dismiss="cancel-renewal"><%= t('account.keepSubscription') %></button>
+        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--confirm-cancel" id="account-modal-cancel-renewal-confirm"><%= t('account.confirmCancel') %></button>
       </div>
     </div>
   </div>
@@ -256,17 +278,17 @@
   <div id="account-modal-billing-history" class="account-modal-overlay" hidden>
     <div class="account-modal-overlay__backdrop" data-account-modal-dismiss="billing-history" tabindex="-1" aria-hidden="true"></div>
     <div class="account-modal-overlay__panel account-modal-overlay__panel--billing-history" role="dialog" aria-modal="true" aria-labelledby="account-modal-billing-history-title">
-      <h3 id="account-modal-billing-history-title" class="account-modal-overlay__title">Payment History</h3>
-      <p class="account-modal-overlay__text">Completed charges on your membership are listed below. Official receipts are sent to your email when a payment succeeds.</p>
+      <h3 id="account-modal-billing-history-title" class="account-modal-overlay__title"><%= t('account.paymentHistoryTitle') %></h3>
+      <p class="account-modal-overlay__text"><%= t('account.paymentHistoryIntro') %></p>
       <% if (typeof billingHistory !== 'undefined' && billingHistory.length) { %>
-        <div class="account-table-scroll account-modal-billing-history-scroll" role="region" aria-label="Past charges table">
+        <div class="account-table-scroll account-modal-billing-history-scroll" role="region" aria-label="<%= t('account.billingHistoryTableAria') %>">
           <table class="account-billing-history-table">
             <thead>
               <tr>
-                <th scope="col">Date</th>
-                <th scope="col">Description</th>
-                <th scope="col">Amount</th>
-                <th scope="col">Status</th>
+                <th scope="col"><%= t('account.tableDate') %></th>
+                <th scope="col"><%= t('account.tableDescription') %></th>
+                <th scope="col"><%= t('account.tableAmount') %></th>
+                <th scope="col"><%= t('account.tableStatus') %></th>
               </tr>
             </thead>
             <tbody>
@@ -282,10 +304,10 @@
           </table>
         </div>
       <% } else { %>
-        <p class="account-modal-overlay__text">No paid invoices on file yet. After your first successful payment, entries will appear here.</p>
+        <p class="account-modal-overlay__text"><%= t('account.noInvoices') %></p>
       <% } %>
       <div class="account-modal-overlay__actions">
-        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--secondary" data-account-modal-dismiss="billing-history">Close</button>
+        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--secondary" data-account-modal-dismiss="billing-history"><%= t('account.close') %></button>
       </div>
     </div>
   </div>
@@ -294,13 +316,13 @@
   <div id="account-modal-yearly-plan" class="account-modal-overlay" hidden>
     <div class="account-modal-overlay__backdrop" data-account-modal-dismiss="yearly-plan" tabindex="-1" aria-hidden="true"></div>
     <div class="account-modal-overlay__panel" role="dialog" aria-modal="true" aria-labelledby="account-modal-yearly-title">
-      <h3 id="account-modal-yearly-title" class="account-modal-overlay__title">Confirm the Change to an Annual Plan</h3>
-      <p class="account-modal-overlay__text">We will prorate the rest of this billing period. As a result, the estimated charge today, if you switch is:</p>
+      <h3 id="account-modal-yearly-title" class="account-modal-overlay__title"><%= t('account.yearlyConfirmTitle') %></h3>
+      <p class="account-modal-overlay__text"><%= t('account.yearlyConfirmLead') %></p>
       <p id="account-modal-yearly-amount" class="account-modal-overlay__text account-modal-overlay__text--estimate-amount" aria-live="polite"></p>
-      <p class="account-modal-overlay__text">This will be charged now, and is only an estimate of the prorated amount (subject to adjustment and taxes).</p>
+      <p class="account-modal-overlay__text"><%= t('account.yearlyConfirmDisclaimer') %></p>
       <div class="account-modal-overlay__actions">
-        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--secondary" data-account-modal-dismiss="yearly-plan">Cancel</button>
-        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--confirm-mint" id="account-modal-yearly-confirm">Confirm</button>
+        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--secondary" data-account-modal-dismiss="yearly-plan"><%= t('client.common.cancel') %></button>
+        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--confirm-mint" id="account-modal-yearly-confirm"><%= t('account.confirm') %></button>
       </div>
     </div>
   </div>

@@ -814,40 +814,40 @@ app.get(
     const subQ = req.query.subscription;
     const billingQ = req.query.billing;
     let billingFlash = null;
+    const at = (key) => i18n.t(req.locale || 'en', 'account.' + key);
     if (subQ === 'success') {
       billingFlash = {
         kind: 'ok',
-        text: 'Thanks — payment submitted. Member access activates when Stripe confirms (usually seconds).',
+        text: at('flashSubSuccess'),
       };
     } else if (subQ === 'canceled') {
-      billingFlash = { kind: 'muted', text: 'Checkout was canceled. No charges were made.' };
+      billingFlash = { kind: 'muted', text: at('flashSubCanceled') };
     } else if (billingQ === 'portal_return') {
       billingFlash = {
         kind: 'ok',
-        text: 'You’re back from the billing portal. Subscription changes usually show here within a few seconds.',
+        text: at('flashPortalReturn'),
       };
     } else if (billingQ === 'portal_no_customer') {
       billingFlash = {
         kind: 'muted',
-        text: 'Manage billing is available after you have a Stripe customer (subscribe to a plan first).',
+        text: at('flashPortalNoCustomer'),
       };
     } else if (billingQ === 'portal_error') {
       billingFlash = {
         kind: 'muted',
-        text:
-          'Could not open the billing portal. In the Stripe Dashboard, enable Customer Portal (Settings → Billing → Customer portal) and try again.',
+        text: at('flashPortalError'),
       };
     } else if (billingQ === 'pm_no_customer') {
       billingFlash = {
         kind: 'muted',
-        text: 'Add a subscription first so we have a Stripe customer to attach a card to.',
+        text: at('flashPmNoCustomer'),
       };
     } else if (req.query.pm === 'success') {
-      billingFlash = { kind: 'ok', text: 'Payment method updated.' };
+      billingFlash = { kind: 'ok', text: at('flashPmSuccess') };
     } else if (req.query.pm === 'error') {
       billingFlash = {
         kind: 'muted',
-        text: 'Could not update payment method. Try again or use Manage billing.',
+        text: at('flashPmError'),
       };
     }
     const subscriptionRow = await getSubscriptionRow(getPool, req.session.userId);

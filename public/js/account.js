@@ -59,6 +59,12 @@
     setTimeout(pollTick, 1800);
   }
 
+  function pwdKindLabel(kind) {
+    if (kind === 'new') return A('pwdKindNew', 'new password');
+    if (kind === 'confirm') return A('pwdKindConfirm', 'confirm new password');
+    return A('pwdKindCurrent', 'current password');
+  }
+
   document.querySelectorAll('[data-password-toggle]').forEach(function (btn) {
     btn.addEventListener('click', function () {
       var wrap = btn.closest('.account-password-field__inner');
@@ -67,9 +73,12 @@
       var show = input.type === 'password';
       input.type = show ? 'text' : 'password';
       btn.setAttribute('aria-pressed', show ? 'true' : 'false');
-      var pl = btn.getAttribute('data-password-label') || 'password';
-      btn.setAttribute('aria-label', (show ? 'Hide ' : 'Show ') + pl);
-      btn.setAttribute('title', show ? 'Hide password' : 'Show password');
+      var kind = btn.getAttribute('data-pwd-kind') || 'current';
+      var field = pwdKindLabel(kind);
+      var hideW = A('hidePassword', 'Hide password');
+      var showW = A('showPassword', 'Show password');
+      btn.setAttribute('aria-label', (show ? hideW : showW) + ' ' + field);
+      btn.setAttribute('title', show ? hideW : showW);
     });
   });
 

@@ -5,6 +5,18 @@
     return d.innerHTML;
   }
 
+  function D(key, fallback, vars) {
+    var d = window.__I18N__ && window.__I18N__.dashboard;
+    var s = (d && d[key]) != null && d[key] !== '' ? d[key] : fallback;
+    s = String(s);
+    if (vars && typeof vars === 'object') {
+      Object.keys(vars).forEach(function (k) {
+        s = s.split('{' + k + '}').join(String(vars[k]));
+      });
+    }
+    return s;
+  }
+
   var cfg = window.__DASHBOARD__;
   var cancelTargetId = null;
 
@@ -162,7 +174,7 @@
       })
         .then(function (r) {
           return r.json().then(function (data) {
-            if (!r.ok) throw new Error(data.error || 'Could not save.');
+            if (!r.ok) throw new Error(data.error || D('couldNotSave', 'Could not save.'));
             return data;
           });
         })
@@ -173,7 +185,7 @@
         })
         .catch(function (err) {
           if (researchMsg) {
-            researchMsg.textContent = err.message || 'Error';
+            researchMsg.textContent = err.message || D('errorGeneric', 'Error');
             researchMsg.hidden = false;
           }
         });
@@ -203,7 +215,7 @@
       })
         .then(function (r) {
           return r.json().then(function (data) {
-            if (!r.ok) throw new Error(data.error || 'Could not save.');
+            if (!r.ok) throw new Error(data.error || D('couldNotSave', 'Could not save.'));
             return data;
           });
         })
@@ -214,7 +226,7 @@
         })
         .catch(function (err) {
           if (publishedMsg) {
-            publishedMsg.textContent = err.message || 'Error';
+            publishedMsg.textContent = err.message || D('errorGeneric', 'Error');
             publishedMsg.hidden = false;
           }
         });
@@ -257,7 +269,7 @@
       })
         .then(function (r) {
           return r.json().then(function (data) {
-            if (!r.ok) throw new Error(data.error || 'Could not cancel project.');
+            if (!r.ok) throw new Error(data.error || D('couldNotCancel', 'Could not cancel project.'));
             return data;
           });
         })
@@ -265,7 +277,7 @@
           window.location.reload();
         })
         .catch(function (err) {
-          window.alert(err.message || 'Could not cancel project.');
+          window.alert(err.message || D('couldNotCancel', 'Could not cancel project.'));
           confirmCancel.disabled = false;
         });
     });
@@ -277,11 +289,12 @@
       e.stopPropagation();
       var id = btn.getAttribute('data-project-id');
       var raw = btn.getAttribute('data-project-name') || '';
-      var name = raw ? decodeURIComponent(raw) : 'this project';
-      var msg =
-        'Delete “' +
-        name +
-        '”?\n\nThis permanently removes the project and all of its drafts, sources, and suggestions. This cannot be undone.';
+      var name = raw ? decodeURIComponent(raw) : D('thisProject', 'this project');
+      var msg = D(
+        'deleteConfirm',
+        'Delete “{name}”?\n\nThis permanently removes the project and all of its drafts, sources, and suggestions. This cannot be undone.',
+        { name: name }
+      );
       if (!window.confirm(msg)) return;
       btn.disabled = true;
       fetch('/api/projects/' + encodeURIComponent(id), {
@@ -298,7 +311,7 @@
           });
         })
         .catch(function (err) {
-          window.alert(err.message || 'Could not delete project.');
+          window.alert(err.message || D('couldNotDelete', 'Could not delete project.'));
           btn.disabled = false;
         });
     });

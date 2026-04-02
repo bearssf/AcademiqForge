@@ -5,6 +5,18 @@
   <%- include('../partials/app-head') %>
 </head>
 <body class="app-body app-body--workspace-shell app-body--dashboard">
+  <%
+    var _purposeSlug = { 'Academic Assignment': 'academicAssignment', 'Academic Publication': 'academicPublication', 'Conference': 'conference', 'Dissertation/Thesis': 'dissertationThesis', 'Other': 'other' };
+    function formatPurpose(purpose) {
+      var slug = _purposeSlug[purpose];
+      return slug ? t('projectPurposes.' + slug) : (purpose || '');
+    }
+    var _citeSlug = { APA: 'apa', MLA: 'mla', Chicago: 'chicago', Turabian: 'turabian', IEEE: 'ieee' };
+    function formatCitation(cs) {
+      var s = _citeSlug[cs];
+      return s ? t('citationStyles.' + s) : (cs || '');
+    }
+  %>
   <div class="app-grid">
     <%- include('../partials/app-sidebar', { user: user, navActive: 'dashboard', projects: projects, currentProjectId: currentProjectId, workspaceSlug: '', appAccess: appAccess }) %>
     <main class="app-canvas app-canvas--dashboard">
@@ -33,8 +45,8 @@
 
       <% if (recentProject && progressData.length) { %>
       <div class="dash-recent-bar" id="tw-portfolio-active-project">
-        <label class="dash-recent-bar__label" for="dash-active-project-select">Active Project:</label>
-        <select id="dash-active-project-select" class="dash-active-project-select" aria-label="Select active project">
+        <label class="dash-recent-bar__label" for="dash-active-project-select"><%= t('dashboard.activeProject') %></label>
+        <select id="dash-active-project-select" class="dash-active-project-select" aria-label="<%= t('dashboard.ariaActiveProject') %>">
           <% projects.forEach(function(p) { %>
             <option value="<%= p.id %>" <%= p.id === recentProject.id ? 'selected' : '' %>><%= p.name %></option>
           <% }); %>
@@ -54,12 +66,12 @@
               <text class="dash-ring__text" x="60" y="66"><%= recentProg ? recentProg.pct : 0 %>%</text>
             </svg>
           </div>
-          <div class="dash-visual-card__sub">Project completion</div>
+          <div class="dash-visual-card__sub"><%= t('dashboard.projectCompletion') %></div>
           <div class="dash-section-bars-header">
             <div class="dash-section-bars-header__graph-spacer" aria-hidden="true"></div>
             <div class="dash-section-bars-header__metrics">
-              <span class="dash-section-bars-header__col">Words completed</span>
-              <span class="dash-section-bars-header__col">Research outstanding</span>
+              <span class="dash-section-bars-header__col"><%= t('dashboard.wordsCompleted') %></span>
+              <span class="dash-section-bars-header__col"><%= t('dashboard.researchOutstanding') %></span>
             </div>
           </div>
           <div class="dash-section-bars" id="dash-active-section-bars">
@@ -88,7 +100,7 @@
 
         <% if (portfolioRows.length) { %>
         <div class="dash-visual-card" id="dash-portfolio-visual">
-          <div class="dash-visual-card__title">All Projects</div>
+          <div class="dash-visual-card__title"><%= t('dashboard.allProjects') %></div>
           <div class="dash-ring-wrap">
             <svg class="dash-ring" viewBox="0 0 120 120" aria-hidden="true">
               <circle class="dash-ring__bg" cx="60" cy="60" r="52" />
@@ -96,12 +108,12 @@
               <text class="dash-ring__text" x="60" y="66"><%= portfolioPct %>%</text>
             </svg>
           </div>
-          <div class="dash-visual-card__sub">Portfolio completion</div>
+          <div class="dash-visual-card__sub"><%= t('dashboard.portfolioCompletion') %></div>
           <div class="dash-section-bars-header">
             <div class="dash-section-bars-header__graph-spacer" aria-hidden="true"></div>
             <div class="dash-section-bars-header__metrics">
-              <span class="dash-section-bars-header__col">Words completed</span>
-              <span class="dash-section-bars-header__col">Research outstanding</span>
+              <span class="dash-section-bars-header__col"><%= t('dashboard.wordsCompleted') %></span>
+              <span class="dash-section-bars-header__col"><%= t('dashboard.researchOutstanding') %></span>
             </div>
           </div>
           <div class="dash-section-bars">
@@ -132,10 +144,10 @@
       <div class="dash-ideas-tile dash-ideas-tile--with-list" id="tw-portfolio-ideas">
         <div class="dash-ideas-tile__head">
           <div class="dash-ideas-tile__text">
-            <div class="dash-ideas-tile__title">Project &amp; Future Research Ideas</div>
-            <p class="dash-ideas-tile__hint">Track your research ideas by adding here, or cultivating with the <a href="<%= foundryHref %>" class="dash-ideas-tile__link">Foundry</a>.</p>
+            <div class="dash-ideas-tile__title"><%= t('dashboard.researchIdeasTitle') %></div>
+            <p class="dash-ideas-tile__hint"><%= t('dashboard.researchIdeasHintBefore') %> <a href="<%= foundryHref %>" class="dash-ideas-tile__link"><%= t('dashboard.foundryLink') %></a><%= t('dashboard.researchIdeasHintAfter') %></p>
           </div>
-          <button type="button" class="app-btn-primary dash-ideas-tile__btn" id="dash-open-research-modal">Track Project/Research Ideas</button>
+          <button type="button" class="app-btn-primary dash-ideas-tile__btn" id="dash-open-research-modal"><%= t('dashboard.trackResearchIdeas') %></button>
         </div>
         <% if (researchIdeasList.length) { %>
         <div class="dash-saved-tiles" role="list">
@@ -153,10 +165,10 @@
       <div class="dash-ideas-tile dash-published-tile dash-ideas-tile--with-list" id="tw-portfolio-published">
         <div class="dash-ideas-tile__head">
           <div class="dash-ideas-tile__text">
-            <div class="dash-ideas-tile__title dash-ideas-tile__title--published">Published Work</div>
-            <p class="dash-ideas-tile__hint">Record your published work for inclusion in your CV.</p>
+            <div class="dash-ideas-tile__title dash-ideas-tile__title--published"><%= t('dashboard.publishedWorkTitle') %></div>
+            <p class="dash-ideas-tile__hint"><%= t('dashboard.publishedWorkHint') %></p>
           </div>
-          <button type="button" class="app-btn-primary dash-ideas-tile__btn" id="dash-open-published-modal">Record Published Work</button>
+          <button type="button" class="app-btn-primary dash-ideas-tile__btn" id="dash-open-published-modal"><%= t('dashboard.recordPublishedWork') %></button>
         </div>
         <% if (publishedWorkList.length) { %>
         <div class="dash-saved-tiles" role="list">
@@ -168,7 +180,7 @@
               <% if (pub.date_published && pub.where_published) { %> · <% } %>
               <% if (pub.where_published) { %><span><%= pub.where_published %></span><% } %>
             </div>
-            <% if (pub.link) { %><a href="<%= pub.link %>" class="dash-saved-tile__link" target="_blank" rel="noopener noreferrer">View link</a><% } %>
+            <% if (pub.link) { %><a href="<%= pub.link %>" class="dash-saved-tile__link" target="_blank" rel="noopener noreferrer"><%= t('dashboard.viewLink') %></a><% } %>
           </div>
           <% }); %>
         </div>
@@ -179,19 +191,19 @@
     <aside class="app-insight app-insight--dashboard">
       <div class="dash-rail-top">
         <div class="dash-rail-head-row" id="tw-dash-rail-filter">
-          <div class="insight-h">Projects in Portfolio</div>
-          <select id="dash-project-filter" class="dash-project-filter" aria-label="Filter projects by status">
-            <option value="active-completed" selected>Active/Completed</option>
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
-            <option value="canceled">Canceled</option>
+          <div class="insight-h"><%= t('dashboard.railHeading') %></div>
+          <select id="dash-project-filter" class="dash-project-filter" aria-label="<%= t('dashboard.filterAria') %>">
+            <option value="active-completed" selected><%= t('dashboard.filterActiveCompleted') %></option>
+            <option value="active"><%= t('dashboard.filterActive') %></option>
+            <option value="completed"><%= t('dashboard.filterCompleted') %></option>
+            <option value="canceled"><%= t('dashboard.filterCanceled') %></option>
           </select>
         </div>
         <div class="dash-rail-projects" id="dash-rail-projects">
           <% if (projects && projects.length) { %>
             <% projects.forEach(function(p) { %>
               <div class="dash-rail-project-tile" data-dash-cat="<%= p.dashCat %>">
-                <button type="button" class="dash-rail-tile-cancel" aria-label="Cancel project" title="Cancel project" data-project-id="<%= p.id %>" data-project-name="<%= encodeURIComponent(p.name) %>">
+                <button type="button" class="dash-rail-tile-cancel" aria-label="<%= t('dashboard.cancelProjectAria') %>" title="<%= t('dashboard.cancelProjectAria') %>" data-project-id="<%= p.id %>" data-project-name="<%= encodeURIComponent(p.name) %>">
                   <svg class="dash-rail-tile-cancel__icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
                     <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.75"/>
                     <path fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" d="M8.5 8.5l7 7m0-7l-7 7"/>
@@ -199,17 +211,17 @@
                 </button>
                 <a href="/app/project/<%= p.id %>/anvil" class="dash-rail-project-tile__name"><%= p.name %></a>
                 <div class="dash-rail-project-tile__row">
-                  <span class="dash-rail-project-tile__meta"><%= p.purpose %> · <%= p.citation_style %></span>
+                  <span class="dash-rail-project-tile__meta"><%= formatPurpose(p.purpose) %> · <%= formatCitation(p.citation_style) %></span>
                   <span class="dash-rail-project-tile__actions">
-                    <a href="/app/project/<%= p.id %>/settings" class="dash-rail-tile-action">Edit</a>
-                    <button type="button" class="dash-rail-tile-action dash-rail-tile-action--del app-dashboard-delete" data-project-id="<%= p.id %>" data-project-name="<%= encodeURIComponent(p.name) %>">Delete</button>
+                    <a href="/app/project/<%= p.id %>/settings" class="dash-rail-tile-action"><%= t('dashboard.edit') %></a>
+                    <button type="button" class="dash-rail-tile-action dash-rail-tile-action--del app-dashboard-delete" data-project-id="<%= p.id %>" data-project-name="<%= encodeURIComponent(p.name) %>"><%= t('dashboard.delete') %></button>
                   </span>
                 </div>
               </div>
             <% }); %>
-            <p id="dash-rail-filter-empty" class="dash-rail-filter-empty" hidden>No projects match this filter.</p>
+            <p id="dash-rail-filter-empty" class="dash-rail-filter-empty" hidden><%= t('dashboard.noProjectsMatchFilter') %></p>
           <% } else { %>
-            <p class="dash-rail-empty">No projects yet.</p>
+            <p class="dash-rail-empty"><%= t('dashboard.noProjectsYet') %></p>
           <% } %>
         </div>
       </div>
@@ -222,12 +234,12 @@
               <span class="dash-rail-renewal__date"><%= row.value %></span>
             </div>
           <% }); %>
-          <a href="/app/account" class="dash-rail-renewal__link">Manage subscription</a>
+          <a href="/app/account" class="dash-rail-renewal__link"><%= t('dashboard.manageSubscription') %></a>
         <% } else { %>
           <div class="dash-rail-renewal">
-            <span class="dash-rail-renewal__label">No active subscription</span>
+            <span class="dash-rail-renewal__label"><%= t('dashboard.noActiveSubscription') %></span>
           </div>
-          <a href="/app/account" class="dash-rail-renewal__link">Subscribe or manage billing</a>
+          <a href="/app/account" class="dash-rail-renewal__link"><%= t('dashboard.subscribeOrManageBilling') %></a>
         <% } %>
       </div>
     </aside>
@@ -236,19 +248,19 @@
   <div id="dash-modal-research" class="account-modal-overlay" hidden>
     <div class="account-modal-overlay__backdrop dash-modal-backdrop" tabindex="-1" aria-hidden="true"></div>
     <div class="account-modal-overlay__panel dash-modal-panel" role="dialog" aria-modal="true" aria-labelledby="dash-modal-research-title">
-      <h3 id="dash-modal-research-title" class="dash-modal-title-blue">Track Research Ideas</h3>
-      <p class="dash-modal-muted">Plan to forge in the future, capture your research ideas here or in the <a href="<%= foundryHref %>" class="dash-modal-link-foundry">Foundry</a>.</p>
+      <h3 id="dash-modal-research-title" class="dash-modal-title-blue"><%= t('dashboard.modalResearchTitle') %></h3>
+      <p class="dash-modal-muted"><%= t('dashboard.modalResearchLeadBefore') %> <a href="<%= foundryHref %>" class="dash-modal-link-foundry"><%= t('dashboard.foundryLink') %></a><%= t('dashboard.modalResearchLeadAfter') %></p>
       <form id="dash-form-research" class="dash-modal-form">
-        <label class="dash-modal-label">Research Topic:</label>
+        <label class="dash-modal-label"><%= t('dashboard.researchTopic') %></label>
         <input type="text" name="researchTopic" class="dash-modal-input" required maxlength="500" />
-        <label class="dash-modal-label">Keywords:</label>
+        <label class="dash-modal-label"><%= t('dashboard.keywords') %></label>
         <input type="text" name="keywords" class="dash-modal-input" maxlength="500" />
-        <label class="dash-modal-label">Notes:</label>
+        <label class="dash-modal-label"><%= t('dashboard.notes') %></label>
         <textarea name="notes" class="dash-modal-textarea" rows="4" maxlength="20000"></textarea>
         <p id="dash-research-form-msg" class="dash-modal-msg" hidden></p>
         <div class="account-modal-overlay__actions">
-          <button type="submit" class="account-modal-overlay__btn account-modal-overlay__btn--confirm-mint">Save</button>
-          <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--secondary dash-modal-close">Close</button>
+          <button type="submit" class="account-modal-overlay__btn account-modal-overlay__btn--confirm-mint"><%= t('client.common.save') %></button>
+          <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--secondary dash-modal-close"><%= t('client.common.close') %></button>
         </div>
       </form>
     </div>
@@ -257,21 +269,21 @@
   <div id="dash-modal-published" class="account-modal-overlay" hidden>
     <div class="account-modal-overlay__backdrop dash-modal-backdrop" tabindex="-1" aria-hidden="true"></div>
     <div class="account-modal-overlay__panel dash-modal-panel" role="dialog" aria-modal="true" aria-labelledby="dash-modal-published-title">
-      <h3 id="dash-modal-published-title" class="dash-modal-title-blue">Record Published Work</h3>
-      <p class="dash-modal-muted">Add publication details for your CV.</p>
+      <h3 id="dash-modal-published-title" class="dash-modal-title-blue"><%= t('dashboard.modalPublishedTitle') %></h3>
+      <p class="dash-modal-muted"><%= t('dashboard.modalPublishedLead') %></p>
       <form id="dash-form-published" class="dash-modal-form">
-        <label class="dash-modal-label">Title:</label>
+        <label class="dash-modal-label"><%= t('dashboard.pubTitle') %></label>
         <input type="text" name="title" class="dash-modal-input" required maxlength="500" />
-        <label class="dash-modal-label">Date Published:</label>
-        <input type="text" name="datePublished" class="dash-modal-input" maxlength="100" placeholder="e.g. March 2025" />
-        <label class="dash-modal-label">Where Published:</label>
+        <label class="dash-modal-label"><%= t('dashboard.datePublished') %></label>
+        <input type="text" name="datePublished" class="dash-modal-input" maxlength="100" placeholder="<%= t('dashboard.placeholderDatePublished') %>" />
+        <label class="dash-modal-label"><%= t('dashboard.wherePublished') %></label>
         <input type="text" name="wherePublished" class="dash-modal-input" maxlength="500" />
-        <label class="dash-modal-label">Link:</label>
-        <input type="url" name="link" class="dash-modal-input" maxlength="1000" placeholder="https://..." />
+        <label class="dash-modal-label"><%= t('dashboard.link') %></label>
+        <input type="url" name="link" class="dash-modal-input" maxlength="1000" placeholder="<%= t('dashboard.placeholderLink') %>" />
         <p id="dash-published-form-msg" class="dash-modal-msg" hidden></p>
         <div class="account-modal-overlay__actions">
-          <button type="submit" class="account-modal-overlay__btn account-modal-overlay__btn--confirm-mint">Save</button>
-          <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--secondary dash-modal-close">Close</button>
+          <button type="submit" class="account-modal-overlay__btn account-modal-overlay__btn--confirm-mint"><%= t('client.common.save') %></button>
+          <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--secondary dash-modal-close"><%= t('client.common.close') %></button>
         </div>
       </form>
     </div>
@@ -280,10 +292,10 @@
   <div id="dash-modal-cancel-project" class="account-modal-overlay" hidden>
     <div class="account-modal-overlay__backdrop dash-modal-backdrop" tabindex="-1" aria-hidden="true"></div>
     <div class="account-modal-overlay__panel dash-modal-panel dash-modal-panel--narrow" role="dialog" aria-modal="true" aria-labelledby="dash-modal-cancel-title">
-      <h3 id="dash-modal-cancel-title" class="account-modal-overlay__title">Are you sure you wish to cancel this project?</h3>
+      <h3 id="dash-modal-cancel-title" class="account-modal-overlay__title"><%= t('dashboard.cancelProjectTitle') %></h3>
       <div class="account-modal-overlay__actions dash-cancel-actions">
-        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--keep" id="dash-cancel-project-dismiss">Cancel Action</button>
-        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--confirm-cancel" id="dash-cancel-project-confirm">Yes, Cancel Project</button>
+        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--keep" id="dash-cancel-project-dismiss"><%= t('dashboard.cancelAction') %></button>
+        <button type="button" class="account-modal-overlay__btn account-modal-overlay__btn--confirm-cancel" id="dash-cancel-project-confirm"><%= t('dashboard.yesCancelProject') %></button>
       </div>
     </div>
   </div>
