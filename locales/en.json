@@ -463,6 +463,26 @@
     "home": "Home",
     "pageTour": "Page Tour"
   },
+  "sectionLabels": {
+    "abstract": "Abstract",
+    "introduction": "Introduction",
+    "literature_review": "Literature Review",
+    "methods": "Methods",
+    "results": "Results",
+    "discussion": "Discussion",
+    "conclusion": "Conclusion",
+    "references": "References",
+    "body": "Body",
+    "methodology": "Methodology",
+    "findings": "Findings",
+    "thematic_review": "Thematic Review",
+    "critical_synthesis": "Critical Synthesis",
+    "research_gap": "Research Gap",
+    "main_points": "Main Points",
+    "executive_summary": "Executive Summary",
+    "title": "Title Page",
+    "reference": "References"
+  },
   "client": {
     "common": {
       "ok": "OK",
@@ -589,7 +609,8 @@
       "titleModalFooter": "You can open Account anytime to update your name or university.",
       "noCitationsHint": "No in-text citations have been recorded for this project yet. Insert citations from the Crucible or Anvil source cards.",
       "unknownAuthor": "Unknown",
-      "loadProjectFailed": "Could not load project. {message}"
+      "loadProjectFailed": "Could not load project. {message}",
+      "sectionDraftsAria": "Section drafts"
     },
     "crucible": {
       "railAriaLabel": "Forge Research Assist and research plan",

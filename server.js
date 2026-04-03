@@ -1104,7 +1104,7 @@ app.get(
     let anvilSectionId = null;
     if (bundle.sections && bundle.sections.length) {
       anvilSections = bundle.sections.map(function (s) {
-        return { id: s.id, title: s.title };
+        return { id: s.id, title: s.title, slug: s.slug != null ? String(s.slug) : '' };
       });
       if (slug === 'anvil') {
         const sq =
