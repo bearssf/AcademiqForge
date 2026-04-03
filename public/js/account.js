@@ -103,6 +103,10 @@
 
   const profileSubmit = document.getElementById('account-profile-submit');
   const passwordSubmit = document.getElementById('account-password-submit');
+  const preferredLocaleSelect = document.getElementById('account-preferred-locale');
+  const initialPreferredLocale = preferredLocaleSelect
+    ? String(preferredLocaleSelect.value || '').trim()
+    : '';
 
   if (profileForm) {
     profileForm.addEventListener('submit', async function (e) {
@@ -110,6 +114,7 @@
       showMsg(profileMsg, A('saving', 'Saving…'), 'pending');
       if (profileSubmit) profileSubmit.disabled = true;
       const fd = new FormData(profileForm);
+      const newPreferredLocale = (fd.get('preferredLocale') || '').trim();
       const body = {
         title: fd.get('title'),
         firstName: (fd.get('firstName') || '').trim(),
@@ -117,7 +122,7 @@
         university: (fd.get('university') || '').trim(),
         researchFocus: (fd.get('researchFocus') || '').trim(),
         preferredSearchEngine: (fd.get('preferredSearchEngine') || '').trim(),
-        preferredLocale: (fd.get('preferredLocale') || '').trim(),
+        preferredLocale: newPreferredLocale,
       };
       try {
         const res = await fetch('/api/me', {
@@ -132,6 +137,10 @@
         if (!res.ok) {
           showMsg(profileMsg, data.error || A('couldNotSaveProfile', 'Could not save profile.'), 'error');
           if (profileSubmit) profileSubmit.disabled = false;
+          return;
+        }
+        if (newPreferredLocale !== initialPreferredLocale) {
+          window.location.reload();
           return;
         }
         showMsg(profileMsg, A('profileSaved', 'Profile saved.'), 'ok');
