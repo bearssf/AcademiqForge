@@ -102,6 +102,31 @@
   ];
   Quill.register(Size, true);
 
+  /** Maps Quill format values to client.anvil keys (labels follow active locale via __I18N__). */
+  var QUILL_FONT_I18N = {
+    'times-new-roman': { key: 'quillFontTimesNewRoman', fb: 'Times New Roman' },
+    arial: { key: 'quillFontArial', fb: 'Arial' },
+    georgia: { key: 'quillFontGeorgia', fb: 'Georgia' },
+    'courier-new': { key: 'quillFontCourierNew', fb: 'Courier New' },
+    verdana: { key: 'quillFontVerdana', fb: 'Verdana' },
+    garamond: { key: 'quillFontGaramond', fb: 'Garamond' },
+    calibri: { key: 'quillFontCalibri', fb: 'Calibri' },
+    cambria: { key: 'quillFontCambria', fb: 'Cambria' },
+    helvetica: { key: 'quillFontHelvetica', fb: 'Helvetica' },
+  };
+  var QUILL_SIZE_I18N = {
+    '8pt': { key: 'quillSize8pt', fb: '8 pt' },
+    '9pt': { key: 'quillSize9pt', fb: '9 pt' },
+    '10pt': { key: 'quillSize10pt', fb: '10 pt' },
+    '11pt': { key: 'quillSize11pt', fb: '11 pt' },
+    '12pt': { key: 'quillSize12pt', fb: '12 pt' },
+    '14pt': { key: 'quillSize14pt', fb: '14 pt' },
+    '16pt': { key: 'quillSize16pt', fb: '16 pt' },
+    '18pt': { key: 'quillSize18pt', fb: '18 pt' },
+    '20pt': { key: 'quillSize20pt', fb: '20 pt' },
+    '24pt': { key: 'quillSize24pt', fb: '24 pt' },
+  };
+
   /* ── Image resize overlay (clipped to editor bounds) ── */
   var resizeOverlay = null;
   var resizeHandle = null;
@@ -1548,6 +1573,7 @@
   function localizeQuillToolbarItems() {
     var tb = document.querySelector('#anvil-quill-wrap .ql-toolbar');
     if (!tb) return;
+
     tb.querySelectorAll('.ql-header .ql-picker-item').forEach(function (el) {
       var v = el.getAttribute('data-value');
       if (v === '1') el.textContent = anvilT('quillHeading1', 'Heading 1');
@@ -1555,6 +1581,27 @@
       else if (v === '3') el.textContent = anvilT('quillHeading3', 'Heading 3');
       else el.textContent = anvilT('quillNormal', 'Normal');
     });
+
+    tb.querySelectorAll('.ql-font .ql-picker-item').forEach(function (el) {
+      var v = el.getAttribute('data-value');
+      if (v === '' || v == null || v === 'false') {
+        el.textContent = anvilT('quillFontDefault', 'Default');
+      } else {
+        var fi = QUILL_FONT_I18N[v];
+        el.textContent = fi ? anvilT(fi.key, fi.fb) : v;
+      }
+    });
+
+    tb.querySelectorAll('.ql-size .ql-picker-item').forEach(function (el) {
+      var v = el.getAttribute('data-value');
+      if (v === '' || v == null || v === 'false') {
+        el.textContent = anvilT('quillSizeDefault', 'Default');
+      } else {
+        var si = QUILL_SIZE_I18N[v];
+        el.textContent = si ? anvilT(si.key, si.fb) : v;
+      }
+    });
+
     var tt = [
       ['.ql-bold', 'quillBold', 'Bold'],
       ['.ql-italic', 'quillItalic', 'Italic'],
@@ -1569,12 +1616,42 @@
       var btn = tb.querySelector(pair[0]);
       if (btn) btn.setAttribute('title', anvilT(pair[1], pair[2]));
     });
-    var fontLabel = tb.querySelector('.ql-font .ql-picker-label');
-    if (fontLabel) fontLabel.setAttribute('title', anvilT('quillFont', 'Font'));
-    var sizeLabel = tb.querySelector('.ql-size .ql-picker-label');
-    if (sizeLabel) sizeLabel.setAttribute('title', anvilT('quillSize', 'Size'));
-    var headLabel = tb.querySelector('.ql-header .ql-picker-label');
-    if (headLabel) headLabel.setAttribute('title', anvilT('quillNormal', 'Normal'));
+
+    var fontLabelEl = tb.querySelector('.ql-font .ql-picker-label');
+    if (fontLabelEl) fontLabelEl.setAttribute('title', anvilT('quillFont', 'Font'));
+    var sizeLabelEl = tb.querySelector('.ql-size .ql-picker-label');
+    if (sizeLabelEl) sizeLabelEl.setAttribute('title', anvilT('quillSize', 'Size'));
+    var headLabelEl = tb.querySelector('.ql-header .ql-picker-label');
+    if (headLabelEl) headLabelEl.setAttribute('title', anvilT('quillNormal', 'Normal'));
+
+    if (quill) {
+      var fmt = quill.getFormat();
+      if (headLabelEl) {
+        var h = fmt.header;
+        if (h === 1) headLabelEl.textContent = anvilT('quillHeading1', 'Heading 1');
+        else if (h === 2) headLabelEl.textContent = anvilT('quillHeading2', 'Heading 2');
+        else if (h === 3) headLabelEl.textContent = anvilT('quillHeading3', 'Heading 3');
+        else headLabelEl.textContent = anvilT('quillNormal', 'Normal');
+      }
+      if (fontLabelEl) {
+        var fv = fmt.font;
+        if (fv && QUILL_FONT_I18N[fv]) {
+          var f = QUILL_FONT_I18N[fv];
+          fontLabelEl.textContent = anvilT(f.key, f.fb);
+        } else {
+          fontLabelEl.textContent = anvilT('quillFontDefault', 'Default');
+        }
+      }
+      if (sizeLabelEl) {
+        var sv = fmt.size;
+        if (sv && QUILL_SIZE_I18N[sv]) {
+          var s = QUILL_SIZE_I18N[sv];
+          sizeLabelEl.textContent = anvilT(s.key, s.fb);
+        } else {
+          sizeLabelEl.textContent = anvilT('quillSizeDefault', 'Default');
+        }
+      }
+    }
   }
 
   function mountEditor(rawDraft) {
@@ -1666,7 +1743,24 @@
     }
 
     setTimeout(attachImageResizeHandlers, 200);
-    setTimeout(localizeQuillToolbarItems, 0);
+
+    var anvilToolbarLocaleTimer = null;
+    function scheduleLocalizeToolbar(fast) {
+      if (anvilToolbarLocaleTimer) clearTimeout(anvilToolbarLocaleTimer);
+      anvilToolbarLocaleTimer = setTimeout(function () {
+        anvilToolbarLocaleTimer = null;
+        localizeQuillToolbarItems();
+      }, fast ? 0 : 120);
+    }
+    quill.on('selection-change', function () {
+      scheduleLocalizeToolbar(true);
+    });
+    quill.on('text-change', function () {
+      scheduleLocalizeToolbar(false);
+    });
+    setTimeout(function () {
+      localizeQuillToolbarItems();
+    }, 0);
   }
 
   /* ── Paper (light) / Dark mode toggle ── */
