@@ -1570,87 +1570,122 @@
     };
   }
 
+  /** Quill picker labels include an SVG; setting textContent removes it and breaks Quill. */
+  function setQuillPickerLabelText(labelEl, text) {
+    if (!labelEl) return;
+    try {
+      var svg = labelEl.querySelector('svg');
+      if (!svg) {
+        labelEl.textContent = text;
+        return;
+      }
+      var svgClone = svg.cloneNode(true);
+      while (labelEl.firstChild) {
+        labelEl.removeChild(labelEl.firstChild);
+      }
+      labelEl.appendChild(svgClone);
+      labelEl.appendChild(document.createTextNode(text));
+    } catch (e) {
+      try {
+        labelEl.textContent = text;
+      } catch (e2) { /* ignore */ }
+    }
+  }
+
+  function fontKeyForValue(v) {
+    if (v == null || v === '') return null;
+    var s = String(v);
+    if (QUILL_FONT_I18N[s]) return QUILL_FONT_I18N[s];
+    var lower = s.toLowerCase();
+    if (QUILL_FONT_I18N[lower]) return QUILL_FONT_I18N[lower];
+    return null;
+  }
+
   function localizeQuillToolbarItems() {
-    var tb = document.querySelector('#anvil-quill-wrap .ql-toolbar');
-    if (!tb) return;
+    try {
+      var tb = document.querySelector('#anvil-quill-wrap .ql-toolbar');
+      if (!tb || !quill || typeof quill.getFormat !== 'function') return;
 
-    tb.querySelectorAll('.ql-header .ql-picker-item').forEach(function (el) {
-      var v = el.getAttribute('data-value');
-      if (v === '1') el.textContent = anvilT('quillHeading1', 'Heading 1');
-      else if (v === '2') el.textContent = anvilT('quillHeading2', 'Heading 2');
-      else if (v === '3') el.textContent = anvilT('quillHeading3', 'Heading 3');
-      else el.textContent = anvilT('quillNormal', 'Normal');
-    });
+      tb.querySelectorAll('.ql-header .ql-picker-item').forEach(function (el) {
+        var v = el.getAttribute('data-value');
+        if (v === '1') el.textContent = anvilT('quillHeading1', 'Heading 1');
+        else if (v === '2') el.textContent = anvilT('quillHeading2', 'Heading 2');
+        else if (v === '3') el.textContent = anvilT('quillHeading3', 'Heading 3');
+        else el.textContent = anvilT('quillNormal', 'Normal');
+      });
 
-    tb.querySelectorAll('.ql-font .ql-picker-item').forEach(function (el) {
-      var v = el.getAttribute('data-value');
-      if (v === '' || v == null || v === 'false') {
-        el.textContent = anvilT('quillFontDefault', 'Default');
-      } else {
-        var fi = QUILL_FONT_I18N[v];
-        el.textContent = fi ? anvilT(fi.key, fi.fb) : v;
-      }
-    });
+      tb.querySelectorAll('.ql-font .ql-picker-item').forEach(function (el) {
+        var v = el.getAttribute('data-value');
+        if (v === '' || v == null || v === 'false') {
+          el.textContent = anvilT('quillFontDefault', 'Default');
+        } else {
+          var fi = fontKeyForValue(v);
+          el.textContent = fi ? anvilT(fi.key, fi.fb) : String(v);
+        }
+      });
 
-    tb.querySelectorAll('.ql-size .ql-picker-item').forEach(function (el) {
-      var v = el.getAttribute('data-value');
-      if (v === '' || v == null || v === 'false') {
-        el.textContent = anvilT('quillSizeDefault', 'Default');
-      } else {
-        var si = QUILL_SIZE_I18N[v];
-        el.textContent = si ? anvilT(si.key, si.fb) : v;
-      }
-    });
+      tb.querySelectorAll('.ql-size .ql-picker-item').forEach(function (el) {
+        var v = el.getAttribute('data-value');
+        var vk = v != null && v !== '' ? String(v) : '';
+        if (vk === '' || v === 'false') {
+          el.textContent = anvilT('quillSizeDefault', 'Default');
+        } else {
+          var si = QUILL_SIZE_I18N[vk];
+          el.textContent = si ? anvilT(si.key, si.fb) : vk;
+        }
+      });
 
-    var tt = [
-      ['.ql-bold', 'quillBold', 'Bold'],
-      ['.ql-italic', 'quillItalic', 'Italic'],
-      ['.ql-underline', 'quillUnderline', 'Underline'],
-      ['.ql-strike', 'quillStrike', 'Strikethrough'],
-      ['.ql-blockquote', 'quillBlockquote', 'Blockquote'],
-      ['.ql-link', 'quillLink', 'Link'],
-      ['.ql-image', 'quillImage', 'Image'],
-      ['.ql-clean', 'quillClean', 'Remove formatting'],
-    ];
-    tt.forEach(function (pair) {
-      var btn = tb.querySelector(pair[0]);
-      if (btn) btn.setAttribute('title', anvilT(pair[1], pair[2]));
-    });
+      var tt = [
+        ['.ql-bold', 'quillBold', 'Bold'],
+        ['.ql-italic', 'quillItalic', 'Italic'],
+        ['.ql-underline', 'quillUnderline', 'Underline'],
+        ['.ql-strike', 'quillStrike', 'Strikethrough'],
+        ['.ql-blockquote', 'quillBlockquote', 'Blockquote'],
+        ['.ql-link', 'quillLink', 'Link'],
+        ['.ql-image', 'quillImage', 'Image'],
+        ['.ql-clean', 'quillClean', 'Remove formatting'],
+      ];
+      tt.forEach(function (pair) {
+        var btn = tb.querySelector(pair[0]);
+        if (btn) btn.setAttribute('title', anvilT(pair[1], pair[2]));
+      });
 
-    var fontLabelEl = tb.querySelector('.ql-font .ql-picker-label');
-    if (fontLabelEl) fontLabelEl.setAttribute('title', anvilT('quillFont', 'Font'));
-    var sizeLabelEl = tb.querySelector('.ql-size .ql-picker-label');
-    if (sizeLabelEl) sizeLabelEl.setAttribute('title', anvilT('quillSize', 'Size'));
-    var headLabelEl = tb.querySelector('.ql-header .ql-picker-label');
-    if (headLabelEl) headLabelEl.setAttribute('title', anvilT('quillNormal', 'Normal'));
+      var fontLabelEl = tb.querySelector('.ql-font .ql-picker-label');
+      if (fontLabelEl) fontLabelEl.setAttribute('title', anvilT('quillFont', 'Font'));
+      var sizeLabelEl = tb.querySelector('.ql-size .ql-picker-label');
+      if (sizeLabelEl) sizeLabelEl.setAttribute('title', anvilT('quillSize', 'Size'));
+      var headLabelEl = tb.querySelector('.ql-header .ql-picker-label');
+      if (headLabelEl) headLabelEl.setAttribute('title', anvilT('quillNormal', 'Normal'));
 
-    if (quill) {
       var fmt = quill.getFormat();
       if (headLabelEl) {
         var h = fmt.header;
-        if (h === 1) headLabelEl.textContent = anvilT('quillHeading1', 'Heading 1');
-        else if (h === 2) headLabelEl.textContent = anvilT('quillHeading2', 'Heading 2');
-        else if (h === 3) headLabelEl.textContent = anvilT('quillHeading3', 'Heading 3');
-        else headLabelEl.textContent = anvilT('quillNormal', 'Normal');
+        if (h === 1 || h === '1') setQuillPickerLabelText(headLabelEl, anvilT('quillHeading1', 'Heading 1'));
+        else if (h === 2 || h === '2') setQuillPickerLabelText(headLabelEl, anvilT('quillHeading2', 'Heading 2'));
+        else if (h === 3 || h === '3') setQuillPickerLabelText(headLabelEl, anvilT('quillHeading3', 'Heading 3'));
+        else setQuillPickerLabelText(headLabelEl, anvilT('quillNormal', 'Normal'));
       }
       if (fontLabelEl) {
         var fv = fmt.font;
-        if (fv && QUILL_FONT_I18N[fv]) {
-          var f = QUILL_FONT_I18N[fv];
-          fontLabelEl.textContent = anvilT(f.key, f.fb);
+        var fk = fv ? fontKeyForValue(fv) : null;
+        if (fk) {
+          setQuillPickerLabelText(fontLabelEl, anvilT(fk.key, fk.fb));
         } else {
-          fontLabelEl.textContent = anvilT('quillFontDefault', 'Default');
+          setQuillPickerLabelText(fontLabelEl, anvilT('quillFontDefault', 'Default'));
         }
       }
       if (sizeLabelEl) {
         var sv = fmt.size;
-        if (sv && QUILL_SIZE_I18N[sv]) {
-          var s = QUILL_SIZE_I18N[sv];
-          sizeLabelEl.textContent = anvilT(s.key, s.fb);
+        var sk = sv != null && sv !== '' ? String(sv) : '';
+        var sz = sk && QUILL_SIZE_I18N[sk] ? QUILL_SIZE_I18N[sk] : null;
+        if (sz) {
+          setQuillPickerLabelText(sizeLabelEl, anvilT(sz.key, sz.fb));
         } else {
-          sizeLabelEl.textContent = anvilT('quillSizeDefault', 'Default');
+          setQuillPickerLabelText(sizeLabelEl, anvilT('quillSizeDefault', 'Default'));
         }
       }
+    } catch (e) {
+      /* Avoid breaking Anvil load/scoring if Quill DOM differs */
     }
   }
 
@@ -1745,22 +1780,35 @@
     setTimeout(attachImageResizeHandlers, 200);
 
     var anvilToolbarLocaleTimer = null;
-    function scheduleLocalizeToolbar(fast) {
+    function runToolbarLocaleAfterQuill() {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          localizeQuillToolbarItems();
+        });
+      });
+    }
+    function scheduleLocalizeToolbar(delayMs) {
       if (anvilToolbarLocaleTimer) clearTimeout(anvilToolbarLocaleTimer);
       anvilToolbarLocaleTimer = setTimeout(function () {
         anvilToolbarLocaleTimer = null;
-        localizeQuillToolbarItems();
-      }, fast ? 0 : 120);
+        runToolbarLocaleAfterQuill();
+      }, typeof delayMs === 'number' ? delayMs : 0);
     }
-    quill.on('selection-change', function () {
-      scheduleLocalizeToolbar(true);
+    quill.on('editor-change', function (eventName) {
+      scheduleLocalizeToolbar(eventName === 'selection-change' ? 0 : 80);
     });
-    quill.on('text-change', function () {
-      scheduleLocalizeToolbar(false);
+    wrap.addEventListener(
+      'click',
+      function () {
+        scheduleLocalizeToolbar(0);
+      },
+      true
+    );
+    [0, 100, 350].forEach(function (ms) {
+      setTimeout(function () {
+        localizeQuillToolbarItems();
+      }, ms);
     });
-    setTimeout(function () {
-      localizeQuillToolbarItems();
-    }, 0);
   }
 
   /* ── Paper (light) / Dark mode toggle ── */
