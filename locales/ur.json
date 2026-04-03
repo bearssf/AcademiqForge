@@ -402,6 +402,12 @@
       "suggestionsLoadError": "تجاویز کو لوڈ نہیں کیا جا سکا۔",
       "suggestionsPaused": "مکمل ماخذ لائبریری دیکھنے کے دوران تجویز کردہ ذرائع کو روک دیا گیا ہے۔"
     },
+    "training": {
+      "skipOverview": "اس جائزے کو چھوڑیں",
+      "next": "اگلا",
+      "finish": "ختم",
+      "walkthrough": {}
+    },
     "account": {
       "saving": "محفوظ ہو رہا ہے…",
       "profileSaved": "پروفائل محفوظ ہو گیا۔",

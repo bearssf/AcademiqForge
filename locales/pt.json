@@ -402,6 +402,12 @@
       "suggestionsLoadError": "Não foi possível carregar sugestões.",
       "suggestionsPaused": "As fontes sugeridas são pausadas durante a visualização da biblioteca de fontes completa."
     },
+    "training": {
+      "skipOverview": "Pular esta visão geral",
+      "next": "Próximo",
+      "finish": "Concluir",
+      "walkthrough": {}
+    },
     "account": {
       "saving": "Salvando…",
       "profileSaved": "Perfil salvo.",

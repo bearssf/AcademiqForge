@@ -402,6 +402,12 @@
       "suggestionsLoadError": "পরামর্শ লোড করা যায়নি.",
       "suggestionsPaused": "সম্পূর্ণ উৎস লাইব্রেরি দেখার সময় প্রস্তাবিত উত্সগুলিকে বিরতি দেওয়া হয়েছে৷"
     },
+    "training": {
+      "skipOverview": "এই ওভারভিউ এড়িয়ে যান",
+      "next": "পরবর্তী",
+      "finish": "শেষ",
+      "walkthrough": {}
+    },
     "account": {
       "saving": "সংরক্ষণ করা হচ্ছে...",
       "profileSaved": "প্রোফাইল সংরক্ষিত.",

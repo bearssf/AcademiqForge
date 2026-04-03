@@ -511,7 +511,8 @@
     "training": {
       "skipOverview": "Skip this Overview",
       "next": "Next",
-      "finish": "Finish"
+      "finish": "Finish",
+      "walkthrough": {}
     },
     "anvil": {
       "forgeWritePlaceholder": "As you forge ahead, Forge Write Assist will appear in the canvas to the right.",

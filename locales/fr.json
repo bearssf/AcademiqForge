@@ -402,6 +402,12 @@
       "suggestionsLoadError": "Impossible de charger les suggestions.",
       "suggestionsPaused": "Les sources suggérées sont mises en pause lors de l'affichage de la bibliothèque source complète."
     },
+    "training": {
+      "skipOverview": "Ignorer cette présentation",
+      "next": "Suivant",
+      "finish": "Terminer",
+      "walkthrough": {}
+    },
     "account": {
       "saving": "Économie…",
       "profileSaved": "Profil enregistré.",

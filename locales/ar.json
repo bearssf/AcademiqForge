@@ -718,6 +718,12 @@
       "saveChanges": "حفظ التغييرات",
       "addSourceSubmit": "إضافة المصدر"
     },
+    "training": {
+      "skipOverview": "تخطي هذا العرض",
+      "next": "التالي",
+      "finish": "إنهاء",
+      "walkthrough": {}
+    },
     "account": {
       "saving": "توفير…",
       "profileSaved": "تم حفظ الملف الشخصي.",

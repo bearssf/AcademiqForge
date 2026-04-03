@@ -402,6 +402,12 @@
       "suggestionsLoadError": "सुझाव लोड नहीं किये जा सके.",
       "suggestionsPaused": "संपूर्ण स्रोत लाइब्रेरी देखते समय सुझाए गए स्रोत रोक दिए जाते हैं।"
     },
+    "training": {
+      "skipOverview": "इस परिचय को छोड़ें",
+      "next": "अगला",
+      "finish": "समाप्त",
+      "walkthrough": {}
+    },
     "account": {
       "saving": "सहेजा जा रहा है...",
       "profileSaved": "प्रोफ़ाइल सहेजी गई.",

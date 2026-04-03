@@ -419,7 +419,8 @@ async function attachTrainingWalkthroughLocals(req, res, next) {
       getPool,
       req.session.userId,
       pathFromRequest(req),
-      res.locals.transTrainOpacity
+      res.locals.transTrainOpacity,
+      req.locale
     );
     if (payload) {
       res.locals.trainingClientPayload = payload;
