@@ -430,6 +430,8 @@ function createApiRouter(getPool) {
     try {
       const projectId = parseInt(req.params.projectId, 10);
       if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
+      const preBundle = await getProjectBundle(getPool, projectId, req.session.userId);
+      if (!preBundle) return apiErr(req, res, 404, 'errors.notFound');
       const body = req.body || {};
 
       const hasMeta =
@@ -483,6 +485,7 @@ function createApiRouter(getPool) {
       }
 
       const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
+      if (!bundle) return apiErr(req, res, 404, 'errors.notFound');
       attachTemplateMeta(bundle);
       res.json(bundle);
     } catch (e) {
@@ -500,7 +503,8 @@ function createApiRouter(getPool) {
         getPool,
         `SELECT ps.id FROM project_sections ps
          INNER JOIN projects pr ON pr.id = ps.project_id
-         WHERE ps.id = @sid AND ps.project_id = @pid AND pr.user_id = @user_id`,
+         WHERE ps.id = @sid AND ps.project_id = @pid AND pr.user_id = @user_id
+         AND LOWER(COALESCE(pr.status, '')) <> 'canceled'`,
         { sid: sectionId, pid: projectId, user_id: req.session.userId }
       );
       if (!own.recordset[0]) return apiErr(req, res, 404, 'errors.notFound');
@@ -552,6 +556,7 @@ function createApiRouter(getPool) {
         invalidatedOpen = del.rowsAffected && del.rowsAffected[0] ? del.rowsAffected[0] : 0;
       }
       const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
+      if (!bundle) return apiErr(req, res, 404, 'errors.notFound');
       attachTemplateMeta(bundle);
       if (staleFeedbackEnabled() && bodyChanged) {
         res.json({ bundle, anvilFeedbackInvalidated: { count: invalidatedOpen } });
@@ -694,7 +699,8 @@ function createApiRouter(getPool) {
         getPool,
         `SELECT ps.id FROM project_sections ps
          INNER JOIN projects pr ON pr.id = ps.project_id
-         WHERE ps.id = @sid AND ps.project_id = @pid AND pr.user_id = @user_id`,
+         WHERE ps.id = @sid AND ps.project_id = @pid AND pr.user_id = @user_id
+         AND LOWER(COALESCE(pr.status, '')) <> 'canceled'`,
         { sid: sectionId, pid: projectId, user_id: req.session.userId }
       );
       if (!own.recordset[0]) return apiErr(req, res, 404, 'errors.notFound');
@@ -728,7 +734,8 @@ function createApiRouter(getPool) {
         getPool,
         `SELECT ps.id FROM project_sections ps
          INNER JOIN projects pr ON pr.id = ps.project_id
-         WHERE ps.id = @sid AND ps.project_id = @pid AND pr.user_id = @user_id`,
+         WHERE ps.id = @sid AND ps.project_id = @pid AND pr.user_id = @user_id
+         AND LOWER(COALESCE(pr.status, '')) <> 'canceled'`,
         { sid: sectionId, pid: projectId, user_id: req.session.userId }
       );
       if (!own.recordset[0]) return apiErr(req, res, 404, 'errors.notFound');

@@ -16,7 +16,15 @@
   })();
 } %>
 <% var cur = typeof currentProjectId !== 'undefined' && currentProjectId != null ? currentProjectId : null; %>
-<% var effectivePid = cur != null ? String(cur) : (projects[0] ? String(projects[0].id) : ''); %>
+<% function __sidebarProjectCanceled(p) {
+  return String(p && p.status || '').toLowerCase() === 'canceled';
+} %>
+<% var firstOpenProject = null;
+  for (var _si = 0; _si < projects.length; _si++) {
+    if (!__sidebarProjectCanceled(projects[_si])) { firstOpenProject = projects[_si]; break; }
+  }
+%>
+<% var effectivePid = cur != null ? String(cur) : (firstOpenProject ? String(firstOpenProject.id) : ''); %>
 <% var slug = typeof workspaceSlug !== 'undefined' ? workspaceSlug : ''; %>
 <% var access = typeof appAccess !== 'undefined' && appAccess ? appAccess : { foundryUnlocked: false, trialing: false, paid: false }; %>
 <%
@@ -26,7 +34,7 @@
       if (String(projects[_i].id) === effectivePid) { currentProject = projects[_i]; break; }
     }
   }
-  if (!currentProject && projects.length) currentProject = projects[0];
+  if (!currentProject && firstOpenProject) currentProject = firstOpenProject;
 %>
 <aside class="app-sidebar" aria-label="Workspace navigation">
   <a href="/" class="app-sidebar-brand" title="Marketing home">

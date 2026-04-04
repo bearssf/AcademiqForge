@@ -489,6 +489,26 @@ function safeReturnTo(val) {
   return s.split('?')[0] || '/';
 }
 
+/** When getProjectBundle returns null: 404 if missing, redirect if project was canceled. */
+async function respondIfProjectUnavailable(req, res, projectId) {
+  const r = await query(
+    getPool,
+    `SELECT status FROM projects WHERE id = @id AND user_id = @user_id`,
+    { id: projectId, user_id: req.session.userId }
+  );
+  const rec = r.recordset[0];
+  if (!rec) {
+    res.status(404).send('Not found');
+    return true;
+  }
+  if (String(rec.status || '').toLowerCase() === 'canceled') {
+    res.redirect(302, '/app/dashboard');
+    return true;
+  }
+  res.status(404).send('Not found');
+  return true;
+}
+
 /** Set UI language cookie; updates DB when signed in. */
 app.get('/locale/set', asyncHandler(async (req, res) => {
   const code = i18n.normalizeLocale(req.query.code || req.query.lang || 'en');
@@ -996,7 +1016,10 @@ app.get(
     const projectId = parseInt(req.params.projectId, 10);
     if (Number.isNaN(projectId)) return res.status(404).send('Not found');
     const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
-    if (!bundle) return res.status(404).send('Not found');
+    if (!bundle) {
+      await respondIfProjectUnavailable(req, res, projectId);
+      return;
+    }
     const projects = await listProjects(getPool, req.session.userId);
     const tpl = loadTemplates();
     const tkUnderscore = String(bundle.project.template_key || '').replace(/-/g, '_');
@@ -1035,7 +1058,10 @@ app.post(
     if (Number.isNaN(projectId)) return res.status(404).send('Not found');
     const projects = await listProjects(getPool, req.session.userId);
     const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
-    if (!bundle) return res.status(404).send('Not found');
+    if (!bundle) {
+      await respondIfProjectUnavailable(req, res, projectId);
+      return;
+    }
     const tpl = loadTemplates();
     const tkUnderscore = String(bundle.project.template_key || '').replace(/-/g, '_');
     const templateLabelKey = 'projectTemplateLabels.' + tkUnderscore;
@@ -1083,7 +1109,10 @@ app.get(
     const phase = WORKSPACE_PHASES[slug];
     if (Number.isNaN(projectId) || !phase) return res.status(404).send('Not found');
     const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
-    if (!bundle) return res.status(404).send('Not found');
+    if (!bundle) {
+      await respondIfProjectUnavailable(req, res, projectId);
+      return;
+    }
     if (slug === 'anvil' && bundle.sections && bundle.sections.length > 0) {
       const q =
         req.query.section != null ? parseInt(String(req.query.section), 10) : NaN;
