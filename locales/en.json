@@ -454,7 +454,7 @@
       "tableEmpty": "Run a review to see scores here.",
       "bedrockMissing": "AI review is not configured on the server.",
       "modalInsufficient": "Not enough has been written to support a review.",
-      "modalTimeBody": "This may take several minutes. The review is processing; results will appear here when ready.",
+      "modalTimeBody": "This may take several minutes. The review is processing in the background. You can leave this page and come back—results will appear here when ready.",
       "modalBtnOk": "OK",
       "modalBtnContinue": "Start review",
       "modalBtnCancel": "Cancel"

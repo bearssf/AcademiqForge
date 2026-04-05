@@ -203,6 +203,18 @@ function trimAdminTemplateToken(v) {
 /** Minimum length for ADMIN_TEMPLATE_EDITOR_TOKEN (after trim). Shorter values were rejected before URL token was compared — use 8+ and match Render exactly. */
 const ADMIN_TEMPLATE_TOKEN_MIN_LEN = 8;
 
+/**
+ * Token for Research Anatomy stats admin URL.
+ * Precedence: dedicated → training walkthrough → project templates, so an existing admin token unlocks stats.
+ */
+function researchAnatomyStatsAdminToken() {
+  const dedicated = trimAdminTemplateToken(process.env.ADMIN_RESEARCH_ANATOMY_STATS_TOKEN);
+  if (dedicated.length >= ADMIN_TEMPLATE_TOKEN_MIN_LEN) return dedicated;
+  const train = trimAdminTemplateToken(process.env.ADMIN_TRAINING_EDITOR_TOKEN);
+  if (train.length >= ADMIN_TEMPLATE_TOKEN_MIN_LEN) return train;
+  return trimAdminTemplateToken(process.env.ADMIN_TEMPLATE_EDITOR_TOKEN);
+}
+
 /** App sidebar: show links to token-gated admin tools only for this signed-in user (URLs include secrets from env). */
 const ADMIN_SIDEBAR_NAV_EMAIL = 'bearssf@tiffin.edu';
 
@@ -217,7 +229,7 @@ function applyAdminSidebarNavLocals(req, res) {
   }
   const tplTok = trimAdminTemplateToken(process.env.ADMIN_TEMPLATE_EDITOR_TOKEN);
   const trainTok = trimAdminTemplateToken(process.env.ADMIN_TRAINING_EDITOR_TOKEN);
-  const raTok = trimAdminTemplateToken(process.env.ADMIN_RESEARCH_ANATOMY_STATS_TOKEN);
+  const raTok = researchAnatomyStatsAdminToken();
   if (tplTok.length >= ADMIN_TEMPLATE_TOKEN_MIN_LEN) {
     res.locals.adminProjectTemplatesHref =
       '/admin/project-templates?token=' + encodeURIComponent(tplTok);
@@ -360,7 +372,7 @@ app.post('/admin/training-walkthrough/delete', requireAdminTrainingEditorToken, 
 app.post('/admin/training-walkthrough/reorder', requireAdminTrainingEditorToken, asyncHandler(postAdminTrainingReorder));
 
 function requireAdminResearchAnatomyStatsToken(req, res, next) {
-  const secret = trimAdminTemplateToken(process.env.ADMIN_RESEARCH_ANATOMY_STATS_TOKEN);
+  const secret = researchAnatomyStatsAdminToken();
   if (!secret || secret.length < ADMIN_TEMPLATE_TOKEN_MIN_LEN) {
     return sendAdminGateNotFound(res);
   }

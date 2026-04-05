@@ -17,7 +17,7 @@
 </head>
 <body>
   <h1>Research Anatomy — review statistics</h1>
-  <p class="hint">Use <code>?token=…</code> with <code>ADMIN_RESEARCH_ANATOMY_STATS_TOKEN</code> (same pattern as other admin tools). Timing is from <strong>review request</strong> (run start) to <strong>results stored</strong>.</p>
+  <p class="hint">Use <code>?token=…</code> with <code>ADMIN_RESEARCH_ANATOMY_STATS_TOKEN</code> if set, otherwise the same value as <code>ADMIN_TRAINING_EDITOR_TOKEN</code> or <code>ADMIN_TEMPLATE_EDITOR_TOKEN</code> (sidebar uses whichever is configured first). Timing is from <strong>review request</strong> (run start) to <strong>results stored</strong>.</p>
   <% function fmtMs(ms) {
     if (ms == null || Number.isNaN(Number(ms))) return '—';
     var n = Number(ms);
