@@ -1,0 +1,29 @@
+<%#
+  Research Anatomy — right column (20% review / 80% assessment table).
+%>
+<aside class="app-insight app-research-anatomy-rail" aria-label="<%= t('workspace.researchAnatomy.railAria') %>">
+  <div class="ra-rail-shell">
+    <div class="ra-rail-shell__top">
+      <div class="insight-h ra-rail-shell__heading"><%= t('workspace.researchAnatomy.forgedReviewHeading') %></div>
+      <button type="button" class="ra-review-btn" id="ra-initiate-review" data-state="init">
+        <%= t('workspace.researchAnatomy.btnInitiate') %>
+      </button>
+      <p class="ra-review-status" id="ra-review-status" hidden></p>
+      <p class="ra-cooldown-msg" id="ra-cooldown-msg" hidden></p>
+    </div>
+    <div class="ra-rail-shell__bottom">
+      <div class="insight-h ra-rail-shell__heading"><%= t('workspace.researchAnatomy.forgedAssessmentHeading') %></div>
+      <p class="ra-assessment-desc"><%= t('workspace.researchAnatomy.forgedAssessmentDesc') %></p>
+      <div class="ra-assessment-table-wrap">
+        <table class="ra-assessment-table" id="ra-assessment-table" aria-label="<%= t('workspace.researchAnatomy.tableAria') %>">
+          <thead>
+            <tr><th><%= t('workspace.researchAnatomy.colComponent') %></th><th><%= t('workspace.researchAnatomy.colScore') %></th></tr>
+          </thead>
+          <tbody id="ra-assessment-tbody">
+          </tbody>
+        </table>
+        <p class="ra-assessment-empty" id="ra-assessment-empty"><%= t('workspace.researchAnatomy.tableEmpty') %></p>
+      </div>
+    </div>
+  </div>
+</aside>

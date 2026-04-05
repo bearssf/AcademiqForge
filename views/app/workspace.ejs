@@ -6,8 +6,11 @@
   <% if (phaseSlug === 'anvil') { %>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@1.3.7/dist/quill.snow.css" crossorigin="anonymous" />
   <% } %>
+  <% if (phaseSlug === 'framework') { %>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,300;0,400;1,300&display=swap" rel="stylesheet" />
+  <% } %>
 </head>
-<body class="app-body app-body--workspace-shell<%= phaseSlug === 'anvil' ? ' app-body--anvil' : '' %><%= phaseSlug === 'crucible' ? ' app-body--crucible' : '' %>">
+<body class="app-body app-body--workspace-shell<%= phaseSlug === 'anvil' ? ' app-body--anvil' : '' %><%= phaseSlug === 'crucible' ? ' app-body--crucible' : '' %><%= phaseSlug === 'framework' ? ' app-body--research-anatomy' : '' %>">
   <div class="app-grid">
     <%- include('../partials/app-sidebar', { user: user, navActive: 'workspace', projects: projects, currentProjectId: currentProjectId, workspaceSlug: phaseSlug, appAccess: appAccess, anvilSections: typeof anvilSections !== 'undefined' ? anvilSections : [], anvilSectionId: typeof anvilSectionId !== 'undefined' ? anvilSectionId : null }) %>
     <main class="app-canvas">
@@ -24,7 +27,7 @@
             <div id="anvil-scoring-panel" class="anvil-top-metrics__scoring app-anvil-scoring-head" hidden aria-live="polite"></div>
           </div>
         </div>
-      <% } else { %>
+      <% } else if (phaseSlug !== 'framework') { %>
       <h1><%= phaseTitle %></h1>
       <% } %>
       <% if (phaseSlug === 'crucible') { %>
@@ -58,10 +61,7 @@
           data-sections="<%= encodeURIComponent(JSON.stringify((typeof crucibleSections !== 'undefined' ? crucibleSections : []).map(function(s){ return { id: s.id, title: s.title, slug: s.slug != null ? String(s.slug) : '' }; }))) %>">
         </div>
       <% } else if (phaseSlug === 'framework') { %>
-        <div class="app-placeholder" id="tw-framework-workspace">
-          <p style="margin:0 0 .5rem"><strong><%= t('workspace.frameworkComingLead') %></strong> <%= t('workspace.frameworkComingBody') %></p>
-          <p style="margin:0;color:rgba(255,255,255,.55);font-size:.9rem"><%= t('workspace.frameworkAnvilNote') %></p>
-        </div>
+        <%- include('../partials/research-anatomy-stage') %>
       <% } else { %>
         <div class="app-placeholder" id="tw-foundry-workspace">
           <strong><%= t('workspace.placeholderStrong') %></strong> <%= t('workspace.placeholderRest') %> <code><%= phaseSlug %></code>.
@@ -72,6 +72,8 @@
       <%- include('../partials/app-anvil-rail') %>
     <% } else if (phaseSlug === 'crucible') { %>
       <%- include('../partials/app-crucible-rail') %>
+    <% } else if (phaseSlug === 'framework') { %>
+      <%- include('../partials/app-research-anatomy-rail') %>
     <% } else { %>
       <%- include('../partials/app-insight-panel', { insightHint: insightHint || t('workspace.insightFallback') }) %>
     <% } %>
@@ -81,6 +83,18 @@
   <script src="/js/anvil.js" defer></script>
   <% } else if (phaseSlug === 'crucible') { %>
   <script src="/js/crucible.js" defer></script>
+  <% } else if (phaseSlug === 'framework') { %>
+  <script>
+    window.__RA_I18N__ = {
+      btnInitiate: <%- JSON.stringify(t('workspace.researchAnatomy.btnInitiate')) %>,
+      btnRereview: <%- JSON.stringify(t('workspace.researchAnatomy.btnRereview')) %>,
+      cooldownPrefix: <%- JSON.stringify(t('workspace.researchAnatomy.cooldownPrefix')) %>,
+      statusProcessing: <%- JSON.stringify(t('workspace.researchAnatomy.statusProcessing')) %>,
+      statusError: <%- JSON.stringify(t('workspace.researchAnatomy.statusError')) %>,
+      bedrockMissing: <%- JSON.stringify(t('workspace.researchAnatomy.bedrockMissing')) %>
+    };
+  </script>
+  <script src="/js/research-anatomy.js" defer></script>
   <% } %>
 </body>
 </html>

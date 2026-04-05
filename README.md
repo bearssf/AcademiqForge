@@ -120,7 +120,7 @@ On startup the app creates (if missing): **`subscriptions`** (Stripe IDs, `curre
 
 - **Billing:** **Account** → subscribe via **`/billing/subscribe`** or **`/billing/checkout`**; **update payment method** on **`/billing/payment-method`** (SetupIntent + Payment Element when **`STRIPE_PUBLISHABLE_KEY`** is set); **auto-renew**; **monthly/yearly plan change** with **proration estimate** (dual prices; yearly → monthly only near renewal); **`GET /billing/portal`** for Stripe portal (invoices, etc.). **`POST /webhooks/stripe`** updates `subscriptions` (see **Stripe** section above).
 - **The Anvil** (`/app/project/:id/anvil`): **Quill** rich-text section drafts (HTML in `project_sections.body`); autosave; **structured AI feedback** (Bedrock, anchored suggestions) — [docs/anvil-workspace.md](docs/anvil-workspace.md). **AWS Bedrock:** [docs/aws-bedrock.md](docs/aws-bedrock.md). Old **`/crucible`** URLs redirect to **`/anvil`** (301).
-- **Framework** (`/app/project/:id/framework`): placeholder (“coming soon”) until outline/evidence UX is defined.
+- **Research Anatomy** (`/app/project/:id/framework`): interactive anatomy map, forged review (S3 upload + Bedrock evaluation), and assessment table.
 - **Home:** Marketing landing + sign-in; **Workspace** (`/app/dashboard`) when signed in.
 - **Header (signed out):** Email and password, Sign in, and **Create an account** below.
 - **Header (signed in):** **Welcome, [first name]** and Sign out (login UI hidden).

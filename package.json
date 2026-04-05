@@ -1,7 +1,7 @@
 {
   "name": "academiq-forge",
   "version": "1.0.0",
-  "description": "AcademiqForge \u2014 home and auth backed by MySQL",
+  "description": "AcademiqForge — home and auth backed by MySQL",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.1014.0",
+    "@aws-sdk/client-s3": "^3.1024.0",
+    "@aws-sdk/s3-request-presigner": "^3.1024.0",
     "bcryptjs": "^2.4.3",
     "connect-redis": "^7.1.1",
     "docx": "^9.6.1",
@@ -20,9 +22,9 @@
     "express": "^4.21.0",
     "express-session": "^1.18.0",
     "multer": "^2.1.1",
-    "redis": "^4.7.1",
-    "stripe": "^17.7.0",
     "mysql2": "^3.14.0",
-    "nodemailer": "^6.9.16"
+    "nodemailer": "^6.9.16",
+    "redis": "^4.7.1",
+    "stripe": "^17.7.0"
   }
 }

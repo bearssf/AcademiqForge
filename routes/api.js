@@ -42,6 +42,18 @@ const { runStructuredSectionReview } = require('../lib/bedrockStructuredReview')
 const { applySuggestionToDraftHtml } = require('../lib/bedrockApplySuggestion');
 const { searchPapers } = require('../lib/semanticScholar');
 const { markPageCompleted, resetPageCompletion } = require('../lib/trainingWalkthrough');
+const { presignPutResearchDocument, isS3Configured } = require('../lib/researchAnatomyS3');
+const {
+  getLatestRun,
+  getLatestCompleteRun,
+  hasCompletedReview,
+  isCooldownActive,
+  parseResultsJson,
+  validateS3KeyForUser,
+  startResearchAnatomyReview,
+  randomSuffix,
+} = require('../lib/researchAnatomyService');
+const { versionIdFromBundle, buildSectionAwareDocument } = require('../lib/researchAnatomyPipeline');
 
 function tReq(req, key, vars) {
   return i18n.t((req && req.locale) || 'en', key, vars);
@@ -2028,6 +2040,135 @@ function createApiRouter(getPool) {
         pid: projectId,
       });
       res.status(204).end();
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  router.get('/projects/:projectId/research-anatomy/status', async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
+      if (!(await ownsProject(getPool, projectId, req.session.userId)))
+        return apiErr(req, res, 404, 'errors.notFound');
+
+      const cd = await isCooldownActive(getPool, projectId, req.session.userId);
+      const done = await hasCompletedReview(getPool, projectId, req.session.userId);
+      const row = await getLatestRun(getPool, projectId, req.session.userId);
+      let results = row ? parseResultsJson(row) : null;
+      if (row && row.status === 'processing') {
+        const completeRow = await getLatestCompleteRun(getPool, projectId, req.session.userId);
+        const prev = completeRow ? parseResultsJson(completeRow) : null;
+        if (prev) results = prev;
+      }
+      res.json({
+        cooldownActive: cd.active,
+        cooldownUntil: cd.until ? cd.until.toISOString() : null,
+        hasCompletedReview: done,
+        latest: row
+          ? {
+              id: row.id,
+              status: row.status,
+              errorMessage: row.error_message || null,
+              createdAt: row.created_at,
+              updatedAt: row.updated_at,
+            }
+          : null,
+        results,
+      });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  router.get('/projects/:projectId/research-anatomy/export-text', async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
+      const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
+      if (!bundle) return apiErr(req, res, 404, 'errors.notFound');
+      const text = buildSectionAwareDocument(bundle);
+      res.json({
+        text,
+        versionId: versionIdFromBundle(bundle),
+      });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  router.get('/projects/:projectId/research-anatomy/version', async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
+      const bundle = await getProjectBundle(getPool, projectId, req.session.userId);
+      if (!bundle) return apiErr(req, res, 404, 'errors.notFound');
+      res.json({ versionId: versionIdFromBundle(bundle) });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  router.post('/projects/:projectId/research-anatomy/presign', async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
+      if (!(await ownsProject(getPool, projectId, req.session.userId)))
+        return apiErr(req, res, 404, 'errors.notFound');
+      if (!isS3Configured()) {
+        return res.status(503).json({ error: 'S3 upload is not configured.', presignAvailable: false });
+      }
+      const body = req.body || {};
+      const contentType =
+        (body.contentType && String(body.contentType)) || 'text/plain; charset=utf-8';
+      const uid = req.session.userId;
+      const out = await presignPutResearchDocument(
+        { userId: uid, projectId },
+        randomSuffix(),
+        contentType
+      );
+      res.json({
+        presignAvailable: true,
+        uploadUrl: out.uploadUrl,
+        key: out.key,
+        bucket: out.bucket,
+        contentType: out.contentType,
+      });
+    } catch (e) {
+      next(e);
+    }
+  });
+
+  router.post('/projects/:projectId/research-anatomy/run', async (req, res, next) => {
+    try {
+      const projectId = parseInt(req.params.projectId, 10);
+      if (Number.isNaN(projectId)) return apiErr(req, res, 400, 'errors.invalidProjectId');
+      if (!(await ownsProject(getPool, projectId, req.session.userId)))
+        return apiErr(req, res, 404, 'errors.notFound');
+
+      const body = req.body || {};
+      let s3Key = body.s3Key != null ? String(body.s3Key).trim() : '';
+      if (s3Key && !validateS3KeyForUser(s3Key, req.session.userId, projectId)) {
+        return res.status(400).json({ error: 'Invalid storage key.' });
+      }
+      if (!s3Key) s3Key = null;
+
+      const started = await startResearchAnatomyReview(getPool, req.session.userId, projectId, s3Key);
+      if (!started.ok) {
+        if (started.status === 429) {
+          return res.status(429).json({
+            error: 'Review cooldown active.',
+            cooldownUntil: started.cooldownUntil ? started.cooldownUntil.toISOString() : null,
+          });
+        }
+        return res.status(started.status || 400).json({ error: started.error || 'error' });
+      }
+      res.json({
+        runId: started.runId,
+        status: started.status,
+        contentVersion: started.contentVersion,
+        deduped: started.deduped || false,
+      });
     } catch (e) {
       next(e);
     }

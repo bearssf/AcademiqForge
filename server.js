@@ -569,7 +569,7 @@ const WORKSPACE_PHASES = {
     insight: 'Source management and research tools will appear here.',
   },
   foundry: { title: 'The Foundry', insight: 'Generated research topics and gaps will appear here for paid members.' },
-  framework: { title: 'Framework', insight: 'Argument outline and evidence mapping will appear here.' },
+  framework: { title: 'Research Anatomy', insight: 'Forged review and assessment for research anatomy will appear here.' },
 };
 
 /** i18n keys for workspace rail (see locales/en.json sidebar + workspace). */

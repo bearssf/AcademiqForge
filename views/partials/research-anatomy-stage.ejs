@@ -1,0 +1,106 @@
+<%#
+  Center canvas — Research Anatomy (matches research-anatomy-v2 layout).
+%>
+<div class="ra-stage" id="tw-framework-workspace">
+  <div class="ra-stage__inner">
+    <div class="ra-stage__header">
+      <div class="ra-stage__title-row">
+        <h2 class="ra-stage__h1">
+          <span class="ra-stage__h1-light">Research Anatomy by </span>
+          <span class="ra-stage__h1-accent">Academiq</span>
+          <span class="ra-stage__h1-light">Forge</span>
+        </h2>
+      </div>
+      <div class="ra-stage__rule"></div>
+      <p class="ra-stage__tag">Epistemic and argumentative building blocks · tap any component to expand</p>
+    </div>
+
+    <div class="ra-flow">
+      <%
+        const raTiers = [
+          { id: 't1', label: 'IGNITION', nodes: [{ id: 'problem', title: 'Problem / Gap', desc: "The unresolved tension in existing literature that justifies the study's existence. Everything else flows from this." }] },
+          { id: 't2', label: 'DIRECTION', nodes: [{ id: 'purpose', title: 'Purpose & Research Questions', desc: 'The spine of the study — bounded questions every other component maps back to.' }] },
+          { id: 't3', label: 'SCAFFOLDING', nodes: [
+            { id: 'onto', title: 'Ontological & Epistemological Positioning', desc: "Assumptions about the nature of reality and how knowledge is produced. Justifies the methodology." },
+            { id: 'theory', title: 'Theoretical / Conceptual Framework', desc: 'The intellectual lens shaping what you look for and what counts as meaningful.' },
+            { id: 'lit', title: 'Literature Foundation', desc: 'An argument about the state of knowledge — what is known, contested, and where the gap lives.' },
+          ] },
+          { id: 't4', label: 'ARCHITECTURE', nodes: [{ id: 'methodology', title: 'Methodology & Design', desc: 'The overall research strategy and the logic connecting it to the research questions.' }] },
+          { id: 't5', label: 'INSTRUMENTATION', nodes: [{ id: 'methods', title: 'Methods & Instrumentation', desc: 'Specific tools and procedures — interviews, surveys, coding schemes, statistical tests.' }] },
+          { id: 't6', label: 'PRODUCTION', nodes: [{ id: 'data', title: 'Data / Evidence', desc: 'The material produced by the methods — responses, texts, observations, datasets — what was actually analyzed.' }] },
+          { id: 't7', label: 'INTERPRETATION', nodes: [{ id: 'analysis', title: 'Analysis & Findings', desc: 'Patterns, themes, and results — systematically derived and interpreted from the data.' }] },
+          { id: 't8', label: 'ASSERTION', nodes: [{ id: 'argument', title: 'Argument / Claims', desc: 'What the study actually argues — the answers the researcher is asserting, beyond just reporting findings.' }] },
+          { id: 't9', label: 'IMPACT', nodes: [
+            { id: 'contribution', title: 'Contribution to Knowledge', desc: "How findings advance, challenge, or extend the field. The scholarly 'so what.'" },
+            { id: 'practical', title: 'Practical / Applied Implications', desc: "What the findings mean for practitioners, organizations, or policy — the 'now what.'" },
+          ] },
+        ];
+        const raRails = [
+          { id: 'positionality', title: 'Researcher Positionality', span: 'Active through Scaffolding → Interpretation', shortSpan: 'Scaffolding → Interpretation', desc: "The researcher's identity, assumptions, and relationship to the subject — not a one-time disclosure but a lens actively managed across every phase of design, collection, and analysis." },
+          { id: 'validity', title: 'Validity & Trustworthiness', span: 'Active through Architecture → Assertion', shortSpan: 'Architecture → Assertion', desc: 'The credibility infrastructure — triangulation, member checking, saturation, inter-rater reliability, and acknowledged limitations. Built into design, maintained through the final claim.' },
+        ];
+      %>
+      <% raTiers.forEach(function(tier, i) { %>
+        <div class="ra-tier" data-tier="<%= tier.id %>">
+          <div class="ra-tier__label-row">
+            <span class="ra-tier__label"><%= tier.label %></span>
+            <div class="ra-tier__label-line"></div>
+          </div>
+          <div class="ra-tier__nodes">
+            <% tier.nodes.forEach(function(node) { %>
+              <div class="ra-node" role="button" tabindex="0" data-node-id="<%= node.id %>" aria-expanded="false">
+                <div class="ra-node__title"><%= node.title %></div>
+                <div class="ra-node__body" hidden>
+                  <p class="ra-node__desc"><%= node.desc %></p>
+                  <div class="ra-node__eval" data-eval-for="<%= node.id %>" hidden>
+                    <p class="ra-node__score-line"><span class="ra-node__eval-label">Score:</span> <span class="ra-node__score" data-part="score"></span></p>
+                    <p class="ra-node__feedback" data-part="feedback"></p>
+                  </div>
+                </div>
+              </div>
+            <% }); %>
+          </div>
+          <% if (i < raTiers.length - 1) { %>
+            <div class="ra-connector" aria-hidden="true">
+              <div class="ra-connector__v"></div>
+              <div class="ra-connector__arrow"></div>
+            </div>
+          <% } %>
+        </div>
+      <% }); %>
+    </div>
+
+    <div class="ra-persistent-block">
+      <div class="ra-persistent-head">
+        <div class="ra-persistent-head__line"></div>
+        <span class="ra-persistent-head__text">ACTIVE THROUGHOUT THE RESEARCH PROCESS</span>
+        <div class="ra-persistent-head__line"></div>
+      </div>
+      <div class="ra-rails">
+        <% raRails.forEach(function(rail) { %>
+          <div class="ra-rail" role="button" tabindex="0" data-rail-id="<%= rail.id %>" data-span-full="<%= rail.span %>" data-span-short="<%= rail.shortSpan %>" aria-expanded="false">
+            <div class="ra-rail__row">
+              <span class="ra-rail__badge">PERSISTENT</span>
+              <span class="ra-rail__title"><%= rail.title %></span>
+              <span class="ra-rail__span" data-rail-span><%= rail.span %></span>
+              <span class="ra-rail__chev" aria-hidden="true">▾</span>
+            </div>
+            <div class="ra-rail__expand" hidden>
+              <p class="ra-rail__desc"><%= rail.desc %></p>
+              <div class="ra-node__eval ra-rail__eval" data-eval-for="<%= rail.id %>" hidden>
+                <p class="ra-node__score-line"><span class="ra-node__eval-label">Score:</span> <span class="ra-node__score" data-part="score"></span></p>
+                <p class="ra-node__feedback" data-part="feedback"></p>
+              </div>
+            </div>
+          </div>
+        <% }); %>
+      </div>
+    </div>
+
+    <div class="ra-stage__footer">
+      <div class="ra-stage__footer-line"></div>
+      <span class="ra-stage__footer-brand">ACADEMIQFORGE™</span>
+      <div class="ra-stage__footer-line"></div>
+    </div>
+  </div>
+</div>
