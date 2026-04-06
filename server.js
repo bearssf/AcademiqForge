@@ -1538,6 +1538,15 @@ app.post('/register', async (req, res) => {
       return res.redirect(302, '/register/verify');
     }
 
+    const existingDirect = await query(
+      getPool,
+      'SELECT id FROM users WHERE email = @email LIMIT 1',
+      { email: form.email }
+    );
+    if (existingDirect.recordset && existingDirect.recordset.length) {
+      return renderErr('register.errorDuplicateEmail');
+    }
+
     await query(
       getPool,
       `INSERT INTO users (title, first_name, last_name, email, password_hash, university, research_focus, preferred_search_engine, preferred_locale)
@@ -1720,6 +1729,10 @@ app.post('/register/change-email', async (req, res, next) => {
       if (out.error === 'not_found') {
         delete req.session.registrationPendingId;
         return res.redirect('/register');
+      }
+      if (out.error === 'expired') {
+        delete req.session.registrationPendingId;
+        return res.redirect('/register?verify=expired');
       }
       return res.render('register-change-email', {
         user: req.session.user || null,

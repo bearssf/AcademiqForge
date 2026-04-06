@@ -116,6 +116,8 @@
     "firstNamePlaceholder": "First name",
     "lastNamePlaceholder": "Last name",
     "emailPlaceholder": "you@university.edu",
+    "showEmail": "Show email",
+    "hideEmail": "Hide email",
     "passwordPlaceholder": "At least 8 characters",
     "confirmPassword": "Confirm password",
     "confirmPasswordPlaceholder": "Re-enter password",

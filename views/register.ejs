@@ -126,6 +126,45 @@
       outline: none;
       border-color: var(--primary);
     }
+    .register-field-with-toggle__inner {
+      position: relative;
+      display: block;
+      width: 100%;
+    }
+    .register-field-with-toggle__inner input {
+      padding-right: 2.75rem;
+    }
+    .register-field-toggle--eye {
+      position: absolute;
+      right: 0.35rem;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.25rem;
+      height: 2.25rem;
+      padding: 0;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.45);
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .register-field-toggle--eye:hover {
+      color: rgba(255, 255, 255, 0.85);
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .register-field-toggle--eye[aria-pressed='true'] {
+      color: rgba(200, 220, 255, 0.95);
+    }
+    .register-field-toggle__glyph {
+      display: block;
+      font-size: 1.35rem;
+      line-height: 1;
+      user-select: none;
+    }
     .form-group textarea {
       min-height: 4.5rem;
       resize: vertical;
@@ -273,17 +312,32 @@
             <input type="text" id="lastName" name="lastName" required placeholder="<%= t('register.lastNamePlaceholder') %>" value="<%= form.lastName || '' %>" />
           </div>
         </div>
-        <div class="form-group">
+        <div class="form-group register-field-with-toggle">
           <label for="email"><%= t('auth.email') %><%= t('register.requiredStar') %></label>
-          <input type="email" id="email" name="email" required placeholder="<%= t('register.emailPlaceholder') %>" value="<%= form.email || '' %>" autocomplete="email" />
+          <span class="register-field-with-toggle__inner">
+            <input type="email" id="email" name="email" required placeholder="<%= t('register.emailPlaceholder') %>" value="<%= form.email || '' %>" autocomplete="email" inputmode="email" />
+            <button type="button" class="register-field-toggle register-field-toggle--eye" data-register-email-toggle aria-pressed="true" title="<%= t('register.hideEmail') %>" aria-label="<%= t('auth.email') %>">
+              <span class="register-field-toggle__glyph" aria-hidden="true">⊙</span>
+            </button>
+          </span>
         </div>
-        <div class="form-group">
+        <div class="form-group register-field-with-toggle">
           <label for="password"><%= t('auth.password') %><%= t('register.requiredStar') %></label>
-          <input type="password" id="password" name="password" required placeholder="<%= t('register.passwordPlaceholder') %>" minlength="8" autocomplete="new-password" />
+          <span class="register-field-with-toggle__inner">
+            <input type="password" id="password" name="password" required placeholder="<%= t('register.passwordPlaceholder') %>" minlength="8" autocomplete="new-password" />
+            <button type="button" class="register-field-toggle register-field-toggle--eye" data-register-pwd-toggle data-pwd-kind="new" aria-pressed="false" title="<%= t('client.account.showPassword') %>" aria-label="<%= t('auth.password') %>">
+              <span class="register-field-toggle__glyph" aria-hidden="true">⊙</span>
+            </button>
+          </span>
         </div>
-        <div class="form-group">
+        <div class="form-group register-field-with-toggle">
           <label for="passwordConfirm"><%= t('register.confirmPassword') %><%= t('register.requiredStar') %></label>
-          <input type="password" id="passwordConfirm" name="passwordConfirm" required placeholder="<%= t('register.confirmPasswordPlaceholder') %>" minlength="8" autocomplete="new-password" />
+          <span class="register-field-with-toggle__inner">
+            <input type="password" id="passwordConfirm" name="passwordConfirm" required placeholder="<%= t('register.confirmPasswordPlaceholder') %>" minlength="8" autocomplete="new-password" />
+            <button type="button" class="register-field-toggle register-field-toggle--eye" data-register-pwd-toggle data-pwd-kind="confirm" aria-pressed="false" title="<%= t('client.account.showPassword') %>" aria-label="<%= t('auth.password') %>">
+              <span class="register-field-toggle__glyph" aria-hidden="true">⊙</span>
+            </button>
+          </span>
         </div>
 
         <div class="form-group">
@@ -349,11 +403,12 @@
     </div>
     <a href="/" class="back"><%= t('register.backToHome') %></a>
   </div>
-  <% var _regAlert = JSON.stringify({ alertPasswordMismatch: t('register.alertPasswordMismatch') }).replace(/</g, '\\u003c'); %>
+  <% var _regI18n = { alertPasswordMismatch: t('register.alertPasswordMismatch'), showPassword: t('client.account.showPassword'), hidePassword: t('client.account.hidePassword'), showEmail: t('register.showEmail'), hideEmail: t('register.hideEmail'), pwdNew: t('client.account.pwdKindNew'), pwdConfirm: t('client.account.pwdKindConfirm') }; %>
+  <% var _regAlert = JSON.stringify(_regI18n).replace(/</g, '\\u003c'); %>
   <script type="application/json" id="register-i18n"><%- _regAlert %></script>
   <script>
     (function () {
-      var i18n = { alertPasswordMismatch: 'Password and confirmation must match.' };
+      var i18n = { alertPasswordMismatch: 'Password and confirmation must match.', showPassword: 'Show password', hidePassword: 'Hide password', showEmail: 'Show email', hideEmail: 'Hide email', pwdNew: 'new password', pwdConfirm: 'confirm new password' };
       var el = document.getElementById('register-i18n');
       if (el && el.textContent) {
         try { i18n = Object.assign(i18n, JSON.parse(el.textContent)); } catch (e) {}
@@ -361,7 +416,44 @@
       var form = document.getElementById('reg-form');
       var p1 = document.getElementById('password');
       var p2 = document.getElementById('passwordConfirm');
+      var emailInput = document.getElementById('email');
+      document.querySelectorAll('[data-register-pwd-toggle]').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var wrap = btn.closest('.register-field-with-toggle__inner');
+          var input = wrap && wrap.querySelector('input');
+          if (!input) return;
+          var show = input.type === 'password';
+          input.type = show ? 'text' : 'password';
+          btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+          var kind = btn.getAttribute('data-pwd-kind') || 'new';
+          var field = kind === 'confirm' ? i18n.pwdConfirm : i18n.pwdNew;
+          var hideW = i18n.hidePassword;
+          var showW = i18n.showPassword;
+          btn.setAttribute('title', show ? hideW : showW);
+          btn.setAttribute('aria-label', (show ? hideW : showW) + ' (' + field + ')');
+        });
+      });
+      var emailBtn = document.querySelector('[data-register-email-toggle]');
+      if (emailInput && emailBtn) {
+        emailBtn.addEventListener('click', function () {
+          var hidden = emailInput.type === 'password';
+          if (hidden) {
+            emailInput.type = 'email';
+            emailBtn.setAttribute('aria-pressed', 'true');
+            emailBtn.setAttribute('title', i18n.hideEmail);
+            emailBtn.setAttribute('aria-label', i18n.hideEmail);
+          } else {
+            emailInput.type = 'password';
+            emailBtn.setAttribute('aria-pressed', 'false');
+            emailBtn.setAttribute('title', i18n.showEmail);
+            emailBtn.setAttribute('aria-label', i18n.showEmail);
+          }
+        });
+      }
       form.addEventListener('submit', function (e) {
+        if (emailInput && emailInput.type === 'password') {
+          emailInput.type = 'email';
+        }
         if (p1.value !== p2.value) {
           e.preventDefault();
           alert(i18n.alertPasswordMismatch);
