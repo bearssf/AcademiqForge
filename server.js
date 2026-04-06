@@ -74,7 +74,18 @@ const {
   findValidTokenRow,
   resetPasswordWithToken,
 } = require('./lib/passwordReset');
-const { isMailConfigured, sendPasswordResetEmail } = require('./lib/mail');
+const { isMailConfigured, sendPasswordResetEmail, sendRegistrationVerificationEmail } = require('./lib/mail');
+const {
+  isNewUserVerificationEnabled,
+  maskEmail,
+  createPendingRegistration,
+  verifyCodeAndCompleteUser,
+  resendVerificationCode,
+  changePendingEmail,
+  loadPendingForVerifyPage,
+  getPendingById,
+  RESEND_COOLDOWN_MS,
+} = require('./lib/registrationVerification');
 const i18n = require('./lib/i18n');
 
 const app = express();
@@ -1243,10 +1254,41 @@ function registerPageLocals(form) {
   };
 }
 
+async function completeNewUserSessionAfterRegistration(req, res, user, form) {
+  const prefLoc = i18n.normalizeLocale(user.preferred_locale || req.locale || 'en');
+  req.session.userId = user.id;
+  req.session.user = {
+    id: user.id,
+    firstName: user.first_name,
+    lastName: user.last_name,
+    email: user.email,
+  };
+  req.session.locale = prefLoc;
+  i18n.setLocaleCookie(res, prefLoc);
+  if (req.session.registrationPendingId != null) delete req.session.registrationPendingId;
+  await ensureSubscriptionRow(getPool, user.id);
+
+  const wantsMember = form.subscribeChoice === 'member';
+  if (wantsMember && stripe && isStripeBillingConfigured(stripe)) {
+    const cfg = getStripePriceConfig();
+    const interval = cfg.mode === 'dual' ? form.billingInterval : 'month';
+    let url = isStripeElementsBillingConfigured(stripe)
+      ? `/billing/subscribe?interval=${encodeURIComponent(interval)}`
+      : `/billing/checkout?interval=${encodeURIComponent(interval)}`;
+    if (form.subscribePromo) {
+      url += `&promo=${encodeURIComponent(form.subscribePromo)}`;
+    }
+    return res.redirect(302, url);
+  }
+  return res.redirect('/app/dashboard');
+}
+
 app.get('/register', (req, res) => {
   if (req.session && req.session.userId) return res.redirect('/');
+  const verifyExpired = req.query.verify === 'expired';
   res.render('register', {
-    error: null,
+    error: verifyExpired ? res.locals.t('register.errorVerifyExpired') : null,
+    verifyExpired: !!verifyExpired,
     ...registerPageLocals({}),
   });
 });
@@ -1432,6 +1474,7 @@ app.post('/register', async (req, res) => {
   const renderErr = (key) =>
     res.render('register', {
       error: t(key),
+      verifyExpired: false,
       ...registerPageLocals(form),
     });
 
@@ -1460,6 +1503,41 @@ app.post('/register', async (req, res) => {
   try {
     const hash = await bcrypt.hash(pw, 10);
     const prefLoc = i18n.normalizeLocale(req.locale || 'en');
+
+    if (isNewUserVerificationEnabled()) {
+      const existing = await query(
+        getPool,
+        'SELECT id FROM users WHERE email = @email LIMIT 1',
+        { email: form.email }
+      );
+      if (existing.recordset && existing.recordset.length) {
+        return renderErr('register.errorDuplicateEmail');
+      }
+      if (!isMailConfigured()) {
+        return renderErr('register.errorVerificationMailNotConfigured');
+      }
+      const created = await createPendingRegistration(getPool, {
+        email: form.email,
+        passwordHash: hash,
+        form,
+        preferredLocale: prefLoc,
+      });
+      if (!created.ok) {
+        if (created.error === 'duplicate_user') return renderErr('register.errorDuplicateEmail');
+        return renderErr('register.errorGeneric');
+      }
+      const mailResult = await sendRegistrationVerificationEmail({
+        to: form.email,
+        code: created.code,
+      });
+      if (mailResult.skipped || !mailResult.ok) {
+        await query(getPool, 'DELETE FROM registration_pending WHERE id = @id', { id: created.pendingId });
+        return renderErr('register.errorVerificationMailNotConfigured');
+      }
+      req.session.registrationPendingId = created.pendingId;
+      return res.redirect(302, '/register/verify');
+    }
+
     await query(
       getPool,
       `INSERT INTO users (title, first_name, last_name, email, password_hash, university, research_focus, preferred_search_engine, preferred_locale)
@@ -1479,40 +1557,189 @@ app.post('/register', async (req, res) => {
 
     const result = await query(
       getPool,
-      'SELECT id, first_name, last_name, email FROM users WHERE email = @email',
+      'SELECT id, first_name, last_name, email, preferred_locale FROM users WHERE email = @email',
       { email: form.email }
     );
     const user = result.recordset[0];
-    req.session.userId = user.id;
-    req.session.user = {
-      id: user.id,
-      firstName: user.first_name,
-      lastName: user.last_name,
-      email: user.email,
-    };
-    req.session.locale = prefLoc;
-    i18n.setLocaleCookie(res, prefLoc);
-    await ensureSubscriptionRow(getPool, user.id);
-
-    const wantsMember = subscribeChoice === 'member';
-    if (wantsMember && stripe && isStripeBillingConfigured(stripe)) {
-      const cfg = getStripePriceConfig();
-      const interval = cfg.mode === 'dual' ? billingInterval : 'month';
-      let url = isStripeElementsBillingConfigured(stripe)
-        ? `/billing/subscribe?interval=${encodeURIComponent(interval)}`
-        : `/billing/checkout?interval=${encodeURIComponent(interval)}`;
-      if (subscribePromo) {
-        url += `&promo=${encodeURIComponent(subscribePromo)}`;
-      }
-      return res.redirect(302, url);
-    }
-    return res.redirect('/app/dashboard');
+    return completeNewUserSessionAfterRegistration(req, res, user, form);
   } catch (err) {
     if (err.code === 'ER_DUP_ENTRY') {
       return renderErr('register.errorDuplicateEmail');
     }
     console.error('Register error:', err.message);
     return renderErr('register.errorGeneric');
+  }
+});
+
+async function renderRegisterVerifyWithPending(req, res, errorMessage) {
+  const pid = req.session && req.session.registrationPendingId;
+  if (!pid) {
+    res.redirect('/register');
+    return;
+  }
+  const { row, expired } = await loadPendingForVerifyPage(getPool, pid);
+  if (expired || !row) {
+    delete req.session.registrationPendingId;
+    res.redirect('/register?verify=expired');
+    return;
+  }
+  const codeSent = new Date(row.code_sent_at);
+  const resendAt = new Date(codeSent.getTime() + RESEND_COOLDOWN_MS);
+  res.render('register-verify', {
+    user: req.session.user || null,
+    mailConfigured: isMailConfigured(),
+    maskedEmail: maskEmail(row.email),
+    resendAtIso: resendAt.toISOString(),
+    canResendNow: Date.now() >= resendAt.getTime(),
+    error: errorMessage || null,
+  });
+}
+
+app.get('/register/verify', async (req, res, next) => {
+  try {
+    if (req.session && req.session.userId) return res.redirect('/');
+    const pid = req.session && req.session.registrationPendingId;
+    if (!pid) return res.redirect('/register');
+    await renderRegisterVerifyWithPending(req, res, null);
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.post('/register/verify', async (req, res, next) => {
+  try {
+    if (req.session && req.session.userId) return res.redirect('/');
+    const pid = req.session && req.session.registrationPendingId;
+    if (!pid) return res.redirect('/register');
+    const code = String((req.body && req.body.code) || '')
+      .replace(/\D/g, '')
+      .slice(0, 6);
+    const t = res.locals.t;
+    if (code.length !== 6) {
+      return renderRegisterVerifyWithPending(req, res, t('register.errorVerifyCodeInvalid'));
+    }
+    const result = await verifyCodeAndCompleteUser(getPool, pid, code);
+    if (!result.ok) {
+      if (result.error === 'expired') {
+        delete req.session.registrationPendingId;
+        return res.redirect('/register?verify=expired');
+      }
+      if (result.error === 'wrong_code') {
+        return renderRegisterVerifyWithPending(req, res, t('register.errorVerifyWrongCode'));
+      }
+      if (result.error === 'not_found') {
+        delete req.session.registrationPendingId;
+        return res.redirect('/register');
+      }
+      return renderRegisterVerifyWithPending(req, res, t('register.errorGeneric'));
+    }
+    try {
+      return await completeNewUserSessionAfterRegistration(req, res, result.user, result.form);
+    } catch (sessionErr) {
+      console.error('Register verify session:', sessionErr.message);
+      return renderRegisterVerifyWithPending(req, res, t('register.errorGeneric'));
+    }
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') {
+      return renderRegisterVerifyWithPending(req, res, res.locals.t('register.errorDuplicateEmail'));
+    }
+    console.error('Register verify:', err.message);
+    return renderRegisterVerifyWithPending(req, res, res.locals.t('register.errorGeneric'));
+  }
+});
+
+app.post('/register/resend', async (req, res, next) => {
+  try {
+    if (req.session && req.session.userId) return res.redirect('/');
+    const pid = req.session && req.session.registrationPendingId;
+    if (!pid) return res.redirect('/register');
+    const t = res.locals.t;
+    const out = await resendVerificationCode(getPool, pid);
+    if (!out.ok) {
+      if (out.error === 'expired') {
+        delete req.session.registrationPendingId;
+        return res.redirect('/register?verify=expired');
+      }
+      if (out.error === 'too_soon') {
+        return renderRegisterVerifyWithPending(req, res, t('register.errorVerifyResendTooSoon'));
+      }
+      return res.redirect('/register/verify');
+    }
+    const row = await getPendingById(getPool, pid);
+    if (!row) {
+      delete req.session.registrationPendingId;
+      return res.redirect('/register');
+    }
+    const mailResult = await sendRegistrationVerificationEmail({ to: row.email, code: out.code });
+    if (mailResult.skipped || !mailResult.ok) {
+      return renderRegisterVerifyWithPending(req, res, t('register.errorVerificationMailNotConfigured'));
+    }
+    return res.redirect('/register/verify');
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.get('/register/change-email', (req, res) => {
+  if (req.session && req.session.userId) return res.redirect('/');
+  const pid = req.session && req.session.registrationPendingId;
+  if (!pid) return res.redirect('/register');
+  res.render('register-change-email', {
+    user: req.session.user || null,
+    mailConfigured: isMailConfigured(),
+    error: null,
+    email: '',
+  });
+});
+
+app.post('/register/change-email', async (req, res, next) => {
+  try {
+    if (req.session && req.session.userId) return res.redirect('/');
+    const pid = req.session && req.session.registrationPendingId;
+    if (!pid) return res.redirect('/register');
+    const email = String((req.body && req.body.email) || '').trim().toLowerCase();
+    const t = res.locals.t;
+    if (!email) {
+      return res.render('register-change-email', {
+        user: req.session.user || null,
+        mailConfigured: isMailConfigured(),
+        error: t('register.errorRequiredFields'),
+        email: '',
+      });
+    }
+    const out = await changePendingEmail(getPool, pid, email);
+    if (!out.ok) {
+      if (out.error === 'duplicate_user') {
+        return res.render('register-change-email', {
+          user: req.session.user || null,
+          mailConfigured: isMailConfigured(),
+          error: t('register.errorDuplicateEmail'),
+          email,
+        });
+      }
+      if (out.error === 'not_found') {
+        delete req.session.registrationPendingId;
+        return res.redirect('/register');
+      }
+      return res.render('register-change-email', {
+        user: req.session.user || null,
+        mailConfigured: isMailConfigured(),
+        error: t('register.errorGeneric'),
+        email,
+      });
+    }
+    const mailResult = await sendRegistrationVerificationEmail({ to: out.email, code: out.code });
+    if (mailResult.skipped || !mailResult.ok) {
+      return res.render('register-change-email', {
+        user: req.session.user || null,
+        mailConfigured: isMailConfigured(),
+        error: t('register.errorVerificationMailNotConfigured'),
+        email,
+      });
+    }
+    return res.redirect('/register/verify');
+  } catch (e) {
+    next(e);
   }
 });
 
