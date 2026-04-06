@@ -77,7 +77,7 @@ Successful payment sets `subscriptions.status` to **`active`** (unlocks The Foun
 
 ## Data model & REST API
 
-On startup the app creates (if missing): **`subscriptions`** (Stripe IDs, `current_period_end`, **`cancel_at_period_end`**, trial / status), **`projects`** (optional **`purpose_other`** when purpose is Other), **`project_sections`** (including optional **`body`** draft text per section, **`progress_percent`** for section weights on custom “Other” templates), **`sources`**, **`source_sections`**. Templates for new projects live in `data/project-templates.json` (non-deprecated keys are listed in the Forge UI).
+On startup the app creates (if missing): **`subscriptions`** (Stripe IDs, `current_period_end`, **`cancel_at_period_end`**, trial / status), **`projects`** (optional **`purpose_other`** when purpose is Other), **`project_sections`** (including optional **`body`** draft text per section, **`progress_percent`** for section weights on custom “Other” templates), **`sources`**, **`source_sections`**, **`project_templates_store`** (project templates JSON — survives deploys; see [docs/project-templates.md](docs/project-templates.md)). The repo file `data/project-templates.json` seeds an empty DB only.
 
 **Session:** Sign in with the same browser session cookie. From JavaScript, call APIs with `fetch(url, { credentials: 'same-origin' })`.
 
@@ -157,7 +157,7 @@ Set a random **`ADMIN_TEMPLATE_EDITOR_TOKEN`** in `.env` (minimum **8** characte
 
 Use the query form so the secret can contain any character (including `/`). A path-only URL `.../admin/project-templates/<SECRET>` still works if the secret has **no** `/` in it (Express only captures one path segment).
 
-Use it to edit section titles, slugs, each section’s **% of the document** (must total 100% per template), and **projected total word count** for the whole piece. Data is stored in `data/project-templates.json`. **Saves write that JSON back exactly as submitted** (after validation only)—the server does not recompute percentages or slugs on save. New projects inherit section weights from their template. In the Anvil, the progress row shows **Section target** (~words for the current section) and **Document** (~% complete vs the projected total) when those values are set.
+Use it to edit section titles, slugs, each section’s **% of the document** (must total 100% per template), and **projected total word count** for the whole piece. **Saves persist to the database** (`project_templates_store`) so production templates are not wiped by deploy. **Saves write that JSON back exactly as submitted** (after validation only)—the server does not recompute percentages or slugs on save. New projects inherit section weights from their template. In the Anvil, the progress row shows **Section target** (~words for the current section) and **Document** (~% complete vs the projected total) when those values are set. See [docs/project-templates.md](docs/project-templates.md).
 
 ## Repository
 

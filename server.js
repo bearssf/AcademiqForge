@@ -18,6 +18,7 @@ const {
   createProject,
   loadTemplates,
   saveProjectTemplates,
+  initProjectTemplatesStore,
   templateOptionsForForm,
   updateProjectSettings,
   PURPOSES,
@@ -296,14 +297,18 @@ function renderAdminProjectTemplatesPage(req, res) {
   res.render('admin-project-templates', { templatesData: safe });
 }
 
-function postAdminProjectTemplatesSave(req, res) {
-  const tpl = req.body && req.body.templates;
-  if (!tpl || typeof tpl !== 'object' || Array.isArray(tpl)) {
-    return res.status(400).json({ ok: false, error: 'Missing templates object.' });
+async function postAdminProjectTemplatesSave(req, res, next) {
+  try {
+    const tpl = req.body && req.body.templates;
+    if (!tpl || typeof tpl !== 'object' || Array.isArray(tpl)) {
+      return res.status(400).json({ ok: false, error: 'Missing templates object.' });
+    }
+    const result = await saveProjectTemplates(getPool, tpl);
+    if (!result.ok) return res.status(400).json(result);
+    res.json({ ok: true });
+  } catch (e) {
+    next(e);
   }
-  const result = saveProjectTemplates(tpl);
-  if (!result.ok) return res.status(400).json(result);
-  res.json({ ok: true });
 }
 
 /* Prefer ?token=... — path /:token breaks if the secret contains "/" (only one segment is captured). */
@@ -1529,6 +1534,7 @@ async function start() {
     await ensureUsersTable();
     await ensureUserExtraColumns();
     await ensureCoreSchema(getPool);
+    await initProjectTemplatesStore(getPool);
     await ensureTrainingWalkthroughSchema(getPool);
     await ensurePasswordResetSchema(getPool);
     console.log('Database connected.');
